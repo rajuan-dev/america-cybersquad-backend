@@ -17,6 +17,7 @@ import { tripServiceRoutes } from "../modules/Trip_Service/tripService.route";
 import { vehicleRoutes } from "../modules/Vehicle/vehicle.route";
 import { blogRoutes } from "../modules/Blog/blog.route";
 import { customerContactRoutes } from "../modules/CustomerContact/customerContact.route";
+import { tripServiceBookingRoute } from "../modules/TripService_booking/tripServiceBooking.route";
 
 const router = express.Router();
 
@@ -33,6 +34,10 @@ const moduleRoutes = [
   {
     path: "/trip-services",
     route: tripServiceRoutes,
+  },
+  {
+    path: "/trip-service-booking",
+    route: tripServiceBookingRoute,
   },
 
   {
