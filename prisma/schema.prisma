@@ -237,6 +237,7 @@ model TripServiceBooking {
   toLat         Float?
   toLng         Float?
   serviceType   ServiceType
+  timeSlot      Json?
   travelDate    DateTime
   passengers    Int
   luggage       Int?
