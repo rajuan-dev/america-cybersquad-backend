@@ -123,15 +123,16 @@ model User {
   updatedAt DateTime @updatedAt
 
   // relationships
-  payment       Payment[]
-  notifications Notifications[]
-  review        Review[]
-  favorite      Favorite[]
-  sender        Channel[]       @relation("ChannelPerson1")
-  receiver      Channel[]       @relation("ChannelPerson2")
-  messages      Message[]       @relation("sentMessages")
-  support       Support[]
-  tripServices  TripService[]
+  payment            Payment[]
+  notifications      Notifications[]
+  review             Review[]
+  favorite           Favorite[]
+  sender             Channel[]           @relation("ChannelPerson1")
+  receiver           Channel[]           @relation("ChannelPerson2")
+  messages           Message[]           @relation("sentMessages")
+  support            Support[]
+  tripServices       TripService[]
+  triServiceBookings TriServiceBooking[]
 
   @@map("users")
 }
@@ -178,9 +179,10 @@ model TripService {
   updatedAt         DateTime           @updatedAt
 
   // relations
-  user      User       @relation(fields: [userId], references: [id])
-  userId    String     @db.ObjectId
-  stoppages Stoppage[]
+  user                User                @relation(fields: [userId], references: [id])
+  userId              String              @db.ObjectId
+  stoppages           Stoppage[]
+  tripServiceBookings TriServiceBooking[]
 
   @@map("trip_services")
 }
@@ -199,8 +201,9 @@ model Stoppage {
   updatedAt   DateTime @updatedAt
 
   // relationships
-  tripServiceId String?      @db.ObjectId
-  tripService   TripService? @relation(fields: [tripServiceId], references: [id])
+  tripServiceId      String?             @db.ObjectId
+  tripService        TripService?        @relation(fields: [tripServiceId], references: [id])
+  triServiceBookings TriServiceBooking[]
 
   @@map("stoppages")
 }
@@ -219,7 +222,48 @@ model Vehicle {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // relations
+  tripServiceBookings TriServiceBooking[]
+
   @@map("vehicles")
+}
+
+model TripServiceBooking {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  from          String
+  fromLat       Float?
+  fromLng       Float?
+  to            String
+  toLat         Float?
+  toLng         Float?
+  serviceType   ServiceType
+  travelDate    DateTime
+  passengers    Int
+  luggage       Int?
+  basePrice     Float
+  distanceKm    Float?
+  vehiclePrice  Float
+  stoppagePrice Float         @default(0)
+  totalPrice    Float
+  isReturn      Boolean       @default(false)
+  returnDate    DateTime?
+  returnPrice   Float?
+  status        BookingStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // relations
+  user          User        @relation(fields: [userId], references: [id])
+  userId        String      @db.ObjectId
+  tripService   TripService @relation(fields: [tripServiceId], references: [id])
+  tripServiceId String      @db.ObjectId
+  vehicle       Vehicle     @relation(fields: [vehicleId], references: [id])
+  vehicleId     String      @db.ObjectId
+
+  stoppedId String    @db.ObjectId
+  stopped   Stoppage? @relation(fields: [stoppedId], references: [id])
+
+  @@map("trip_service_bookings")
 }
 
 model Review {
@@ -289,7 +333,7 @@ model Faq {
 }
 
 model CustomerContact {
-  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  id            String  @id @default(auto()) @map("_id") @db.ObjectId
   fullName      String
   email         String
   contactNumber String
