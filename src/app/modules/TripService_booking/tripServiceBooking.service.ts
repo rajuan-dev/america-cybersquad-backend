@@ -78,11 +78,11 @@ const createTripServiceBooking = async (
     }
   }
 
-  // Calculate prices
+  // calculate prices
   let vehiclePrice = 0;
   let stoppagePrice = 0;
 
-  // Get all vehicles for pricing calculation
+  // get all vehicles for pricing calculation
   const vehicleIds = bookingVehicles.map((v) => v.vehicleId);
   const vehicles =
     vehicleIds.length > 0
@@ -91,7 +91,7 @@ const createTripServiceBooking = async (
         })
       : [];
 
-  // Get all stoppages for pricing calculation
+  // get all stoppages for pricing calculation
   const stoppageIds = bookingStoppages.map((s) => s.stoppageId);
   const stoppages =
     stoppageIds.length > 0
@@ -100,7 +100,7 @@ const createTripServiceBooking = async (
         })
       : [];
 
-  // Calculate vehicle prices
+  // calculate vehicle prices
   for (const bookingVehicle of bookingVehicles) {
     const vehicle = vehicles.find((v) => v.id === bookingVehicle.vehicleId);
     if (!vehicle) continue;
@@ -112,20 +112,19 @@ const createTripServiceBooking = async (
     vehiclePrice += price * bookingVehicle.quantity;
   }
 
-  // Calculate stoppage prices
+  // calculate stoppage prices
   for (const bookingStoppage of bookingStoppages) {
     const stoppage = stoppages.find((s) => s.id === bookingStoppage.stoppageId);
     if (!stoppage) continue;
     stoppagePrice += stoppage.price * bookingStoppage.quantity;
   }
 
-  // Calculate total price
+  // calculate total price
   const basePrice = tripService.price || 0;
   const totalPrice = basePrice + vehiclePrice + stoppagePrice;
 
-  // Create booking with transaction
+  // create booking with transaction
   const result = await prisma.$transaction(async (tx) => {
-    // Create main booking
     const booking = await tx.tripServiceBooking.create({
       data: {
         from,
@@ -152,7 +151,7 @@ const createTripServiceBooking = async (
       },
     });
 
-    // Create booking vehicles
+    // create booking vehicles
     if (bookingVehicles.length > 0) {
       const bookingVehicleData = bookingVehicles.map((bv) => {
         const vehicle = vehicles.find((v) => v.id === bv.vehicleId);
@@ -176,7 +175,7 @@ const createTripServiceBooking = async (
       await Promise.all(bookingVehicleData.filter(Boolean));
     }
 
-    // Create booking stoppages
+    // create booking stoppages
     if (bookingStoppages.length > 0) {
       const bookingStoppageData = bookingStoppages.map((bs) => {
         const stoppage = stoppages.find((s) => s.id === bs.stoppageId);
@@ -195,15 +194,15 @@ const createTripServiceBooking = async (
       await Promise.all(bookingStoppageData.filter(Boolean));
     }
 
-    // Update booking count on trip service
-    await tx.tripService.update({
-      where: { id: tripServiceId },
-      data: {
-        bookingCount: {
-          increment: 1,
-        },
-      },
-    });
+    // update booking count on trip service
+    // await tx.tripService.update({
+    //   where: { id: tripServiceId },
+    //   data: {
+    //     bookingCount: {
+    //       increment: 1,
+    //     },
+    //   },
+    // });
 
     return booking;
   });
