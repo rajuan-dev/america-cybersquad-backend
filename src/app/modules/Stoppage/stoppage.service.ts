@@ -137,6 +137,7 @@ const getSingleStoppage = async (id: string): Promise<any> => {
     },
   });
 
+  // if stoppage not found
   if (!result) {
     throw new ApiError(httpStatus.NOT_FOUND, "Stoppage not found");
   }
@@ -154,6 +155,7 @@ const updateStoppage = async (
       where: { id },
     });
 
+    // if stoppage not found
     if (!isExist) {
       throw new ApiError(httpStatus.NOT_FOUND, "Stoppage not found");
     }
