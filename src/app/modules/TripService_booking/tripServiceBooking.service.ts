@@ -21,7 +21,7 @@ const createTripServiceBooking = async (
     timeSlot,
     passengers,
     luggage,
-    isReturn = false,
+    isReturn,
     returnDate,
     bookingVehicles = [],
     bookingStoppages = [],
