@@ -45,7 +45,7 @@ const createTripServiceBooking = async (
     throw new ApiError(httpStatus.BAD_REQUEST, "Trip service is not available");
   }
 
-  // Validate vehicles exist and are active
+  // vehicles exist and are active
   if (bookingVehicles.length > 0) {
     const vehicleIds = bookingVehicles.map((v) => v.vehicleId);
     const vehicles = await prisma.vehicle.findMany({
@@ -63,7 +63,7 @@ const createTripServiceBooking = async (
     }
   }
 
-  // Validate stoppages exist
+  // stoppages exist
   if (bookingStoppages.length > 0) {
     const stoppageIds = bookingStoppages.map((s) => s.stoppageId);
     const stoppages = await prisma.stoppage.findMany({
