@@ -1,5 +1,10 @@
 import prisma from "../../../shared/prisma";
-import { TripServiceBooking, ServiceType, BookingStatus } from "@prisma/client";
+import {
+  TripServiceBooking,
+  ServiceType,
+  BookingStatus,
+  ServiceStatus,
+} from "@prisma/client";
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 import { ICreateTripServiceBooking } from "./tripServiceBooking.interface";
@@ -41,7 +46,7 @@ const createTripServiceBooking = async (
     throw new ApiError(httpStatus.NOT_FOUND, "Trip service not found");
   }
 
-  if (tripService.status !== "ACTIVE") {
+  if (tripService.status !== ServiceStatus.ACTIVE) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Trip service is not available");
   }
 
@@ -78,11 +83,11 @@ const createTripServiceBooking = async (
     }
   }
 
-  // calculate prices
+  // calculate prices vehicle and stoppage
   let vehiclePrice = 0;
   let stoppagePrice = 0;
 
-  // get all vehicles for pricing calculation
+  // all vehicles for pricing calculation
   const vehicleIds = bookingVehicles.map((v) => v.vehicleId);
   const vehicles =
     vehicleIds.length > 0
@@ -91,7 +96,7 @@ const createTripServiceBooking = async (
         })
       : [];
 
-  // get all stoppages for pricing calculation
+  // all stoppages for pricing calculation
   const stoppageIds = bookingStoppages.map((s) => s.stoppageId);
   const stoppages =
     stoppageIds.length > 0
