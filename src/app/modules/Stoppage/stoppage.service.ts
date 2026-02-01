@@ -110,9 +110,9 @@ const getAllStoppages = async (
 
   return {
     meta: {
+      total,
       page,
       limit,
-      total,
     },
     data: result,
   };
