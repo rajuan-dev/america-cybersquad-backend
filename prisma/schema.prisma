@@ -179,10 +179,10 @@ model TripService {
   updatedAt         DateTime           @updatedAt
 
   // relations
-  user                User                 @relation(fields: [userId], references: [id])
-  userId              String               @db.ObjectId
-  stoppages           Stoppage[]
-  tripServiceBookings TripServiceBooking[]
+  user                 User                  @relation(fields: [userId], references: [id])
+  userId               String                @db.ObjectId
+  tripServiceBookings  TripServiceBooking[]
+  tripServiceStoppages TripServiceStoppage[]
 
   @@map("trip_services")
 }
@@ -201,11 +201,26 @@ model Stoppage {
   updatedAt   DateTime @updatedAt
 
   // relationships
-  tripServiceId    String?           @db.ObjectId
-  tripService      TripService?      @relation(fields: [tripServiceId], references: [id])
-  bookingStoppages BookingStoppage[] // many-to-many relationship
+  bookingStoppages     BookingStoppage[] // many-to-many relationship
+  tripServiceStoppages TripServiceStoppage[]
 
   @@map("stoppages")
+}
+
+model TripServiceStoppage {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  tripServiceId String @db.ObjectId
+  stoppageId    String @db.ObjectId
+
+  order         Int
+  isRecommended Boolean @default(false)
+
+  tripService TripService @relation(fields: [tripServiceId], references: [id])
+  stoppage    Stoppage    @relation(fields: [stoppageId], references: [id])
+
+  @@unique([tripServiceId, stoppageId])
+  @@map("trip_service_stoppages")
 }
 
 model Vehicle {
