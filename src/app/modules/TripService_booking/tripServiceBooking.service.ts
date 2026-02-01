@@ -194,7 +194,7 @@ const createTripServiceBooking = async (
       await Promise.all(bookingStoppageData.filter(Boolean));
     }
 
-    // update booking count on trip service
+    // update booking count trip service
     // await tx.tripService.update({
     //   where: { id: tripServiceId },
     //   data: {
