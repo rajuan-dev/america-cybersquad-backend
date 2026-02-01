@@ -18,6 +18,7 @@ import { vehicleRoutes } from "../modules/Vehicle/vehicle.route";
 import { blogRoutes } from "../modules/Blog/blog.route";
 import { customerContactRoutes } from "../modules/CustomerContact/customerContact.route";
 import { tripServiceBookingRoute } from "../modules/TripService_booking/tripServiceBooking.route";
+import { StoppageRoutes } from "../modules/Stoppage/stoppage.route";
 
 const router = express.Router();
 
@@ -43,6 +44,11 @@ const moduleRoutes = [
   {
     path: "/vehicles",
     route: vehicleRoutes,
+  },
+
+  {
+    path: "/stoppages",
+    route: StoppageRoutes,
   },
 
   {
