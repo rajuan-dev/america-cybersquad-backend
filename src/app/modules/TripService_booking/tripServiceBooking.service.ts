@@ -2,30 +2,7 @@ import prisma from "../../../shared/prisma";
 import { TripServiceBooking, ServiceType, BookingStatus } from "@prisma/client";
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
-
-interface ICreateTripServiceBooking {
-  tripServiceId: string;
-  from: string;
-  fromLat?: number;
-  fromLng?: number;
-  to: string;
-  toLat?: number;
-  toLng?: number;
-  travelDate: Date;
-  timeSlot?: any;
-  passengers: number;
-  luggage?: number;
-  isReturn?: boolean;
-  returnDate?: Date;
-  bookingVehicles?: Array<{
-    vehicleId: string;
-    quantity: number;
-  }>;
-  bookingStoppages?: Array<{
-    stoppageId: string;
-    quantity: number;
-  }>;
-}
+import { ICreateTripServiceBooking } from "./tripServiceBooking.interface";
 
 // create trip service booking
 const createTripServiceBooking = async (
