@@ -7,6 +7,7 @@ import { IStoppageFilters } from "./stoppage.interface";
 import { paginationFields } from "../../../constants/pagination";
 import { uploadFile } from "../../../helpars/fileUploader";
 import { pick } from "../../../shared/pick";
+import ApiError from "../../../errors/ApiErrors";
 
 // create stoppage
 const createStoppage = catchAsync(async (req: Request, res: Response) => {
@@ -16,6 +17,10 @@ const createStoppage = catchAsync(async (req: Request, res: Response) => {
 
   const stoppageData = req.body;
 
+  // image required
+  if (!files?.image || files.image.length === 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Image is required");
+  }
   // handle image uploads
   let imageUrls: string[] = [];
   if (files?.image && files.image.length > 0) {
