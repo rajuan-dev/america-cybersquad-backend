@@ -1,11 +1,10 @@
-import { PrismaClient } from "@prisma/client";
 import httpStatus from "http-status";
 import { IStoppage, IStoppageFilters } from "./stoppage.interface";
 import ApiError from "../../../errors/ApiErrors";
 import { paginationHelpers } from "../../../helpars/paginationHelper";
+import prisma from "../../../shared/prisma";
 
-const prisma = new PrismaClient();
-
+// create stoppage
 const createStoppage = async (data: IStoppage): Promise<any> => {
   try {
     const stoppage = await prisma.stoppage.create({
@@ -46,6 +45,7 @@ const createStoppage = async (data: IStoppage): Promise<any> => {
   }
 };
 
+// get all stoppages
 const getAllStoppages = async (
   filters: IStoppageFilters,
   options: any,
@@ -118,6 +118,7 @@ const getAllStoppages = async (
   };
 };
 
+// get single stoppage
 const getSingleStoppage = async (id: string): Promise<any> => {
   const result = await prisma.stoppage.findUnique({
     where: { id },
@@ -143,6 +144,7 @@ const getSingleStoppage = async (id: string): Promise<any> => {
   return result;
 };
 
+// update stoppage
 const updateStoppage = async (
   id: string,
   data: Partial<IStoppage>,
@@ -195,6 +197,7 @@ const updateStoppage = async (
   }
 };
 
+// delete stoppage
 const deleteStoppage = async (id: string): Promise<any> => {
   try {
     const isExist = await prisma.stoppage.findUnique({

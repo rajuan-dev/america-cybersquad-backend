@@ -8,6 +8,7 @@ import { paginationFields } from "../../../constants/pagination";
 import { uploadFile } from "../../../helpars/fileUploader";
 import { pick } from "../../../shared/pick";
 
+// create stoppage
 const createStoppage = catchAsync(async (req: Request, res: Response) => {
   const files = req.files as {
     [fieldname: string]: Express.Multer.File[];
@@ -45,6 +46,7 @@ const createStoppage = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// get all stoppages
 const getAllStoppages = catchAsync(async (req: Request, res: Response) => {
   const filters = pick(req.query, [
     "searchTerm",
@@ -68,6 +70,7 @@ const getAllStoppages = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// get single stoppage
 const getSingleStoppage = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
   const result = await StoppageService.getSingleStoppage(id);
@@ -80,6 +83,7 @@ const getSingleStoppage = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// update stoppage
 const updateStoppage = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
   const files = req.files as {
@@ -113,6 +117,7 @@ const updateStoppage = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// delete stoppage
 const deleteStoppage = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
   const result = await StoppageService.deleteStoppage(id);
