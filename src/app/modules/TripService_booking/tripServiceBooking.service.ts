@@ -27,7 +27,7 @@ const createTripServiceBooking = async (
     bookingStoppages = [],
   } = payload;
 
-  // Validate trip service exists and is available
+  // trip service exists and is available
   const tripService = await prisma.tripService.findUnique({
     where: { id: tripServiceId },
     include: {
