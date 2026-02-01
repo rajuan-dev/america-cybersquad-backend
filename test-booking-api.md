@@ -4,7 +4,7 @@
 POST `/trip-service-booking`
 
 ## Headers
-- Authorization: Bearer `<JWT_TOKEN>`
+- Authorization: `<JWT_TOKEN>`
 - Content-Type: application/json
 
 ## Request Body Example
