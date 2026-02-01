@@ -9,7 +9,7 @@ import { parseBodyData } from "../../middlewares/parseNestedJson";
 
 const router = Router();
 
-// Create stoppage (admin only)
+// create stoppage (admin only)
 router.post(
   "/",
   auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
@@ -19,13 +19,13 @@ router.post(
   StoppageController.createStoppage,
 );
 
-// Get all stoppages (public)
+// get all stoppages (public)
 router.get("/", StoppageController.getAllStoppages);
 
-// Get single stoppage (public)
+// get single stoppage (public)
 router.get("/:id", StoppageController.getSingleStoppage);
 
-// Update stoppage (admin only)
+// update stoppage (admin only)
 router.patch(
   "/:id",
   auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
@@ -35,7 +35,7 @@ router.patch(
   StoppageController.updateStoppage,
 );
 
-// Delete stoppage (admin only)
+// delete stoppage (admin only)
 router.delete(
   "/:id",
   auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
