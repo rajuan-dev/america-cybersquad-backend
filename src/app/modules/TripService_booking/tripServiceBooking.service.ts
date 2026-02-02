@@ -32,7 +32,15 @@ const createTripServiceBooking = async (
     bookingStoppages = [],
   } = payload;
 
-  // trip service exists and is available
+  // find user
+  const findUser = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+  if (!findUser) {
+    throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  // trip service exists
   const tripService = await prisma.tripService.findUnique({
     where: { id: tripServiceId },
     include: {
