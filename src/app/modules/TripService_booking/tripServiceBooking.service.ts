@@ -4,10 +4,13 @@ import {
   ServiceType,
   BookingStatus,
   ServiceStatus,
+  Prisma,
 } from "@prisma/client";
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 import { ICreateTripServiceBooking } from "./tripServiceBooking.interface";
+import { IPaginationOptions } from "../../../interfaces/paginations";
+import { paginationHelpers } from "../../../helpars/paginationHelper";
 
 // create trip service booking
 const createTripServiceBooking = async (
@@ -228,6 +231,48 @@ const createTripServiceBooking = async (
   return result;
 };
 
+// get my trip service booking
+const getMyTripServiceBookings = async (
+  userId: string,
+  options: IPaginationOptions,
+) => {
+  const { page, limit, skip } = paginationHelpers.calculatedPagination(options);
+
+  const filters: Prisma.TripServiceBookingWhereInput[] = [];
+
+  filters.push({
+    userId,
+  });
+
+  const where: Prisma.TripServiceBookingWhereInput = {
+    AND: filters,
+  };
+
+  const result = await prisma.tripServiceBooking.findMany({
+    where,
+    skip,
+    take: limit,
+    orderBy:
+      options.sortBy && options.sortOrder
+        ? { [options.sortBy]: options.sortOrder }
+        : { id: "desc" },
+  });
+
+  const total = await prisma.tripServiceBooking.count({
+    where,
+  });
+
+  return {
+    meta: {
+      total,
+      page,
+      limit,
+    },
+    data: result,
+  };
+};
+
 export const TripServiceBookingService = {
   createTripServiceBooking,
+  getMyTripServiceBookings,
 };

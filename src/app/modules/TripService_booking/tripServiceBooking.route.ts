@@ -10,11 +10,18 @@ const router = express.Router();
 // create trip service booking
 router.post(
   "/:tripServiceId",
-  auth(UserRole.USER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  auth(UserRole.USER, UserRole.AGENT, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   validateRequest(
     TripServiceBookingValidation.createTripServiceBookingValidation,
   ),
   TripServiceBookingController.createTripServiceBooking,
+);
+
+// get my trip service booking
+router.get(
+  "/my-bookings",
+  auth(UserRole.USER, UserRole.AGENT),
+  TripServiceBookingController.getMyTripServiceBookings,
 );
 
 export const tripServiceBookingRoute = router;

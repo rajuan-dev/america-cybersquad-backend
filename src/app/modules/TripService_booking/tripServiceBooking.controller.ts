@@ -3,6 +3,8 @@ import { Request, Response } from "express";
 import sendResponse from "../../../shared/sendResponse";
 import httpStatus from "http-status";
 import { TripServiceBookingService } from "./tripServiceBooking.service";
+import { pick } from "../../../shared/pick";
+import { paginationFields } from "../../../constants/pagination";
 
 // create trip service booking
 const createTripServiceBooking = catchAsync(
@@ -25,6 +27,25 @@ const createTripServiceBooking = catchAsync(
   },
 );
 
+// get my trip service booking
+const getMyTripServiceBookings = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    const options = pick(req.query, paginationFields);
+
+    const result =
+      await TripServiceBookingService.getMyTripServiceBookings(userId, options);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "My trip service bookings retrieved successfully",
+      data: result,
+    });
+  },
+);
+
 export const TripServiceBookingController = {
   createTripServiceBooking,
+  getMyTripServiceBookings,
 };
