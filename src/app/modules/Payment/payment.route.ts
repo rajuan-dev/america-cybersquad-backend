@@ -17,7 +17,7 @@ router.post(
 router.post(
   "/create-stripe-checkout-session-website/:bookingId",
   auth(UserRole.USER, UserRole.AGENT),
-  PaymentController.createStripeCheckoutSessionWebsite
+  PaymentController.createStripeCheckoutSession
 );
 
 

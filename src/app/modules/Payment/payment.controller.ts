@@ -19,33 +19,29 @@ const stripeAccountOnboarding = catchAsync(
       message: "Stripe account onboarding successfully",
       data: result,
     });
-  }
+  },
 );
 
 // checkout session on stripe
-const createStripeCheckoutSessionWebsite = catchAsync(
+const createStripeCheckoutSession = catchAsync(
   async (req: Request, res: Response) => {
     const userId = req.user?.id;
-    const { serviceType, bookingId } = req.params;
-    const { description, country } = req.body;
+    const { bookingId } = req.params;
+    const { description } = req.body;
 
-    const normalizedServiceType = serviceType.toUpperCase() as "HOTEL";
-
-    // const result = await PaymentService.createStripeCheckoutSessionWebsite(
-    //   userId,
-    //   normalizedServiceType,
-    //   bookingId,
-    //   description,
-    //   country
-    // );
+    const result = await PaymentService.createStripeCheckoutSession(
+      userId,
+      bookingId,
+      description,
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
       message: "Checkout session created successfully",
-      data: "",
+      data: result,
     });
-  }
+  },
 );
 
 // stripe webhook payment
@@ -65,13 +61,13 @@ const stripeHandleWebhook = catchAsync(async (req: Request, res: Response) => {
     event = stripe.webhooks.constructEvent(
       req.rawBody,
       sig,
-      config.stripe.webhookSecret as string
+      config.stripe.webhookSecret as string,
     );
   } catch (err: any) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       `Webhook Error: ${err.message}`,
-      ""
+      "",
     );
   }
 
@@ -81,7 +77,7 @@ const stripeHandleWebhook = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: "Stripe webhook payment successfully",
-    data: "",
+    data: event,
   });
 });
 
@@ -116,12 +112,10 @@ const getMyTransactions = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
-
 export const PaymentController = {
   stripeAccountOnboarding,
   stripeHandleWebhook,
   cancelStripeBooking,
   getMyTransactions,
-  createStripeCheckoutSessionWebsite,
+  createStripeCheckoutSession,
 };

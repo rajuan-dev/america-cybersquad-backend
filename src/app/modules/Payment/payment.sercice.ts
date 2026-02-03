@@ -107,6 +107,13 @@ const stripeAccountOnboarding = async (userId: string) => {
   };
 };
 
+// checkout session on stripe
+const createStripeCheckoutSession = async (
+  userId: string,
+  bookingId: string,
+  description: string,
+) => {};
+
 // get my all my transactions
 const getMyTransactions = async (userId: string) => {
   const transactions = await prisma.payment.findMany({
@@ -122,5 +129,6 @@ const getMyTransactions = async (userId: string) => {
 
 export const PaymentService = {
   stripeAccountOnboarding,
+  createStripeCheckoutSession,
   getMyTransactions,
 };
