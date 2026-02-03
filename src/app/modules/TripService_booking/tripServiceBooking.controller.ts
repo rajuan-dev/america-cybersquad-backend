@@ -33,8 +33,10 @@ const getMyTripServiceBookings = catchAsync(
     const userId = req.user?.id;
     const options = pick(req.query, paginationFields);
 
-    const result =
-      await TripServiceBookingService.getMyTripServiceBookings(userId, options);
+    const result = await TripServiceBookingService.getMyTripServiceBookings(
+      userId,
+      options,
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -45,7 +47,25 @@ const getMyTripServiceBookings = catchAsync(
   },
 );
 
+// get all trip service booking by admin
+const getAllTripServiceBookings = catchAsync(
+  async (req: Request, res: Response) => {
+    const options = pick(req.query, paginationFields);
+
+    const result =
+      await TripServiceBookingService.getAllTripServiceBookings(options);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "All trip service bookings retrieved successfully",
+      data: result,
+    });
+  },
+);
+
 export const TripServiceBookingController = {
   createTripServiceBooking,
   getMyTripServiceBookings,
+  getAllTripServiceBookings,
 };

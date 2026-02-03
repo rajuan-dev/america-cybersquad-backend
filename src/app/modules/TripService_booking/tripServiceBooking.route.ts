@@ -24,4 +24,11 @@ router.get(
   TripServiceBookingController.getMyTripServiceBookings,
 );
 
+// get all trip service booking by admin
+router.get(
+  "/all-bookings",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  TripServiceBookingController.getAllTripServiceBookings,
+);
+
 export const tripServiceBookingRoute = router;

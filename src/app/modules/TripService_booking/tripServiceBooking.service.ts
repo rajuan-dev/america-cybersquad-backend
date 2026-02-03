@@ -272,7 +272,46 @@ const getMyTripServiceBookings = async (
   };
 };
 
+// get all trip service booking by admin
+const getAllTripServiceBookings = async (options: IPaginationOptions) => {
+  const { page, limit, skip } = paginationHelpers.calculatedPagination(options);
+
+  const filters: Prisma.TripServiceBookingWhereInput[] = [];
+
+  filters.push({
+    status: BookingStatus.CONFIRMED,
+  });
+
+  const where: Prisma.TripServiceBookingWhereInput = {
+    AND: filters,
+  };
+
+  const result = await prisma.tripServiceBooking.findMany({
+    where,
+    skip,
+    take: limit,
+    orderBy:
+      options.sortBy && options.sortOrder
+        ? { [options.sortBy]: options.sortOrder }
+        : { id: "desc" },
+  });
+
+  const total = await prisma.tripServiceBooking.count({
+    where,
+  });
+
+  return {
+    meta: {
+      total,
+      page,
+      limit,
+    },
+    data: result,
+  };
+};
+
 export const TripServiceBookingService = {
   createTripServiceBooking,
   getMyTripServiceBookings,
+  getAllTripServiceBookings,
 };
