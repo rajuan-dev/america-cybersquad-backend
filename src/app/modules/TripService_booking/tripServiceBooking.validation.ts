@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const createTripServiceBookingValidation = z.object({
   body: z.object({
-    tripServiceId: z.string().min(1, "Trip service ID is required"),
+    // tripServiceId: z.string().min(1, "Trip service ID is required"),
     from: z.string().min(1, "From location is required"),
     fromLat: z.number().optional(),
     fromLng: z.number().optional(),

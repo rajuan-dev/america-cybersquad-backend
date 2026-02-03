@@ -61,9 +61,10 @@ const createTripServiceBooking = async (
   }
 
   // vehicles exist and are active
+  let vehicles: any[] = [];
   if (bookingVehicles.length > 0) {
     const vehicleIds = bookingVehicles.map((v) => v.vehicleId);
-    const vehicles = await prisma.vehicle.findMany({
+    vehicles = await prisma.vehicle.findMany({
       where: {
         id: { in: vehicleIds },
         isActive: true,
@@ -79,9 +80,10 @@ const createTripServiceBooking = async (
   }
 
   // stoppages exist
+  let stoppages: any[] = [];
   if (bookingStoppages.length > 0) {
     const stoppageIds = bookingStoppages.map((s) => s.stoppageId);
-    const stoppages = await prisma.stoppage.findMany({
+    stoppages = await prisma.stoppage.findMany({
       where: { id: { in: stoppageIds } },
     });
 
@@ -106,24 +108,6 @@ const createTripServiceBooking = async (
   // calculate prices vehicle and stoppage
   let vehiclePrice = 0;
   let stoppagePrice = 0;
-
-  // all vehicles for pricing calculation
-  const vehicleIds = bookingVehicles.map((v) => v.vehicleId);
-  const vehicles =
-    vehicleIds.length > 0
-      ? await prisma.vehicle.findMany({
-          where: { id: { in: vehicleIds } },
-        })
-      : [];
-
-  // all stoppages for pricing calculation
-  const stoppageIds = bookingStoppages.map((s) => s.stoppageId);
-  const stoppages =
-    stoppageIds.length > 0
-      ? await prisma.stoppage.findMany({
-          where: { id: { in: stoppageIds } },
-        })
-      : [];
 
   // calculate vehicle prices
   for (const bookingVehicle of bookingVehicles) {
@@ -166,7 +150,7 @@ const createTripServiceBooking = async (
         to,
         toLat,
         toLng,
-        serviceType: serviceType as ServiceType,
+        serviceType: tripService.serviceType,
         timeSlot,
         travelDate,
         passengers,
