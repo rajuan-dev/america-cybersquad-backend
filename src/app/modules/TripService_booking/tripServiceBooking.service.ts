@@ -91,6 +91,16 @@ const createTripServiceBooking = async (
     }
   }
 
+  // check passenger capacity
+  const totalSeat = bookingVehicles.reduce((sum, bv) => {
+    const vehicle = vehicles.find((v) => v.id === bv.vehicleId);
+    return sum + (vehicle?.seatCount || 0) * bv.quantity;
+  }, 0);
+
+  if (passengers > totalSeat) {
+    throw new ApiError(400, "Passenger exceeds vehicle capacity");
+  }
+
   // calculate prices vehicle and stoppage
   let vehiclePrice = 0;
   let stoppagePrice = 0;
@@ -134,7 +144,15 @@ const createTripServiceBooking = async (
 
   // calculate total price
   const basePrice = tripService.price || 0;
-  const totalPrice = basePrice + vehiclePrice + stoppagePrice;
+  let totalPrice = basePrice + vehiclePrice + stoppagePrice;
+
+  // return price calculation
+  let returnPrice: number | null = null;
+
+  if (isReturn && returnDate) {
+    returnPrice = totalPrice; // simple logic (can be dynamic)
+    totalPrice += returnPrice;
+  }
 
   // create booking with transaction
   const result = await prisma.$transaction(async (tx) => {
@@ -156,6 +174,7 @@ const createTripServiceBooking = async (
         vehiclePrice,
         stoppagePrice,
         totalPrice,
+        returnPrice,
         isReturn,
         returnDate,
         status: BookingStatus.PENDING,
