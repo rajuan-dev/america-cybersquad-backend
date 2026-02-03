@@ -12,10 +12,10 @@ import { ICreateTripServiceBooking } from "./tripServiceBooking.interface";
 // create trip service booking
 const createTripServiceBooking = async (
   userId: string,
+  tripServiceId: string,
   payload: ICreateTripServiceBooking,
 ): Promise<TripServiceBooking> => {
   const {
-    tripServiceId,
     from,
     fromLat,
     fromLng,

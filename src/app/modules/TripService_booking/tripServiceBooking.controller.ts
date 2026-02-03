@@ -8,10 +8,11 @@ import { TripServiceBookingService } from "./tripServiceBooking.service";
 const createTripServiceBooking = catchAsync(
   async (req: Request, res: Response) => {
     const userId = req.user?.id;
-    const {} = req.body;
+    const tripServiceId = req.params.tripServiceId;
 
     const result = await TripServiceBookingService.createTripServiceBooking(
       userId,
+      tripServiceId,
       req.body,
     );
 

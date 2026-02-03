@@ -9,7 +9,7 @@ const router = express.Router();
 
 // create trip service booking
 router.post(
-  "/",
+  "/:tripServiceId",
   auth(UserRole.USER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   validateRequest(
     TripServiceBookingValidation.createTripServiceBookingValidation,
