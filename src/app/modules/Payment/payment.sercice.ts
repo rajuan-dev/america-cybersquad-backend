@@ -4,6 +4,7 @@ import prisma from "../../../shared/prisma";
 import stripe from "../../../helpars/stripe";
 import { PaymentStatus, UserStatus } from "@prisma/client";
 import config from "../../../config";
+import Stripe from "stripe";
 
 // stripe account onboarding
 const stripeAccountOnboarding = async (userId: string) => {
@@ -112,7 +113,73 @@ const createStripeCheckoutSession = async (
   userId: string,
   bookingId: string,
   description: string,
-) => {};
+) => {
+  // find user
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  // find booking
+  const booking = await prisma.tripServiceBooking.findUnique({
+    where: { id: bookingId },
+  });
+
+  if (!booking) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Booking not found");
+  }
+
+  // amount (convert USD → cents)
+  const amount = Math.round(booking.totalPrice * 100);
+
+  // create Stripe checkout session
+  const checkoutSession = await stripe.checkout.sessions.create({
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price_data: {
+          currency: "EUR", // euro
+          product_data: {
+            name: "Hotel Booking",
+            description: description || "Service payment",
+          },
+          unit_amount: amount,
+        },
+        quantity: 1,
+      },
+    ],
+    mode: "payment",
+    success_url: config.stripe.checkout_success_url,
+    cancel_url: config.stripe.checkout_cancel_url,
+    metadata: {
+      userId,
+      bookingId,
+    },
+  });
+
+  // create payment record
+  await prisma.payment.create({
+    data: {
+      amount: booking.totalPrice,
+      description,
+      currency: "EUR",
+      sessionId: checkoutSession.id,
+      status: PaymentStatus.UNPAID,
+      serviceType: booking.serviceType,
+      userId,
+      tripServiceBookingId: booking?.id,
+      tripServiceId: booking?.tripServiceId,
+    },
+  });
+
+  return {
+    id: checkoutSession.id,
+    url: checkoutSession.url,
+  };
+};
+
+// stripe handle webhook
+const stripeHandleWebhook = async (event: Stripe.Event) => {};
 
 // get my all my transactions
 const getMyTransactions = async (userId: string) => {
@@ -130,5 +197,6 @@ const getMyTransactions = async (userId: string) => {
 export const PaymentService = {
   stripeAccountOnboarding,
   createStripeCheckoutSession,
+  stripeHandleWebhook,
   getMyTransactions,
 };
