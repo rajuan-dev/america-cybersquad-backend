@@ -150,7 +150,7 @@ const createTripServiceBooking = async (
   let returnPrice: number | null = null;
 
   if (isReturn && returnDate) {
-    returnPrice = totalPrice; // simple logic (can be dynamic)
+    returnPrice = totalPrice; // can be dynamic
     totalPrice += returnPrice;
   }
 
