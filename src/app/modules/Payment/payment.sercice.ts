@@ -4,17 +4,6 @@ import prisma from "../../../shared/prisma";
 import stripe from "../../../helpars/stripe";
 import { PaymentStatus, UserStatus } from "@prisma/client";
 import config from "../../../config";
-import Stripe from "stripe";
-
-import {
-  BookingNotificationService,
-  IBookingNotificationData,
-  ServiceTypes,
-} from "../../../shared/notificationService";
-import * as crypto from "crypto";
-import emailSender from "../../../helpars/emailSender";
-
-// --------------------------- Stripe ---------------------------
 
 // stripe account onboarding
 const stripeAccountOnboarding = async (userId: string) => {

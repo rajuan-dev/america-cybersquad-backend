@@ -13,12 +13,13 @@ router.post(
   PaymentController.stripeAccountOnboarding
 );
 
-// create intent on stripe
+// checkout session on stripe
 router.post(
-  "/create-payment-intent/:serviceType/:bookingId",
+  "/create-stripe-checkout-session-website/:bookingId",
   auth(UserRole.USER, UserRole.AGENT),
-  PaymentController.createStripePaymentIntent
+  PaymentController.createStripeCheckoutSessionWebsite
 );
+
 
 // stripe webhook payment
 router.post(
@@ -29,16 +30,9 @@ router.post(
 
 // cancel booking stripe
 router.post(
-  "/stripe-cancel-booking/:serviceType/:bookingId",
+  "/stripe-cancel-booking/:bookingId",
   auth(UserRole.USER, UserRole.AGENT),
   PaymentController.cancelStripeBooking
-);
-
-// checkout session on stripe
-router.post(
-  "/create-stripe-checkout-session-website/:serviceType/:bookingId",
-  auth(UserRole.USER, UserRole.AGENT),
-  PaymentController.createStripeCheckoutSessionWebsite
 );
 
 export const paymentRoutes = router;
