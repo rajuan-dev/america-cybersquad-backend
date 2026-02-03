@@ -10,29 +10,28 @@ const router = express.Router();
 router.post(
   "/stripe-account-onboarding",
   auth(UserRole.USER, UserRole.AGENT),
-  PaymentController.stripeAccountOnboarding
+  PaymentController.stripeAccountOnboarding,
 );
 
 // checkout session on stripe
 router.post(
-  "/create-stripe-checkout-session-website/:bookingId",
+  "/create-stripe-checkout-session/:tripServiceBookingId",
   auth(UserRole.USER, UserRole.AGENT),
-  PaymentController.createStripeCheckoutSession
+  PaymentController.createStripeCheckoutSession,
 );
-
 
 // stripe webhook payment
 router.post(
   "/stripe-webhook",
   express.raw({ type: "application/json" }), // important: keep raw body
-  PaymentController.stripeHandleWebhook
+  PaymentController.stripeHandleWebhook,
 );
 
 // cancel booking stripe
 router.post(
-  "/stripe-cancel-booking/:bookingId",
+  "/stripe-cancel-booking/:tripServiceBookingId",
   auth(UserRole.USER, UserRole.AGENT),
-  PaymentController.cancelStripeBooking
+  PaymentController.cancelStripeBooking,
 );
 
 export const paymentRoutes = router;

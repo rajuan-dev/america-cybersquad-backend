@@ -26,12 +26,12 @@ const stripeAccountOnboarding = catchAsync(
 const createStripeCheckoutSession = catchAsync(
   async (req: Request, res: Response) => {
     const userId = req.user?.id;
-    const { bookingId } = req.params;
+    const { tripServiceBookingId } = req.params;
     const { description } = req.body;
 
     const result = await PaymentService.createStripeCheckoutSession(
       userId,
-      bookingId,
+      tripServiceBookingId,
       description,
     );
 
