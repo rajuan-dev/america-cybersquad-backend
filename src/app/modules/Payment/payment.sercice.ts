@@ -156,7 +156,7 @@ const createStripeCheckoutSession = async (
           currency: "EUR",
           product_data: {
             name: "Trip Service Booking",
-            description: description || "Service Payment",
+            description: description || "Trip Service Payment",
           },
           unit_amount: amount,
         },
