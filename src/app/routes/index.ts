@@ -6,7 +6,6 @@ import { privacyPolicyRoute } from "../modules/Privacy_Policy/policy.route";
 import { settingRoute } from "../modules/Setting/setting.route";
 import { termsConditionRoute } from "../modules/Terms_Condition/terms.route";
 import { paymentRoutes } from "../modules/Payment/payment.route";
-import { financeRoutes } from "../modules/Finances/finance.route";
 import { supportRoutes } from "../modules/Support/support.route";
 import { refundPolicyRoute } from "../modules/Refund_Policy/refund_policy.route";
 import { cancelReservationRoute } from "../modules/Cancel_Reservation/cancel_reservation.route";
@@ -98,10 +97,6 @@ const moduleRoutes = [
   {
     path: "/payments",
     route: paymentRoutes,
-  },
-  {
-    path: "/finances",
-    route: financeRoutes,
   },
   {
     path: "/reports",
