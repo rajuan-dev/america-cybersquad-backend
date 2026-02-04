@@ -51,11 +51,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(express.static("public"));
 
-app.use(
-  "/.well-known",
-  express.static(path.join(process.cwd(), "public/.well-known")),
-);
-
 // Route handler for the root endpoint
 app.get("/", (req: Request, res: Response) => {
   res.send({
