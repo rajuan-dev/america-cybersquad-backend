@@ -71,7 +71,7 @@ const stripeHandleWebhook = catchAsync(async (req: Request, res: Response) => {
     );
   }
 
-  // const result = await PaymentService.stripeHandleWebhook(event);
+  const result = await PaymentService.stripeHandleWebhook(event);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
