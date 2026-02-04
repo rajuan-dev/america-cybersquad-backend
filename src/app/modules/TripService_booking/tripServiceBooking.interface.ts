@@ -1,6 +1,7 @@
 import { ServiceType } from "@prisma/client";
 
 export interface ICreateTripServiceBooking {
+  clientName?: string;
   tripServiceId: string;
   from: string;
   fromLat?: number;

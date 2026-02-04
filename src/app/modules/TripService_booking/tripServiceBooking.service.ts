@@ -19,6 +19,7 @@ const createTripServiceBooking = async (
   payload: ICreateTripServiceBooking,
 ): Promise<TripServiceBooking> => {
   const {
+    clientName,
     from,
     fromLat,
     fromLng,
@@ -153,7 +154,7 @@ const createTripServiceBooking = async (
         to,
         toLat,
         toLng,
-        serviceType: tripService.serviceType,
+        serviceType: serviceType,
         timeSlot,
         travelDate,
         passengers,
