@@ -20,6 +20,12 @@ const createTripServiceBookingValidation = z.object({
     timeSlot: z.any().optional(),
     passengers: z.number().int().min(1, "Passengers must be at least 1"),
     luggage: z.number().int().min(0).optional(),
+    distanceKm: z.number().optional(),
+    basePrice: z.number().min(0, "Base price is required"),
+    vehiclePrice: z.number().min(0, "Vehicle price is required"),
+    stoppagePrice: z.number().optional(),
+    totalPrice: z.number().min(0, "Total price is required"),
+    returnPrice: z.number().optional(),
     isReturn: z.boolean().default(false),
     returnDate: z
       .string()

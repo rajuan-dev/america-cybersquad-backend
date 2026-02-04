@@ -15,6 +15,11 @@ export interface ICreateTripServiceBooking {
   passengers: number;
   distanceKm?: number;
   luggage?: number;
+  basePrice: number;
+  vehiclePrice: number;
+  stoppagePrice?: number;
+  totalPrice: number;
+  returnPrice?: number;
   isReturn?: boolean;
   returnDate?: Date;
   bookingVehicles?: Array<{

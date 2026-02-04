@@ -257,14 +257,14 @@ model TripServiceBooking {
   travelDate    DateTime
   passengers    Int
   luggage       Int?
-  basePrice     Float
   distanceKm    Float?
+  basePrice     Float
   vehiclePrice  Float
   stoppagePrice Float         @default(0)
+  returnPrice   Float?
   totalPrice    Float
   isReturn      Boolean       @default(false)
   returnDate    DateTime?
-  returnPrice   Float?
   status        BookingStatus @default(PENDING)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
