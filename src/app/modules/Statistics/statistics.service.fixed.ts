@@ -158,7 +158,7 @@ const getAgentTotalEarningsAndBookings = async (
   const dateRange = getDateRange(timeRange);
 
   // total bookings
-  const totalBookings = await prisma.tripServiceBooking.count({
+  const totalBooking = await prisma.tripServiceBooking.count({
     where: {
       userId,
       status: {
@@ -169,17 +169,25 @@ const getAgentTotalEarningsAndBookings = async (
   });
 
   // total earnings
-  const totalEarnings = await prisma.payment.aggregate({
+  const earnings = await prisma.payment.aggregate({
     where: {
       status: PaymentStatus.PAID,
       userId,
       ...(dateRange && { createdAt: dateRange }),
     },
     _sum: {
-      agent_commission: true,
+      amount: true,
     },
     _count: {
       id: true,
+    },
+  });
+
+  // total bookings
+  const totalBookings = await prisma.tripServiceBooking.count({
+    where: {
+      status: BookingStatus.CONFIRMED,
+      ...(dateRange && { createdAt: dateRange }),
     },
   });
 
@@ -187,6 +195,8 @@ const getAgentTotalEarningsAndBookings = async (
   const monthlyPayments = await prisma.payment.findMany({
     where: {
       status: PaymentStatus.PAID,
+      userId,
+      ...(dateRange && { createdAt: dateRange }),
     },
   });
 
@@ -211,7 +221,7 @@ const getAgentTotalEarningsAndBookings = async (
     if (!acc[monthKey]) {
       acc[monthKey] = { month: monthKey, earnings: 0, count: 0 };
     }
-    acc[monthKey].earnings += payment.agent_commission || 0;
+    acc[monthKey].earnings += payment.amount;
     acc[monthKey].count += 1;
     return acc;
   }, {});
@@ -296,35 +306,12 @@ const getAgentTotalEarningsAndBookings = async (
     }),
   );
 
-  // recent bookings for agent (last 10)
-  const recentBookings = await prisma.tripServiceBooking.findMany({
-    where: {
-      userId,
-      status: {
-        in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
-      },
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 10,
-  });
-
   return {
+    totalEarnings: earnings._sum.amount || 0,
+    totalPayments: earnings._count.id || 0,
     totalBookings,
-    totalEarnings: totalEarnings._sum.agent_commission || 0,
     earningsTrend,
     bookingsTrend,
-    recentBookings,
     timeRange: timeRange || "ALL_TIME",
   };
 };
@@ -368,8 +355,6 @@ const getServiceProviderTotalEarningsService = async (
   const monthlyPayments = await prisma.payment.findMany({
     where: {
       status: PaymentStatus.PAID,
-      userId: providerId,
-      ...(dateRange && { createdAt: dateRange }),
     },
   });
 
@@ -394,7 +379,7 @@ const getServiceProviderTotalEarningsService = async (
     if (!acc[monthKey]) {
       acc[monthKey] = { month: monthKey, earnings: 0, count: 0 };
     }
-    acc[monthKey].earnings += payment.agent_commission || 0;
+    acc[monthKey].earnings += payment.amount;
     acc[monthKey].count += 1;
     return acc;
   }, {});
