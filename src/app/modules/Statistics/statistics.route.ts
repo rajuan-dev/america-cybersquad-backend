@@ -19,6 +19,13 @@ router.get(
   StatisticsController.getAgentTotalEarningsAndBookings,
 );
 
+// get agent bookings
+router.get(
+  "/agent-bookings",
+  auth(UserRole.AGENT),
+  StatisticsController.getAgentBookings,
+);
+
 // service provider total earnings service
 router.get(
   "/earnings-service",

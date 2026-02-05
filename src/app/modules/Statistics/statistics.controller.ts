@@ -40,6 +40,24 @@ const getAgentTotalEarningsAndBookings = catchAsync(
   },
 );
 
+// get agent bookings
+const getAgentBookings = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+  const { timeRange } = req.query;
+
+  const result = await StatisticsService.getAgentBookings(
+    userId,
+    timeRange as string,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Agent bookings fetched successfully",
+    data: result,
+  });
+});
+
 // service provider total earnings service
 const getServiceProviderTotalEarningsService = catchAsync(
   async (req: Request, res: Response) => {
@@ -111,6 +129,7 @@ export const StatisticsController = {
   getOverview,
   // sales
   getAgentTotalEarningsAndBookings,
+  getAgentBookings,
   getServiceProviderTotalEarningsService,
   getMyDashboardForPropertyOwner,
   getMyDashboardForServiceProvider,
