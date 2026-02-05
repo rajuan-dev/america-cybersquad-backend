@@ -183,119 +183,6 @@ const getAgentTotalEarningsAndBookings = async (
     },
   });
 
-  // earnings trend - monthly data
-  const monthlyPayments = await prisma.payment.findMany({
-    where: {
-      status: PaymentStatus.PAID,
-    },
-  });
-
-  // bookings trend - monthly data
-  const monthlyBookings = await prisma.tripServiceBooking.findMany({
-    where: {
-      status: BookingStatus.CONFIRMED,
-      ...(dateRange && { createdAt: dateRange }),
-    },
-    select: {
-      createdAt: true,
-      totalPrice: true,
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-  });
-
-  // group earnings by month
-  const earningsByMonth = monthlyPayments.reduce((acc: any, payment) => {
-    const monthKey = payment.createdAt.toISOString().slice(0, 7); // YYYY-MM
-    if (!acc[monthKey]) {
-      acc[monthKey] = { month: monthKey, earnings: 0, count: 0 };
-    }
-    acc[monthKey].earnings += payment.agent_commission || 0;
-    acc[monthKey].count += 1;
-    return acc;
-  }, {});
-
-  // group bookings by month
-  const bookingsByMonth = monthlyBookings.reduce((acc: any, booking) => {
-    const monthKey = booking.createdAt.toISOString().slice(0, 7); // YYYY-MM
-    if (!acc[monthKey]) {
-      acc[monthKey] = { month: monthKey, bookings: 0, revenue: 0 };
-    }
-    acc[monthKey].bookings += 1;
-    acc[monthKey].revenue += booking.totalPrice;
-    return acc;
-  }, {});
-
-  // get current year
-  const currentYear = new Date().getFullYear();
-
-  // create proper month mapping
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-
-  // generate all months from January to December for current year
-  const allMonths = [];
-  for (let i = 0; i < 12; i++) {
-    const monthKey = `${currentYear}-${String(i + 1).padStart(2, "0")}`; // YYYY-MM format
-    const monthName = monthNames[i];
-
-    allMonths.push({
-      month: monthKey,
-      monthName: monthName,
-      earnings: earningsByMonth[monthKey]?.earnings || 0,
-      count: earningsByMonth[monthKey]?.count || 0,
-      bookings: bookingsByMonth[monthKey]?.bookings || 0,
-      revenue: bookingsByMonth[monthKey]?.revenue || 0,
-    });
-  }
-
-  // check if we have data for previous December and add it if needed
-  const prevDecemberKey = `${currentYear - 1}-12`;
-
-  if (earningsByMonth[prevDecemberKey] || bookingsByMonth[prevDecemberKey]) {
-    // replace December (index 11) with previous December data
-    allMonths[11] = {
-      month: prevDecemberKey,
-      monthName: "December",
-      earnings: earningsByMonth[prevDecemberKey]?.earnings || 0,
-      count: earningsByMonth[prevDecemberKey]?.count || 0,
-      bookings: bookingsByMonth[prevDecemberKey]?.bookings || 0,
-      revenue: bookingsByMonth[prevDecemberKey]?.revenue || 0,
-    };
-  }
-
-  // separate earnings and bookings trends
-  const earningsTrend = allMonths.map(
-    ({ month, monthName, earnings, count }) => ({
-      month,
-      monthName,
-      earnings,
-      count,
-    }),
-  );
-
-  const bookingsTrend = allMonths.map(
-    ({ month, monthName, bookings, revenue }) => ({
-      month,
-      monthName,
-      bookings,
-      revenue,
-    }),
-  );
-
   // recent bookings for agent (last 10)
   const recentBookings = await prisma.tripServiceBooking.findMany({
     where: {
@@ -304,12 +191,28 @@ const getAgentTotalEarningsAndBookings = async (
         in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
       },
     },
-    include: {
+    select: {
+      clientName: true,
+      from: true,
+      to: true,
+      serviceType: true,
+      timeSlot: true,
+      isReturn: true,
+      totalPrice: true,
+      createdAt: true,
+      updatedAt: true,
+      payments: {
+        select: {
+          agent_commission: true,
+        },
+      },
       user: {
         select: {
           id: true,
           fullName: true,
           email: true,
+          address: true,
+          country: true,
         },
       },
     },
@@ -322,8 +225,6 @@ const getAgentTotalEarningsAndBookings = async (
   return {
     totalBookings,
     totalEarnings: totalEarnings._sum.agent_commission || 0,
-    earningsTrend,
-    bookingsTrend,
     recentBookings,
     timeRange: timeRange || "ALL_TIME",
   };
