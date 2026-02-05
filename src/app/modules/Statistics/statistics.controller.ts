@@ -20,21 +20,21 @@ const getOverview = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// property owner total earings hotel
-const getPartnerTotalEarningsHotel = catchAsync(
+// get agent total earings and bookings
+const getAgentTotalEarningsAndBookings = catchAsync(
   async (req: Request, res: Response) => {
-    const partnerId = req.user?.id;
+    const userId = req.user?.id;
     const { timeRange } = req.query;
 
-    const result = await StatisticsService.getPartnerTotalEarningsHotel(
-      partnerId,
+    const result = await StatisticsService.getAgentTotalEarningsAndBookings(
+      userId,
       timeRange as string,
     );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: "Property owner earnings fetched successfully",
+      message: "Agent earnings and bookings fetched successfully",
       data: result,
     });
   },
@@ -110,7 +110,7 @@ const getMyDashboardForServiceProvider = catchAsync(
 export const StatisticsController = {
   getOverview,
   // sales
-  getPartnerTotalEarningsHotel,
+  getAgentTotalEarningsAndBookings,
   getServiceProviderTotalEarningsService,
   getMyDashboardForPropertyOwner,
   getMyDashboardForServiceProvider,

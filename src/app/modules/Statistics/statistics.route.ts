@@ -12,11 +12,11 @@ router.get(
   StatisticsController.getOverview,
 );
 
-// partner total earings hotel
+// get agent total earings and bookings
 router.get(
-  "/earnings-hotel",
+  "/earnings-bookings-agent-dashboard",
   auth(UserRole.AGENT),
-  StatisticsController.getPartnerTotalEarningsHotel,
+  StatisticsController.getAgentTotalEarningsAndBookings,
 );
 
 // service provider total earnings service

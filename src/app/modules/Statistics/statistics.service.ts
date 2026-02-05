@@ -138,8 +138,8 @@ const getOverview = async (params: IFilterRequest) => {
   };
 };
 
-// property owner total earnings hotel
-const getPartnerTotalEarningsHotel = async (
+// get agent total earings and bookings
+const getAgentTotalEarningsAndBookings = async (
   partnerId: string,
   timeRange?: string,
 ) => {
@@ -694,7 +694,7 @@ export const StatisticsService = {
   getOverview,
 
   // sales
-  getPartnerTotalEarningsHotel,
+  getAgentTotalEarningsAndBookings,
   getServiceProviderTotalEarningsService,
   getMyDashboardForPropertyOwner,
   getMyDashboardForServiceProvider,
