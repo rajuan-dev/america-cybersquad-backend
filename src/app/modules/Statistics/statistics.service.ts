@@ -197,6 +197,7 @@ const getAgentTotalEarningsAndBookings = async (
       to: true,
       serviceType: true,
       timeSlot: true,
+      status: true,
       isReturn: true,
       totalPrice: true,
       createdAt: true,
@@ -231,7 +232,11 @@ const getAgentTotalEarningsAndBookings = async (
 };
 
 // get agent bookings
-const getAgentBookings = async (userId: string, timeRange?: string) => {
+const getAgentBookings = async (
+  userId: string,
+  timeRange?: string,
+  status?: string,
+) => {
   // find agent
   const agent = await prisma.user.findFirst({
     where: {
@@ -241,6 +246,15 @@ const getAgentBookings = async (userId: string, timeRange?: string) => {
   });
   if (!agent) {
     throw new ApiError(httpStatus.NOT_FOUND, "Agent not found");
+  }
+
+  // validate booking status
+  const validStatuses = Object.values(BookingStatus);
+  if (status && !validStatuses.includes(status as BookingStatus)) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Invalid booking status. Valid statuses are: ${validStatuses.join(", ")}`,
+    );
   }
 
   // date range filter
@@ -293,9 +307,7 @@ const getAgentBookings = async (userId: string, timeRange?: string) => {
   const recentBookings = await prisma.tripServiceBooking.findMany({
     where: {
       userId,
-      status: {
-        in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
-      },
+      ...(status ? { status: status as BookingStatus } : {}),
     },
     select: {
       clientName: true,
@@ -303,6 +315,7 @@ const getAgentBookings = async (userId: string, timeRange?: string) => {
       to: true,
       serviceType: true,
       timeSlot: true,
+      status: true,
       isReturn: true,
       totalPrice: true,
       createdAt: true,

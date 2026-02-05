@@ -43,11 +43,12 @@ const getAgentTotalEarningsAndBookings = catchAsync(
 // get agent bookings
 const getAgentBookings = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
-  const { timeRange } = req.query;
+  const { timeRange, status } = req.query;
 
   const result = await StatisticsService.getAgentBookings(
     userId,
     timeRange as string,
+    status as string,
   );
 
   sendResponse(res, {
