@@ -133,6 +133,7 @@ const createTripServiceBooking = async (
         totalPrice,
         isReturn,
         returnDate,
+        user_role: findUser.role,
         status: BookingStatus.PENDING,
         userId,
         tripServiceId,

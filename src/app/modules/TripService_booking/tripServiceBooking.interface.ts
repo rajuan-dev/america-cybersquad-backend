@@ -22,6 +22,7 @@ export interface ICreateTripServiceBooking {
   returnPrice?: number;
   isReturn?: boolean;
   returnDate?: Date;
+  user_role?: string;
   bookingVehicles?: Array<{
     vehicleId: string;
     quantity: number;

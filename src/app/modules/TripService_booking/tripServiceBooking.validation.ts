@@ -31,6 +31,7 @@ const createTripServiceBookingValidation = z.object({
       .string()
       .transform((val) => new Date(val))
       .optional(),
+    user_role: z.string().optional(),
     bookingVehicles: z
       .array(
         z.object({

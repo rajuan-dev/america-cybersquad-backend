@@ -9,7 +9,7 @@ const router = express.Router();
 // stripe account onboarding
 router.post(
   "/stripe-account-onboarding",
-  auth(UserRole.USER, UserRole.AGENT),
+  auth(UserRole.AGENT),
   PaymentController.stripeAccountOnboarding,
 );
 
@@ -22,7 +22,7 @@ router.post(
 
 // stripe webhook payment
 router.post(
-  "/stripe-webhook",
+  "/webhook",
   express.raw({ type: "application/json" }), // important: keep raw body
   PaymentController.stripeHandleWebhook,
 );

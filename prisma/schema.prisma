@@ -265,6 +265,7 @@ model TripServiceBooking {
   totalPrice    Float
   isReturn      Boolean       @default(false)
   returnDate    DateTime?
+  user_role     UserRole?
   status        BookingStatus @default(PENDING)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -475,21 +476,24 @@ model Message {
 }
 
 model Payment {
-  id              String        @id @default(auto()) @map("_id") @db.ObjectId
-  amount          Float
-  description     String?
-  currency        String?
-  sessionId       String?       @unique
-  paymentMethod   String?
-  status          PaymentStatus
+  id               String        @id @default(auto()) @map("_id") @db.ObjectId
+  amount           Float
+  admin_commission Float?
+  agent_commission Float?
+  description      String?
+  currency         String?
+  sessionId        String?       @unique
+  paymentMethod    String?
+  status           PaymentStatus
   // status           String
-  payable_name    String?
-  payable_email   String?
-  paymentIntentId String?
-  country         String?
-  serviceType     String // HOTEL | SECURITY | CAR | ATTRACTION
-  isDeleted       Boolean       @default(false)
-  metadata        Json? // extra(fullName, email, contactNumber, country, description etc).
+  payable_name     String?
+  payable_email    String?
+  paymentIntentId  String?
+  country          String?
+  serviceType      ServiceType // BY_THE_HOUR , DAY_TRIP , MULTI_DAY_TOUR , PRIVATE_TRANSFER , AIRPORT_TRANSFER
+  user_role        UserRole // store user role at time of payment
+  isDeleted        Boolean       @default(false)
+  metadata         Json? // extra(fullName, email, contactNumber, country, description etc).
 
   // Relations
   tripServiceId        String?             @db.ObjectId

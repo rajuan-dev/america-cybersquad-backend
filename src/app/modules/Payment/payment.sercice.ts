@@ -7,6 +7,7 @@ import {
   EveryServiceStatus,
   PaymentStatus,
   UserStatus,
+  UserRole,
 } from "@prisma/client";
 import config from "../../../config";
 import Stripe from "stripe";
@@ -119,15 +120,24 @@ const createStripeCheckoutSession = async (
   tripServiceBookingId: string,
   description: string,
 ) => {
-  // find user
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  // find user with role
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      stripeAccountId: true,
+      isStripeConnected: true,
+    },
+  });
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, "User not found");
   }
 
   // find booking
-  const booking = await prisma.tripServiceBooking.findUnique({
-    where: { id: tripServiceBookingId },
+  const booking = await prisma.tripServiceBooking.findFirst({
+    where: { id: tripServiceBookingId, userId },
   });
 
   if (!booking) {
@@ -142,6 +152,27 @@ const createStripeCheckoutSession = async (
   // prevent duplicate payment
   if (booking.status === BookingStatus.CONFIRMED) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Booking already paid");
+  }
+
+  // check agent onboarding for AGENT role
+  if (user.role === UserRole.AGENT && !user.isStripeConnected) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Agent must complete Stripe onboarding first",
+    );
+  }
+
+  // commission based on user role
+  let adminCommission = 0;
+  let agentCommission = 0;
+
+  if (user.role === UserRole.AGENT) {
+    // agent: 85% admin, 15% agent
+    adminCommission = booking.totalPrice * 0.85;
+    agentCommission = booking.totalPrice * 0.15;
+  } else {
+    // user: 100% admin
+    adminCommission = booking.totalPrice;
   }
 
   const amount = Math.round(booking.totalPrice * 100);
@@ -176,12 +207,15 @@ const createStripeCheckoutSession = async (
   await prisma.payment.create({
     data: {
       amount: booking.totalPrice,
+      admin_commission: adminCommission,
+      agent_commission: agentCommission,
       currency: "EUR",
       description,
       sessionId: checkoutSession.id,
       paymentIntentId: null,
       status: PaymentStatus.UNPAID,
       serviceType: booking.serviceType,
+      user_role: booking.user_role || user.role,
       userId,
       tripServiceBookingId: booking.id,
       tripServiceId: booking.tripServiceId,
@@ -213,7 +247,7 @@ const stripeHandleWebhook = async (event: Stripe.Event) => {
       if (!payment) break;
 
       // duplicate protection
-      if (payment.status === "PAID") break;
+      if (payment.status === PaymentStatus.PAID) break;
 
       // retrieve payment intent from Stripe
       const paymentIntent =
@@ -224,36 +258,67 @@ const stripeHandleWebhook = async (event: Stripe.Event) => {
         throw new Error("Payment amount mismatch");
       }
 
+      // get user info for agent transfer
+      const user = await prisma.user.findUnique({
+        where: { id: payment.userId },
+        select: { role: true, stripeAccountId: true },
+      });
+
       // transaction update
       await prisma.$transaction([
         prisma.payment.update({
           where: { id: payment.id },
           data: {
             paymentIntentId,
-            status: "PAID",
+            status: PaymentStatus.PAID,
           },
         }),
 
         prisma.tripServiceBooking.update({
           where: { id: payment.tripServiceBookingId! },
           data: {
-            status: "CONFIRMED",
+            status: BookingStatus.CONFIRMED,
           },
         }),
 
         prisma.tripService.update({
           where: { id: payment.tripServiceId! },
           data: {
-            isService: "BOOKED",
+            isService: EveryServiceStatus.BOOKED,
           },
         }),
       ]);
+
+      // handle agent transfer if user is AGENT and has stripe account
+      if (
+        user?.role === UserRole.AGENT &&
+        user.stripeAccountId &&
+        payment.agent_commission &&
+        payment.agent_commission > 0
+      ) {
+        try {
+          const transfer = await stripe.transfers.create({
+            amount: Math.round(payment.agent_commission * 100), // convert to cents
+            currency: "EUR",
+            destination: user.stripeAccountId,
+            metadata: {
+              paymentId: payment.id,
+              type: "agent_commission",
+            },
+          });
+
+          // console.log("Agent transfer created:", transfer.id);
+        } catch (transferError) {
+          console.error("Failed to create agent transfer:", transferError);
+          // don't fail the payment, just log the error
+        }
+      }
 
       break;
     }
 
     default:
-      console.log("Event ignored:", event.type);
+      // console.log("Event ignored:", event.type);
       break;
   }
 };
