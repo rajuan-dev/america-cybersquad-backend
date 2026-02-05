@@ -138,6 +138,98 @@ const getOverview = async (params: IFilterRequest) => {
   };
 };
 
+// get agent total earings and bookings
+const getAgentTotalEarningsAndBookings = async (
+  userId: string,
+  timeRange?: string,
+) => {
+  // find agent
+  const agent = await prisma.user.findFirst({
+    where: {
+      id: userId,
+      role: UserRole.AGENT,
+    },
+  });
+  if (!agent) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Agent not found");
+  }
+
+  // date range filter
+  const dateRange = getDateRange(timeRange);
+
+  // total bookings
+  const totalBookings = await prisma.tripServiceBooking.count({
+    where: {
+      userId,
+      status: {
+        in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
+      },
+      ...(dateRange && { createdAt: dateRange }),
+    },
+  });
+
+  // total earnings
+  const totalEarnings = await prisma.payment.aggregate({
+    where: {
+      status: PaymentStatus.PAID,
+      userId,
+      ...(dateRange && { createdAt: dateRange }),
+    },
+    _sum: {
+      agent_commission: true,
+    },
+    _count: {
+      id: true,
+    },
+  });
+
+  // recent bookings for agent (last 10)
+  const recentBookings = await prisma.tripServiceBooking.findMany({
+    where: {
+      userId,
+      status: {
+        in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
+      },
+    },
+    select: {
+      clientName: true,
+      from: true,
+      to: true,
+      serviceType: true,
+      timeSlot: true,
+      isReturn: true,
+      totalPrice: true,
+      createdAt: true,
+      updatedAt: true,
+      payments: {
+        select: {
+          agent_commission: true,
+        },
+      },
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          address: true,
+          country: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 10,
+  });
+
+  return {
+    totalBookings,
+    totalEarnings: totalEarnings._sum.agent_commission || 0,
+    recentBookings,
+    timeRange: timeRange || "ALL_TIME",
+  };
+};
+
 // get agent bookings
 const getAgentBookings = async (userId: string, timeRange?: string) => {
   // find agent
@@ -240,98 +332,6 @@ const getAgentBookings = async (userId: string, timeRange?: string) => {
     totalBookings,
     totalConfirmedBookings,
     totalCompletedBookings,
-    totalEarnings: totalEarnings._sum.agent_commission || 0,
-    recentBookings,
-    timeRange: timeRange || "ALL_TIME",
-  };
-};
-
-// get agent total earings and bookings
-const getAgentTotalEarningsAndBookings = async (
-  userId: string,
-  timeRange?: string,
-) => {
-  // find agent
-  const agent = await prisma.user.findFirst({
-    where: {
-      id: userId,
-      role: UserRole.AGENT,
-    },
-  });
-  if (!agent) {
-    throw new ApiError(httpStatus.NOT_FOUND, "Agent not found");
-  }
-
-  // date range filter
-  const dateRange = getDateRange(timeRange);
-
-  // total bookings
-  const totalBookings = await prisma.tripServiceBooking.count({
-    where: {
-      userId,
-      status: {
-        in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
-      },
-      ...(dateRange && { createdAt: dateRange }),
-    },
-  });
-
-  // total earnings
-  const totalEarnings = await prisma.payment.aggregate({
-    where: {
-      status: PaymentStatus.PAID,
-      userId,
-      ...(dateRange && { createdAt: dateRange }),
-    },
-    _sum: {
-      agent_commission: true,
-    },
-    _count: {
-      id: true,
-    },
-  });
-
-  // recent bookings for agent (last 10)
-  const recentBookings = await prisma.tripServiceBooking.findMany({
-    where: {
-      userId,
-      status: {
-        in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
-      },
-    },
-    select: {
-      clientName: true,
-      from: true,
-      to: true,
-      serviceType: true,
-      timeSlot: true,
-      isReturn: true,
-      totalPrice: true,
-      createdAt: true,
-      updatedAt: true,
-      payments: {
-        select: {
-          agent_commission: true,
-        },
-      },
-      user: {
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          address: true,
-          country: true,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 10,
-  });
-
-  return {
-    totalBookings,
     totalEarnings: totalEarnings._sum.agent_commission || 0,
     recentBookings,
     timeRange: timeRange || "ALL_TIME",
