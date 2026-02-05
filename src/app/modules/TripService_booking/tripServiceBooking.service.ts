@@ -489,8 +489,26 @@ const getAllTripServiceBookings = async (options: IPaginationOptions) => {
   };
 };
 
+// get single booking who BookingStatus confirmed
+const getSingleBooking = async (id: string) => {
+  // find single booking
+  const findBooking = await prisma.tripServiceBooking.findFirst({
+    where: {
+      id,
+      status: BookingStatus.CONFIRMED,
+    },
+  });
+
+  if (!findBooking) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Booking not found");
+  }
+
+  return findBooking;
+};
+
 export const TripServiceBookingService = {
   createTripServiceBooking,
   getMyTripServiceBookings,
   getAllTripServiceBookings,
+  getSingleBooking,
 };

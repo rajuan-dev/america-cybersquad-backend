@@ -64,8 +64,22 @@ const getAllTripServiceBookings = catchAsync(
   },
 );
 
+// get single booking who BookingStatus confirmed
+const getSingleBooking = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await TripServiceBookingService.getSingleBooking(id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Get single booking successfully",
+    data: result,
+  });
+});
+
 export const TripServiceBookingController = {
   createTripServiceBooking,
   getMyTripServiceBookings,
   getAllTripServiceBookings,
+  getSingleBooking
 };
