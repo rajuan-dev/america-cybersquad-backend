@@ -33,7 +33,7 @@ router.get(
 
 // get single booking who BookingStatus confirmed
 router.get(
-  "/all-bookings",
+  "/single/:id",
   auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.AGENT, UserRole.USER),
   TripServiceBookingController.getSingleBooking,
 );
