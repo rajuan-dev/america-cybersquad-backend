@@ -23,25 +23,21 @@ const getOverview = async (params: IFilterRequest) => {
   });
 
   // total hotel
-  const totalHosts = await prisma.hotel.count({
-    where: {
-      availableForBooking: EveryServiceStatus.AVAILABLE,
-    },
-  });
+  const totalHosts = await prisma.tripService.count({});
 
   // total hotel bookings
-  const totalHotelBookings = await prisma.hotel_Booking.count({
+  const totalHotelBookings = await prisma.tripServiceBooking.count({
     where: {
-      bookingStatus: {
+      status: {
         in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
       },
     },
   });
 
   // total service booking
-  const totalServiceBookings = await prisma.service_booking.count({
+  const totalServiceBookings = await prisma.tripServiceBooking.count({
     where: {
-      bookingStatus: {
+      status: {
         in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
       },
     },
@@ -54,7 +50,7 @@ const getOverview = async (params: IFilterRequest) => {
   const adminEarnings = await prisma.payment.aggregate({
     where: {
       status: {
-        in: [PaymentStatus.PAID, PaymentStatus.SUCCESS],
+        in: [PaymentStatus.PAID],
       },
     },
     _sum: {
@@ -163,24 +159,14 @@ const getPartnerTotalEarningsHotel = async (
   // total earnings
   const earnings = await prisma.payment.aggregate({
     where: {
-      partnerId: partnerId,
       status: PaymentStatus.PAID,
-      serviceType: "HOTEL",
-      ...(dateRange && { createdAt: dateRange }),
-    },
-    _sum: {
-      amount: true,
-    },
-    _count: {
-      id: true,
     },
   });
 
   // total bookings
-  const totalBookings = await prisma.hotel_Booking.count({
+  const totalBookings = await prisma.tripServiceBooking.count({
     where: {
-      partnerId: partnerId,
-      bookingStatus: BookingStatus.CONFIRMED,
+      status: BookingStatus.CONFIRMED,
       ...(dateRange && { createdAt: dateRange }),
     },
   });
@@ -188,25 +174,14 @@ const getPartnerTotalEarningsHotel = async (
   // earnings trend - monthly data
   const monthlyPayments = await prisma.payment.findMany({
     where: {
-      partnerId,
       status: PaymentStatus.PAID,
-      serviceType: "HOTEL",
-      ...(dateRange && { createdAt: dateRange }),
-    },
-    select: {
-      amount: true,
-      createdAt: true,
-    },
-    orderBy: {
-      createdAt: "asc",
     },
   });
 
   // bookings trend - monthly data
-  const monthlyBookings = await prisma.hotel_Booking.findMany({
+  const monthlyBookings = await prisma.tripServiceBooking.findMany({
     where: {
-      partnerId,
-      bookingStatus: BookingStatus.CONFIRMED,
+      status: BookingStatus.CONFIRMED,
       ...(dateRange && { createdAt: dateRange }),
     },
     select: {
@@ -310,7 +285,7 @@ const getPartnerTotalEarningsHotel = async (
   );
 
   return {
-    totalEarnings: earnings._sum.amount || 0,
+    // totalEarnings: earnings._sum.amount || 0,
     // totalPayments: earnings._count.id || 0,
     totalBookings,
     earningsTrend,
@@ -340,25 +315,16 @@ const getServiceProviderTotalEarningsService = async (
   // total earnings
   const earnings = await prisma.payment.aggregate({
     where: {
-      providerId,
       status: PaymentStatus.PAID,
-      serviceType: "SERVICE",
       ...(dateRange && { createdAt: dateRange }),
-    },
-    _sum: {
-      amount: true,
-    },
-    _count: {
-      id: true,
     },
   });
   console.log(earnings, "earnings");
 
   // total bookings
-  const totalBookings = await prisma.service_booking.count({
+  const totalBookings = await prisma.tripServiceBooking.count({
     where: {
-      providerId: providerId,
-      bookingStatus: BookingStatus.CONFIRMED,
+      status: BookingStatus.CONFIRMED,
       ...(dateRange && { createdAt: dateRange }),
     },
   });
@@ -366,25 +332,14 @@ const getServiceProviderTotalEarningsService = async (
   // earnings trend - monthly data
   const monthlyPayments = await prisma.payment.findMany({
     where: {
-      providerId,
       status: PaymentStatus.PAID,
-      serviceType: "SERVICE",
-      ...(dateRange && { createdAt: dateRange }),
-    },
-    select: {
-      amount: true,
-      createdAt: true,
-    },
-    orderBy: {
-      createdAt: "asc",
     },
   });
 
   // bookings trend - monthly data
-  const monthlyBookings = await prisma.service_booking.findMany({
+  const monthlyBookings = await prisma.tripServiceBooking.findMany({
     where: {
-      providerId,
-      bookingStatus: BookingStatus.CONFIRMED,
+      status: BookingStatus.CONFIRMED,
       ...(dateRange && { createdAt: dateRange }),
     },
     select: {
@@ -488,7 +443,7 @@ const getServiceProviderTotalEarningsService = async (
   );
 
   return {
-    totalEarnings: earnings._sum.amount || 0,
+    // totalEarnings: earnings._sum.amount || 0,
     // totalPayments: earnings._count.id || 0,
     totalBookings,
     earningsTrend,
@@ -505,7 +460,7 @@ const getAdminTotalEarnings = async (timeRange?: string) => {
   const payments = await prisma.payment.findMany({
     where: {
       status: {
-        in: [PaymentStatus.PAID, PaymentStatus.SUCCESS],
+        in: [PaymentStatus.PAID],
       },
       ...(dateRange && { createdAt: dateRange }),
     },
@@ -520,17 +475,17 @@ const getAdminTotalEarnings = async (timeRange?: string) => {
   });
 
   // all hotel bookings bookingStatus COMPLETED with date filtering
-  const hotelBookings = await prisma.hotel_Booking.count({
+  const hotelBookings = await prisma.tripServiceBooking.count({
     where: {
-      bookingStatus: "COMPLETED",
+      status: BookingStatus.COMPLETED,
       ...(dateRange && { createdAt: dateRange }),
     },
   });
 
   // all service bookings bookingStatus COMPLETED with date filtering
-  const serviceBookings = await prisma.service_booking.count({
+  const serviceBookings = await prisma.tripServiceBooking.count({
     where: {
-      bookingStatus: "COMPLETED",
+      status: BookingStatus.COMPLETED,
       ...(dateRange && { createdAt: dateRange }),
     },
   });
@@ -549,9 +504,9 @@ const getAdminTotalEarnings = async (timeRange?: string) => {
       : 0;
 
   // get all hotel bookings
-  const allHotelBookings = await prisma.hotel_Booking.findMany({
+  const allHotelBookings = await prisma.tripServiceBooking.findMany({
     where: {
-      bookingStatus: {
+      status: {
         in: [
           BookingStatus.CONFIRMED,
           BookingStatus.CANCELLED,
@@ -570,9 +525,9 @@ const getAdminTotalEarnings = async (timeRange?: string) => {
     },
   });
   // get all service bookings
-  const allServiceBookings = await prisma.service_booking.findMany({
+  const allServiceBookings = await prisma.tripServiceBooking.findMany({
     where: {
-      bookingStatus: {
+      status: {
         in: [
           BookingStatus.CONFIRMED,
           BookingStatus.CANCELLED,
@@ -667,32 +622,27 @@ const getAdminTotalEarnings = async (timeRange?: string) => {
 // get my properties, services bookings, guest bookings, earnings
 const getMyDashboardForPropertyOwner = async (userId: string) => {
   // total properties
-  const totalProperties = await prisma.hotel.count({
-    where: {
-      partnerId: userId,
-    },
-  });
+  const totalProperties = await prisma.tripService.count({});
 
   // total services bookings
-  const totalServices = await prisma.service_booking.count({
+  const totalServices = await prisma.tripServiceBooking.count({
     where: {
       userId,
-      bookingStatus: BookingStatus.CONFIRMED,
+      status: BookingStatus.CONFIRMED,
     },
   });
 
   // total hotel bookings (guest bookings)
-  const totalBookings = await prisma.hotel_Booking.count({
+  const totalBookings = await prisma.tripServiceBooking.count({
     where: {
       userId,
-      bookingStatus: BookingStatus.CONFIRMED,
+      status: BookingStatus.CONFIRMED,
     },
   });
 
   // total payments sum
   const totalPaymentsAgg = await prisma.payment.aggregate({
     where: {
-      partnerId: userId,
       status: PaymentStatus.PAID,
     },
     _sum: {
@@ -720,24 +670,15 @@ const getMyDashboardForPropertyOwner = async (userId: string) => {
 // get my services, services bookings,  earnings
 const getMyDashboardForServiceProvider = async (userId: string) => {
   // total services
-  const totalServices = await prisma.service.count({
-    where: {
-      providerId: userId,
-    },
-  });
+  const totalServices = await prisma.tripService.count({});
 
   // total services bookings
-  const totalServicesBookings = await prisma.service_booking.count({
-    where: {
-      providerId: userId,
-      bookingStatus: BookingStatus.CONFIRMED,
-    },
-  });
+  const totalServicesBookings = await prisma.tripServiceBooking.count({});
 
   // total payments
   const totalPayments = await prisma.payment.count({
     where: {
-      providerId: userId,
+      userId,
       status: PaymentStatus.PAID,
     },
   });
