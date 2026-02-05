@@ -297,7 +297,7 @@ const stripeHandleWebhook = async (event: Stripe.Event) => {
         payment.agent_commission > 0
       ) {
         try {
-          const transfer = await stripe.transfers.create({
+          await stripe.transfers.create({
             amount: Math.round(payment.agent_commission * 100), // convert to cents
             currency: "EUR",
             destination: user.stripeAccountId,
