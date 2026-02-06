@@ -138,7 +138,7 @@ const getOverview = async (params: IFilterRequest) => {
   };
 };
 
-// get agent total earings and bookings
+// get agent total earnings and bookings
 const getAgentTotalEarningsAndBookings = async (
   userId: string,
   timeRange?: string,
@@ -150,15 +150,15 @@ const getAgentTotalEarningsAndBookings = async (
       role: UserRole.AGENT,
     },
   });
+
   if (!agent) {
     throw new ApiError(httpStatus.NOT_FOUND, "Agent not found");
   }
 
-  // date range filter
   const dateRange = getDateRange(timeRange);
 
-  // total bookings
-  const totalBookings = await prisma.tripServiceBooking.count({
+  // monthly bookings data
+  const monthlyBookingsData = await prisma.tripServiceBooking.findMany({
     where: {
       userId,
       status: {
@@ -166,24 +166,85 @@ const getAgentTotalEarningsAndBookings = async (
       },
       ...(dateRange && { createdAt: dateRange }),
     },
+    select: {
+      createdAt: true,
+      totalPrice: true,
+    },
+    orderBy: { createdAt: "asc" },
   });
 
-  // total earnings
-  const totalEarnings = await prisma.payment.aggregate({
+  // monthly earnings data
+  const monthlyEarningsData = await prisma.payment.findMany({
     where: {
       status: PaymentStatus.PAID,
       userId,
       ...(dateRange && { createdAt: dateRange }),
     },
-    _sum: {
+    select: {
+      createdAt: true,
       agent_commission: true,
     },
-    _count: {
-      id: true,
-    },
+    orderBy: { createdAt: "asc" },
   });
 
-  // recent bookings for agent (last 10)
+  // group bookings by month
+  const bookingsByMonth = monthlyBookingsData.reduce(
+    (acc: Record<string, number>, booking) => {
+      const key = booking.createdAt.toISOString().slice(0, 7);
+
+      if (!acc[key]) acc[key] = 0;
+      acc[key] += 1;
+
+      return acc;
+    },
+    {},
+  );
+
+  // group earnings by month
+  const earningsByMonth = monthlyEarningsData.reduce(
+    (acc: Record<string, number>, payment) => {
+      const key = payment.createdAt.toISOString().slice(0, 7);
+
+      if (!acc[key]) acc[key] = 0;
+      acc[key] += payment.agent_commission || 0;
+
+      return acc;
+    },
+    {},
+  );
+
+  // current & Previous Month calculation
+  const now = new Date();
+  const currentMonthKey = `${now.getFullYear()}-${String(
+    now.getMonth() + 1,
+  ).padStart(2, "0")}`;
+
+  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthKey = `${prevDate.getFullYear()}-${String(
+    prevDate.getMonth() + 1,
+  ).padStart(2, "0")}`;
+
+  const currentBookings = bookingsByMonth[currentMonthKey] || 0;
+  const prevBookings = bookingsByMonth[prevMonthKey] || 0;
+
+  const currentEarnings = earningsByMonth[currentMonthKey] || 0;
+  const prevEarnings = earningsByMonth[prevMonthKey] || 0;
+
+  // growth calculation
+  const calculateGrowth = (current: number, previous: number) => {
+    if (previous === 0) return 0;
+    return Number((((current - previous) / previous) * 100).toFixed(2));
+  };
+
+  const bookingsGrowth = calculateGrowth(currentBookings, prevBookings);
+  const earningsGrowth = calculateGrowth(currentEarnings, prevEarnings);
+
+  const monthName = new Date(`${currentMonthKey}-01`).toLocaleString(
+    "default",
+    { month: "short" },
+  );
+
+  // recent bookings
   const recentBookings = await prisma.tripServiceBooking.findMany({
     where: {
       userId,
@@ -217,15 +278,23 @@ const getAgentTotalEarningsAndBookings = async (
         },
       },
     },
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: { createdAt: "desc" },
     take: 10,
   });
 
   return {
-    totalBookings,
-    totalEarnings: totalEarnings._sum.agent_commission || 0,
+    totalBookings: {
+      month: monthName,
+      value: currentBookings,
+      growthOrDown: bookingsGrowth,
+    },
+
+    totalEarnings: {
+      month: monthName,
+      value: currentEarnings,
+      growthOrDown: earningsGrowth,
+    },
+
     recentBookings,
     timeRange: timeRange || "ALL_TIME",
   };
