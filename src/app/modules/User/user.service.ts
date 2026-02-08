@@ -17,6 +17,8 @@ import { IGenericResponse } from "../../../interfaces/common";
 import { IUploadedFile } from "../../../interfaces/file";
 import { uploadFile } from "../../../helpars/fileUploader";
 import { getDateRange } from "../../../helpars/filterByDate";
+import { createOtpEmailTemplate } from "../../../utils/createOtpEmailTemplate";
+import emailSender from "../../../helpars/emailSender";
 
 // create user
 const createUser = async (payload: any) => {
@@ -32,7 +34,7 @@ const createUser = async (payload: any) => {
   // hash password
   const hashedPassword = await bcrypt.hash(payload.password, 12);
 
-  // create user with inactive status
+  // create user
   const user = await prisma.user.create({
     data: {
       ...payload,
@@ -76,6 +78,66 @@ const createUser = async (payload: any) => {
   //   message: "OTP sent to your email",
   //   email: user.email,
   // };
+};
+
+// create agent
+const createAgent = async (payload: any) => {
+  // check if email exists
+  const existingUser = await prisma.user.findUnique({
+    where: { email: payload.email },
+  });
+
+  if (existingUser) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "User already exists");
+  }
+
+  // hash password
+  const hashedPassword = await bcrypt.hash(payload.password, 12);
+
+  // create user with inactive status
+  const user = await prisma.user.create({
+    data: {
+      ...payload,
+      password: hashedPassword,
+      role: UserRole.AGENT,
+      status: UserStatus.INACTIVE,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      profileImage: true,
+      contactNumber: true,
+      address: true,
+      country: true,
+      role: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  // generate OTP
+  const randomOtp = Math.floor(1000 + Math.random() * 9000).toString();
+  // 5 minutes
+  const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+
+  // prepare email html
+  const html = createOtpEmailTemplate(randomOtp);
+
+  // send email
+  await emailSender("OTP Verification", user.email, html);
+
+  // update user with OTP + expiry
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { otp: randomOtp, otpExpiry },
+  });
+
+  return {
+    message: "OTP sent to your email",
+    email: user.email,
+  };
 };
 
 // create role for supper admin
@@ -139,7 +201,7 @@ const verifyOtpAndCreateUser = async (email: string, otp: string) => {
   const updatedUser = await prisma.user.update({
     where: { id: user.id },
     data: {
-      status: UserStatus.ACTIVE,
+      status: UserStatus.INACTIVE,
       isEmailVerified: true,
       otp: null,
       otpExpiry: null,
@@ -424,6 +486,76 @@ const updateUser = async (
   return updatedUser;
 };
 
+// update  user status access admin (active to inactive)
+const updateUserStatusActiveToInActive = async (id: string) => {
+  // find user
+  const user = await prisma.user.findUnique({
+    where: { id, status: UserStatus.ACTIVE },
+  });
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Admin not found");
+  }
+
+  const result = await prisma.user.update({
+    where: {
+      id,
+    },
+    data: {
+      status: UserStatus.INACTIVE,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      profileImage: true,
+      contactNumber: true,
+      address: true,
+      country: true,
+      role: true,
+      fcmToken: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+  return result;
+};
+
+// update  user status access admin (inactive to active)
+const updateUserStatusInActiveToActive = async (id: string) => {
+  // find user
+  const user = await prisma.user.findUnique({
+    where: { id, status: UserStatus.INACTIVE },
+  });
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Admin not found");
+  }
+
+  const result = await prisma.user.update({
+    where: {
+      id,
+    },
+    data: {
+      status: UserStatus.ACTIVE,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      profileImage: true,
+      contactNumber: true,
+      address: true,
+      country: true,
+      role: true,
+      fcmToken: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+  return result;
+};
+
 // get my profile
 const getMyProfile = async (id: string) => {
   const user = await prisma.user.findFirst({
@@ -498,12 +630,15 @@ const deleteUser = async (
 
 export const UserService = {
   createUser,
+  createAgent,
   createAdminBySupperAdmin,
   verifyOtpAndCreateUser,
   getAllUsers,
   getAllAdmins,
   getUserById,
   updateUser,
+  updateUserStatusActiveToInActive,
+  updateUserStatusInActiveToActive,
   getMyProfile,
   deleteMyAccount,
   deleteUser,

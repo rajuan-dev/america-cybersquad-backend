@@ -13,35 +13,42 @@ const router = express.Router();
 router.get(
   "/",
   auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
-  UserController.getAllUsers
+  UserController.getAllUsers,
 );
 
 // get all admins
 router.get(
   "/admins",
   auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.USER),
-  UserController.getAllAdmins
+  UserController.getAllAdmins,
 );
 
 //get my profile
 router.get(
   "/my-profile",
   auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.AGENT, UserRole.USER),
-  UserController.getMyProfile
+  UserController.getMyProfile,
 );
 
 // get user by id
 router.get(
   "/:id",
   auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.USER, UserRole.AGENT),
-  UserController.getUserById
+  UserController.getUserById,
 );
 
 // create user
 router.post(
   "/",
   validateRequest(userValidation.createUserZodSchema),
-  UserController.createUser
+  UserController.createUser,
+);
+
+// create agent
+router.post(
+  "/agent",
+  validateRequest(userValidation.createUserZodSchema),
+  UserController.createAgent,
 );
 
 // create role for supper admin
@@ -49,7 +56,7 @@ router.post(
   "/add-role",
   auth(UserRole.SUPER_ADMIN),
   validateRequest(userValidation.createUserZodSchema),
-  UserController.createAdminBySupperAdmin
+  UserController.createAdminBySupperAdmin,
 );
 
 // verify user
@@ -62,21 +69,35 @@ router.patch(
   uploadFile.profileImage,
   parseBodyData,
   validateRequest(userValidation.updateUserZodSchema),
-  UserController.updateUser
+  UserController.updateUser,
+);
+
+// update  user status access admin (active to inactive)
+router.patch(
+  "/update-user-status-inactive/:id",
+  auth(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  UserController.updateUserStatusActiveToInActive,
+);
+
+// update  user status access admin (inactive to active)
+router.patch(
+  "/update-user-status-active/:id",
+  auth(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  UserController.updateUserStatusInActiveToActive,
 );
 
 // delete my account
 router.patch(
   "/my-account",
   auth(UserRole.USER, UserRole.AGENT),
-  UserController.deleteMyAccount
+  UserController.deleteMyAccount,
 );
 
 // delete user
 router.delete(
   "/:id",
   auth(UserRole.SUPER_ADMIN, UserRole.ADMIN),
-  UserController.deleteUser
+  UserController.deleteUser,
 );
 
 export const userRoute = router;

@@ -21,6 +21,20 @@ const createUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// create agent
+const createAgent = catchAsync(async (req: Request, res: Response) => {
+  const userData = req.body;
+  const result = await UserService.createAgent(userData);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message:
+      "OTP sent to your email. Please verify OTP and wait for admin approval",
+    data: result,
+  });
+});
+
 // create role for supper admin
 const createAdminBySupperAdmin = catchAsync(
   async (req: Request, res: Response) => {
@@ -108,6 +122,34 @@ const updateUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// update  user status access admin (active to inactive)
+const updateUserStatusActiveToInActive = catchAsync(
+  async (req: Request, res: Response) => {
+    const id = req.params.id;
+    const result = await UserService.updateUserStatusActiveToInActive(id);
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Admin status updated successfully",
+      data: result,
+    });
+  },
+);
+
+// update  user status access admin (inactive to active)
+const updateUserStatusInActiveToActive = catchAsync(
+  async (req: Request, res: Response) => {
+    const id = req.params.id;
+    const result = await UserService.updateUserStatusInActiveToActive(id);
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Admin status updated successfully",
+      data: result,
+    });
+  },
+);
+
 // get my profile
 const getMyProfile = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.user;
@@ -159,12 +201,15 @@ const deleteUser = catchAsync(async (req: Request, res: Response) => {
 
 export const UserController = {
   createUser,
+  createAgent,
   createAdminBySupperAdmin,
   verifyOtpAndCreateUser,
   getAllUsers,
   getAllAdmins,
   getUserById,
   updateUser,
+  updateUserStatusActiveToInActive,
+  updateUserStatusInActiveToActive,
   getMyProfile,
   deleteMyAccount,
   deleteUser,
