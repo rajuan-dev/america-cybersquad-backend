@@ -1,6 +1,5 @@
 import {
   BookingStatus,
-  EveryServiceStatus,
   PaymentStatus,
   UserRole,
 } from "@prisma/client";
