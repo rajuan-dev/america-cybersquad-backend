@@ -55,29 +55,20 @@ const createUser = async (payload: any) => {
     },
   });
 
+  // send welcome email
+  const welcomeHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #333;">Welcome to Our Platform!</h2>
+      <p>Hi ${user.fullName},</p>
+      <p>Thank you for registering with us. Your account has been successfully created.</p>
+      <p>You can now log in and start using our services.</p>
+      <p>Best regards,<br>Team</p>
+    </div>
+  `;
+
+  await emailSender("Welcome to Our Platform", user.email, welcomeHtml);
+
   return user;
-
-  // // generate OTP
-  // const randomOtp = Math.floor(1000 + Math.random() * 9000).toString();
-  // // 5 minutes
-  // const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
-
-  // // prepare email html
-  // const html = createOtpEmailTemplate(randomOtp);
-
-  // // send email
-  // await emailSender("OTP Verification", user.email, html);
-
-  // // update user with OTP + expiry
-  // await prisma.user.update({
-  //   where: { id: user.id },
-  //   data: { otp: randomOtp, otpExpiry },
-  // });
-
-  // return {
-  //   message: "OTP sent to your email",
-  //   email: user.email,
-  // };
 };
 
 // create agent
@@ -737,6 +728,21 @@ const updateUserStatusInActiveToActive = async (id: string) => {
       updatedAt: true,
     },
   });
+
+  // send activation email
+  const activationHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #28a745;">Account Activated!</h2>
+      <p>Hi ${result.fullName},</p>
+      <p>Good news! Your account has been activated by our admin team.</p>
+      <p>You can now log in and start our services.</p>
+      <p>If you have any questions, feel free to contact our support team.</p>
+      <p>Best regards,<br>Admin Team</p>
+    </div>
+  `;
+
+  await emailSender("Account Activated", result.email, activationHtml);
+
   return result;
 };
 
@@ -818,7 +824,7 @@ export const UserService = {
   createAdminBySupperAdmin,
   verifyOtpAndCreateUser,
   getAllUsers,
-  getAllAgents, 
+  getAllAgents,
   getAllInactiveAgents,
   getAllAdmins,
   getUserById,
