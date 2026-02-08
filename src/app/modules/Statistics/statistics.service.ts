@@ -416,7 +416,7 @@ const getAgentBookings = async (
 };
 
 // get user dashboard tab info
-const getMyDashboardTabInfo = async (userId: string, status?: string) => {
+const getUserDashboardTabInfo = async (userId: string, status?: string) => {
   // find user
   const findUser = await prisma.user.findUnique({
     where: {
@@ -915,7 +915,7 @@ export const StatisticsService = {
   // sales
   getAgentTotalEarningsAndBookings,
   getAgentBookings,
-  getMyDashboardTabInfo,
+  getUserDashboardTabInfo,
   getServiceProviderTotalEarningsService,
   getMyDashboardForPropertyOwner,
   getMyDashboardForServiceProvider,

@@ -60,12 +60,12 @@ const getAgentBookings = catchAsync(async (req: Request, res: Response) => {
 });
 
 // get user dashboard tab info
-const getMyDashboardTabInfo = catchAsync(
+const getUserDashboardTabInfo = catchAsync(
   async (req: Request, res: Response) => {
     const userId = req.user?.id;
     const { status } = req.query;
 
-    const result = await StatisticsService.getMyDashboardTabInfo(
+    const result = await StatisticsService.getUserDashboardTabInfo(
       userId,
       status as string,
     );
@@ -151,7 +151,7 @@ export const StatisticsController = {
   // sales
   getAgentTotalEarningsAndBookings,
   getAgentBookings,
-  getMyDashboardTabInfo,
+  getUserDashboardTabInfo,
   getServiceProviderTotalEarningsService,
   getMyDashboardForPropertyOwner,
   getMyDashboardForServiceProvider,

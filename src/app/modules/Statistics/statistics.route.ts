@@ -30,7 +30,7 @@ router.get(
 router.get(
   "/user-dashboard-tab-info",
   auth(UserRole.USER),
-  StatisticsController.getMyDashboardTabInfo,
+  StatisticsController.getUserDashboardTabInfo,
 );
 
 // service provider total earnings service
