@@ -14,7 +14,7 @@ const createUserReport = catchAsync(async (req: Request, res: Response) => {
   const result = await SupportService.createUserReport(
     reporterId,
     reportedUserId,
-    data
+    data,
   );
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
@@ -23,6 +23,21 @@ const createUserReport = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
+// create user support by mail
+const createUserSupportByMail = catchAsync(
+  async (req: Request, res: Response) => {
+    const data = req.body;
+
+    const result = await SupportService.createUserSupportByMail(data);
+    sendResponse(res, {
+      statusCode: httpStatus.CREATED,
+      success: true,
+      message: "User support created successfully",
+      data: result,
+    });
+  },
+);
 
 // get all support
 const getAllSupport = catchAsync(async (req: Request, res: Response) => {
@@ -105,6 +120,7 @@ const deleteSupport = catchAsync(async (req: Request, res: Response) => {
 
 export const SupportController = {
   createUserReport,
+  createUserSupportByMail,
   getAllSupport,
   getMySupport,
   getSupportById,

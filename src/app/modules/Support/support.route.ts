@@ -19,6 +19,13 @@ router.post(
   SupportController.createUserReport,
 );
 
+// create user support by mail
+router.post(
+  "/support-by-mail",
+  auth(UserRole.USER, UserRole.AGENT, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  SupportController.createUserSupportByMail,
+);
+
 // get my support
 router.get(
   "/my-report",

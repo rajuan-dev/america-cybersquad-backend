@@ -6,16 +6,15 @@ import { IFilterRequest } from "./support.interface";
 import { IPaginationOptions } from "../../../interfaces/paginations";
 import { paginationHelpers } from "../../../helpars/paginationHelper";
 import { searchableFields } from "./support.constant";
-// import { getDateRange } from "../../../helpars/filterByDate";
 
 // create user-to-user report
 const createUserReport = async (
   reporterId: string,
   reportedUserId: string,
-  data: any
+  data: any,
 ) => {
-  const { subject, description, supportType } = data;
-  if (!subject || !description || !supportType) {
+  const { subject, description } = data;
+  if (!subject || !description) {
     throw new ApiError(httpStatus.BAD_REQUEST, "fields are required");
   }
 
@@ -39,7 +38,6 @@ const createUserReport = async (
       userId: reporterId, // reporter creates the support
       subject: `Report against ${reportedUser.fullName}`,
       description,
-      supportType,
       fullName: reporter?.fullName,
       email: reporter?.email,
       contactNumber: reporter?.contactNumber,
@@ -54,17 +52,34 @@ const createUserReport = async (
       body: `${reporter.fullName} has reported ${reportedUser.fullName}`,
       message: `Report Subject: ${subject}`,
       serviceTypes: "SUPPORT",
-      supportId: support.id,
     },
   });
 
   return support;
 };
 
+// create user support by the mail
+const createUserSupportByMail = async (data: any) => {
+  const { fullName, email, contactNumber, subject, description } = data;
+  if (!fullName || !email || !contactNumber || !subject || !description) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "fields are required");
+  }
+
+  // create notification for admins
+  await prisma.notifications.create({
+    data: {
+      title: "User Support Created",
+      body: `${fullName} has created a support request`,
+      message: `Support Subject: ${subject}`,
+      serviceTypes: "SUPPORT",
+    },
+  });
+};
+
 // get all support
 const getAllSupport = async (
   params: IFilterRequest,
-  options: IPaginationOptions
+  options: IPaginationOptions,
 ) => {
   const { limit, page, skip } = paginationHelpers.calculatedPagination(options);
 
@@ -148,7 +163,7 @@ const getAllSupport = async (
         ...item,
         reportedUser,
       };
-    })
+    }),
   );
 
   const total = await prisma.support.count({
@@ -207,7 +222,7 @@ const getMySupport = async (userId: string) => {
         ...item,
         reportedUser,
       };
-    })
+    }),
   );
 
   return finalData;
@@ -258,7 +273,7 @@ const getSupportById = async (id: string) => {
 const updateMySupport = async (
   userId: string,
   supportId: string,
-  data: any
+  data: any,
 ) => {
   // find user
   const findUser = await prisma.user.findUnique({
@@ -317,6 +332,7 @@ const deleteSupport = async (supportId: string) => {
 
 export const SupportService = {
   createUserReport,
+  createUserSupportByMail,
   getAllSupport,
   getMySupport,
   getSupportById,
