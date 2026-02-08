@@ -5,21 +5,13 @@ import prisma from "../../../shared/prisma";
 import { Prisma, User, UserRole, UserStatus } from "@prisma/client";
 import { ObjectId } from "mongodb";
 import { IPaginationOptions } from "../../../interfaces/paginations";
-import {
-  IFilterRequest,
-  IProfileImageResponse,
-  IUpdateUser,
-  SafeUser,
-} from "./user.interface";
+import { IFilterRequest, IUpdateUser, SafeUser } from "./user.interface";
 import { paginationHelpers } from "../../../helpars/paginationHelper";
 import { searchableFields } from "./user.constant";
 import { IGenericResponse } from "../../../interfaces/common";
 import { IUploadedFile } from "../../../interfaces/file";
 import { uploadFile } from "../../../helpars/fileUploader";
-import { Request } from "express";
 import { getDateRange } from "../../../helpars/filterByDate";
-import emailSender from "../../../helpars/emailSender";
-import { createOtpEmailTemplate } from "../../../utils/createOtpEmailTemplate";
 
 // create user
 const createUser = async (payload: any) => {
