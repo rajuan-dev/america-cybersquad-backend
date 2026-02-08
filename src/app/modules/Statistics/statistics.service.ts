@@ -468,6 +468,90 @@ const getUserDashboardTabInfo = async (userId: string, status?: string) => {
   });
   const totalSpent = totalSpentResult._sum.totalPrice || 0;
 
+  // monthly bookings data
+  const monthlyBookingsData = await prisma.tripServiceBooking.findMany({
+    where: {
+      userId,
+      status: {
+        in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
+      },
+    },
+    select: {
+      createdAt: true,
+      totalPrice: true,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  // monthly spent data
+  const monthlySpentData = await prisma.tripServiceBooking.findMany({
+    where: {
+      userId,
+    },
+    select: {
+      createdAt: true,
+      totalPrice: true,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  // group bookings by month
+  const bookingsByMonth = monthlyBookingsData.reduce(
+    (acc: Record<string, number>, booking) => {
+      const key = booking.createdAt.toISOString().slice(0, 7);
+
+      if (!acc[key]) acc[key] = 0;
+      acc[key] += 1;
+
+      return acc;
+    },
+    {},
+  );
+
+  // group spent by month
+  const spentByMonth = monthlySpentData.reduce(
+    (acc: Record<string, number>, booking) => {
+      const key = booking.createdAt.toISOString().slice(0, 7);
+
+      if (!acc[key]) acc[key] = 0;
+      acc[key] += booking.totalPrice || 0;
+
+      return acc;
+    },
+    {},
+  );
+
+  // current & Previous Month calculation
+  const now = new Date();
+  const currentMonthKey = `${now.getFullYear()}-${String(
+    now.getMonth() + 1,
+  ).padStart(2, "0")}`;
+
+  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthKey = `${prevDate.getFullYear()}-${String(
+    prevDate.getMonth() + 1,
+  ).padStart(2, "0")}`;
+
+  const currentBookings = bookingsByMonth[currentMonthKey] || 0;
+  const prevBookings = bookingsByMonth[prevMonthKey] || 0;
+
+  const currentSpent = spentByMonth[currentMonthKey] || 0;
+  const prevSpent = spentByMonth[prevMonthKey] || 0;
+
+  // growth calculation
+  const calculateGrowth = (current: number, previous: number) => {
+    if (previous === 0) return 0;
+    return Number((((current - previous) / previous) * 100).toFixed(2));
+  };
+
+  const bookingsGrowth = calculateGrowth(currentBookings, prevBookings);
+  const spentGrowth = calculateGrowth(currentSpent, prevSpent);
+
+  const monthName = new Date(`${currentMonthKey}-01`).toLocaleString(
+    "default",
+    { month: "short" },
+  );
+
   // recent bookings with filter on status
   const recentBookings = await prisma.tripServiceBooking.findMany({
     where: {
@@ -504,9 +588,17 @@ const getUserDashboardTabInfo = async (userId: string, status?: string) => {
   });
 
   return {
-    totalBookings: totalBookings || 0,
+    totalBookings: {
+      month: monthName,
+      value: currentBookings,
+      growthOrDown: bookingsGrowth,
+    },
     totalConfirmedBookings: totalConfirmedBookings || 0,
-    totalSpent: totalSpent || 0,
+    totalSpent: {
+      month: monthName,
+      value: currentSpent,
+      growthOrDown: spentGrowth,
+    },
     recentBookings,
   };
 };
