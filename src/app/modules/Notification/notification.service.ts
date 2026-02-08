@@ -5,43 +5,62 @@ import { IPaginationOptions } from "../../../interfaces/paginations";
 import prisma from "../../../shared/prisma";
 
 // Send notification to a single user
+// const sendSingleNotification = async (req: any) => {
+//   const user = await prisma.user.findUnique({
+//     where: { id: req.params.userId },
+//   });
+
+//   if (!user?.fcmToken) {
+//     throw new ApiError(404, "User not found with FCM token");
+//   }
+
+//   const message = {
+//     notification: {
+//       title: req.body.title,
+//       body: req.body.body,
+//     },
+//     token: user.fcmToken,
+//   };
+
+//   try {
+//     const response = await admin.messaging().send(message);
+//     // await prisma.notifications.create({
+//     //   data: {
+//     //     receiverId: req.params.userId,
+//     //     title: req.body.title,
+//     //     body: req.body.body,
+//     //   },
+//     // });
+//     return response;
+//   } catch (error: any) {
+//     if (error.code === "messaging/invalid-registration-token") {
+//       throw new ApiError(400, "Invalid FCM registration token");
+//     } else if (error.code === "messaging/registration-token-not-registered") {
+//       throw new ApiError(404, "FCM token is no longer registered");
+//     } else {
+//       throw new ApiError(500, "Failed to send notification");
+//     }
+//   }
+// };
+
+// send notification just save database
 const sendSingleNotification = async (req: any) => {
-  console.log(req, "req");
   const user = await prisma.user.findUnique({
-    where: { id: req.params.userId },
+    where: { id: req.user?.id },
   });
 
-  if (!user?.fcmToken) {
-    throw new ApiError(404, "User not found with FCM token");
+  if (!user) {
+    throw new ApiError(404, "User not found");
   }
 
-  const message = {
-    notification: {
+  await prisma.notifications.create({
+    data: {
       title: req.body.title,
       body: req.body.body,
+      bookingId: req.body.bookingId,
+      receiverId: req.params.userId,
     },
-    token: user.fcmToken,
-  };
-
-  try {
-    const response = await admin.messaging().send(message);
-    // await prisma.notifications.create({
-    //   data: {
-    //     receiverId: req.params.userId,
-    //     title: req.body.title,
-    //     body: req.body.body,
-    //   },
-    // });
-    return response;
-  } catch (error: any) {
-    if (error.code === "messaging/invalid-registration-token") {
-      throw new ApiError(400, "Invalid FCM registration token");
-    } else if (error.code === "messaging/registration-token-not-registered") {
-      throw new ApiError(404, "FCM token is no longer registered");
-    } else {
-      throw new ApiError(500, "Failed to send notification");
-    }
-  }
+  });
 };
 
 // Send notifications to all users with valid FCM tokens
@@ -112,40 +131,10 @@ const sendNotifications = async (req: any) => {
 };
 
 // get all notifications
-const getAllNotifications = async (
-  adminId: string,
-  options: IPaginationOptions
-) => {
-  // find admin
-  const user = await prisma.user.findUnique({
-    where: { id: adminId },
-    select: {
-      supportNotification: true,
-      paymentNotification: true,
-      emailNotification: true,
-    },
-  });
-
+const getAllNotifications = async (options: IPaginationOptions) => {
   const { limit, page, skip } = paginationHelpers.calculatedPagination(options);
 
-  // serviceTypes dynamically excluded
-  const excludedTypes: string[] = [];
-
-  if (user?.supportNotification === false) {
-    excludedTypes.push("SUPPORT");
-  }
-  if (user?.paymentNotification === false) {
-    excludedTypes.push("ATTRACTION", "CAR", "SECURITY", "HOTEL");
-  }
-  if (user?.emailNotification === false) {
-    excludedTypes.push("EMAIL");
-  }
-
-  const where: any = {};
-  if (excludedTypes.length > 0) {
-    where.serviceTypes = { notIn: excludedTypes };
-  }
-
+  const where = {} as any;
   const result = await prisma.notifications.findMany({
     where,
     skip,
@@ -173,7 +162,7 @@ const getAllNotifications = async (
 // get single notification
 const getSingleNotificationFromDB = async (
   req: any,
-  notificationId: string
+  notificationId: string,
 ) => {
   const notification = await prisma.notifications.findFirst({
     where: {
@@ -241,6 +230,33 @@ const markAsReadNotification = async (notificationId: string) => {
   });
 };
 
+// mark as unread notification
+const markAsUnreadNotification = async (notificationId: string) => {
+  // find notification
+  const notification = await prisma.notifications.findUnique({
+    where: {
+      id: notificationId,
+    },
+  });
+
+  if (!notification) {
+    throw new ApiError(404, "Notification not found");
+  }
+
+  return prisma.notifications.update({
+    where: { id: notificationId },
+    data: { read: false },
+  });
+};
+
+// mark all as read notification
+const markAllAsReadNotification = async () => {
+  return prisma.notifications.updateMany({
+    // where: { receiverId: userId },
+    data: { read: true },
+  });
+};
+
 export const NotificationService = {
   sendSingleNotification,
   sendNotifications,
@@ -249,4 +265,6 @@ export const NotificationService = {
   getMyNotifications,
   deleteNotification,
   markAsReadNotification,
+  markAsUnreadNotification,
+  markAllAsReadNotification,
 };
