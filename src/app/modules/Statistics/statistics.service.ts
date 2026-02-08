@@ -1,4 +1,9 @@
-import { BookingStatus, PaymentStatus, UserRole } from "@prisma/client";
+import {
+  BookingStatus,
+  PaymentStatus,
+  UserRole,
+  UserStatus,
+} from "@prisma/client";
 import prisma from "../../../shared/prisma";
 import { IFilterRequest } from "./statistics.interface";
 import { getDateRange } from "../../../helpars/filterByDate";
@@ -12,52 +17,73 @@ const getOverview = async (params: IFilterRequest) => {
 
   // total users
   const totalUsers = await prisma.user.count({
-    // where: {
-    //   role: UserRole.USER,
-    // },
-  });
-
-  // total hotel
-  const totalHosts = await prisma.tripService.count({});
-
-  // total hotel bookings
-  const totalHotelBookings = await prisma.tripServiceBooking.count({
     where: {
-      status: {
-        in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
-      },
+      role: UserRole.USER,
+      status: UserStatus.ACTIVE,
     },
   });
 
-  // total service booking
-  const totalServiceBookings = await prisma.tripServiceBooking.count({
+  // total agents
+  const totalAgents = await prisma.user.count({
     where: {
-      status: {
-        in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
-      },
+      role: UserRole.AGENT,
+      status: UserStatus.ACTIVE,
     },
   });
 
-  // total booking
-  const totalBookings = totalHotelBookings + totalServiceBookings;
-
-  // admin earnings (only PAID payments)
-  const adminEarnings = await prisma.payment.aggregate({
+  // total revenue
+  const totalRevenue = await prisma.payment.aggregate({
     where: {
       status: {
         in: [PaymentStatus.PAID],
       },
     },
     _sum: {
-      amount: true,
+      admin_commission: true,
     },
   });
 
-  // user chart data - monthly user registration with year filter
+  // user chart data
   const filterYear = year ? parseInt(year) : new Date().getFullYear();
   const startOfYear = new Date(filterYear, 0, 1); // january 1st of selected year
   const endOfYear = new Date(filterYear, 11, 31, 23, 59, 59); // december 31st of selected year
 
+  // revenue data by month
+  const revenueData = await prisma.payment.findMany({
+    where: {
+      status: PaymentStatus.PAID,
+      createdAt: {
+        gte: startOfYear,
+        lte: endOfYear,
+      },
+    },
+    select: {
+      createdAt: true,
+      admin_commission: true,
+      amount: true,
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+
+  // group users by months
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+
+  // user chart data 
   const userChartData = await prisma.user.findMany({
     where: {
       role: UserRole.USER,
@@ -74,21 +100,24 @@ const getOverview = async (params: IFilterRequest) => {
     },
   });
 
-  // group users by month for chart (all 12 months)
-  const monthNames = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
+  // agent chart data
+  const agentChartData = await prisma.user.findMany({
+    where: {
+      role: UserRole.AGENT,
+      createdAt: {
+        gte: startOfYear,
+        lte: endOfYear,
+      },
+    },
+    select: {
+      createdAt: true,
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+
+  
   const userChart = monthNames.map((month, index) => {
     const monthUsers = userChartData.filter((user) => {
       const userDate = new Date(user.createdAt);
@@ -97,9 +126,38 @@ const getOverview = async (params: IFilterRequest) => {
       );
     });
 
+    const monthAgents = agentChartData.filter((agent) => {
+      const agentDate = new Date(agent.createdAt);
+      return (
+        agentDate.getMonth() === index && agentDate.getFullYear() === filterYear
+      );
+    });
+
     return {
       month,
-      count: monthUsers.length,
+      userCount: monthUsers.length,
+      agentCount: monthAgents.length,
+    };
+  });
+
+  // revenue chart data
+  const revenueChart = monthNames.map((month, index) => {
+    const monthRevenue = revenueData.filter((payment) => {
+      const paymentDate = new Date(payment.createdAt);
+      return (
+        paymentDate.getMonth() === index &&
+        paymentDate.getFullYear() === filterYear
+      );
+    });
+
+    const totalRevenue = monthRevenue.reduce(
+      (sum, payment) => sum + (payment.admin_commission || 0),
+      0,
+    );
+
+    return {
+      month,
+      revenue: totalRevenue,
     };
   });
 
@@ -123,11 +181,11 @@ const getOverview = async (params: IFilterRequest) => {
   });
 
   return {
-    totalUsers,
-    totalHosts,
-    totalBookings,
-    adminEarnings: adminEarnings._sum.amount || 0,
+    totalUsers: totalUsers || 0,
+    totalAgents: totalAgents || 0,
+    totalRevenue: totalRevenue._sum.admin_commission || 0,
     userChart,
+    revenueChart,
     recentUsers,
     filterYear,
   };
