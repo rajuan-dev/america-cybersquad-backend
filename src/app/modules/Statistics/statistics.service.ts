@@ -1,8 +1,4 @@
-import {
-  BookingStatus,
-  PaymentStatus,
-  UserRole,
-} from "@prisma/client";
+import { BookingStatus, PaymentStatus, UserRole } from "@prisma/client";
 import prisma from "../../../shared/prisma";
 import { IFilterRequest } from "./statistics.interface";
 import { getDateRange } from "../../../helpars/filterByDate";
@@ -419,6 +415,102 @@ const getAgentBookings = async (
   };
 };
 
+// get user dashboard tab info
+const getMyDashboardTabInfo = async (userId: string, status?: string) => {
+  // find user
+  const findUser = await prisma.user.findUnique({
+    where: {
+      id: userId,
+      role: UserRole.USER,
+    },
+  });
+  if (!findUser) {
+    throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  // validate booking status
+  const validStatuses = Object.values(BookingStatus);
+  if (status && !validStatuses.includes(status as BookingStatus)) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Invalid booking status. Valid statuses are: ${validStatuses.join(", ")}`,
+    );
+  }
+
+  // total bookings
+  const totalBookings = await prisma.tripServiceBooking.count({
+    where: {
+      userId,
+      status: {
+        in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
+      },
+    },
+  });
+
+  // total confirmed bookings
+  const totalConfirmedBookings = await prisma.tripServiceBooking.count({
+    where: {
+      userId,
+      status: {
+        in: [BookingStatus.CONFIRMED],
+      },
+    },
+  });
+
+  // total spent sum
+  const totalSpentResult = await prisma.tripServiceBooking.aggregate({
+    where: {
+      userId,
+    },
+    _sum: {
+      totalPrice: true,
+    },
+  });
+  const totalSpent = totalSpentResult._sum.totalPrice || 0;
+
+  // recent bookings with filter on status
+  const recentBookings = await prisma.tripServiceBooking.findMany({
+    where: {
+      userId,
+      ...(status ? { status: status as BookingStatus } : {}),
+    },
+    select: {
+      clientName: true,
+      from: true,
+      to: true,
+      serviceType: true,
+      timeSlot: true,
+      status: true,
+      isReturn: true,
+      totalPrice: true,
+      createdAt: true,
+      updatedAt: true,
+      payments: {
+        select: {
+          agent_commission: true,
+        },
+      },
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          address: true,
+          country: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return {
+    totalBookings: totalBookings || 0,
+    totalConfirmedBookings: totalConfirmedBookings || 0,
+    totalSpent: totalSpent || 0,
+    recentBookings,
+  };
+};
+
 // service provider total earnings service
 const getServiceProviderTotalEarningsService = async (
   providerId: string,
@@ -823,6 +915,7 @@ export const StatisticsService = {
   // sales
   getAgentTotalEarningsAndBookings,
   getAgentBookings,
+  getMyDashboardTabInfo,
   getServiceProviderTotalEarningsService,
   getMyDashboardForPropertyOwner,
   getMyDashboardForServiceProvider,

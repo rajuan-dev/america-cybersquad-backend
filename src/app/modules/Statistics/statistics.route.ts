@@ -26,6 +26,13 @@ router.get(
   StatisticsController.getAgentBookings,
 );
 
+// get user dashboard tab info
+router.get(
+  "/user-dashboard-tab-info",
+  auth(UserRole.USER),
+  StatisticsController.getMyDashboardTabInfo,
+);
+
 // service provider total earnings service
 router.get(
   "/earnings-service",
