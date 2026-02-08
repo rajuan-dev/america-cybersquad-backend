@@ -784,6 +784,49 @@ const getAdminTotalBookings = async (options: IPaginationOptions) => {
   };
 };
 
+// admin reviews
+const getAdminTotalReviews = async (options: IPaginationOptions) => {
+  const { page, limit, skip } = paginationHelpers.calculatedPagination(options);
+
+  // total reviews
+  const totalReviews = await prisma.review.count();
+
+  // average rating
+  const averageRating = await prisma.review.aggregate({
+    _avg: {
+      rating: true,
+    },
+  });
+
+  // total 5-star reviews
+  const total5StarReview = await prisma.review.count({
+    where: {
+      rating: 5,
+    },
+  });
+
+  // total reviews database info
+  const reviewInfo = await prisma.review.findMany({
+    skip,
+    take: limit,
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return {
+    totalReviews,
+    averageRating,
+    total5StarReview,
+    meta: {
+      totalReviews,
+      page,
+      limit,
+    },
+    data: reviewInfo,
+  };
+};
+
 export const StatisticsService = {
   getOverview,
 
@@ -792,6 +835,7 @@ export const StatisticsService = {
   getAgentBookings,
   getUserDashboardTabInfo,
   getAdminTotalBookings,
+  getAdminTotalReviews,
 
   // admin earns
   getAdminTotalEarnings,

@@ -40,6 +40,13 @@ router.get(
   StatisticsController.getAdminTotalEarnings,
 );
 
+// admin total reviews
+router.get(
+  "/admin-reviews",
+  auth(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  StatisticsController.getAdminTotalReviews,
+);
+
 // admin total bookings
 router.get(
   "/admin-bookings",

@@ -112,6 +112,20 @@ const getAdminTotalBookings = catchAsync(
   },
 );
 
+// admin reviews
+const getAdminTotalReviews = catchAsync(async (req: Request, res: Response) => {
+  const options = pick(req.query, paginationFields);
+
+  const result = await StatisticsService.getAdminTotalReviews(options);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Admin reviews fetched successfully",
+    data: result,
+  });
+});
+
 export const StatisticsController = {
   getOverview,
 
@@ -120,6 +134,7 @@ export const StatisticsController = {
   getAgentBookings,
   getUserDashboardTabInfo,
   getAdminTotalBookings,
+  getAdminTotalReviews,
 
   // admin earns
   getAdminTotalEarnings,
