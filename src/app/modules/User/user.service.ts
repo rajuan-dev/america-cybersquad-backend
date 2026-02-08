@@ -318,6 +318,190 @@ const getAllUsers = async (
   };
 };
 
+// get all agents
+const getAllAgents = async (
+  params: IFilterRequest,
+  options: IPaginationOptions,
+): Promise<IGenericResponse<SafeUser[]>> => {
+  const { limit, page, skip } = paginationHelpers.calculatedPagination(options);
+
+  const { searchTerm, timeRange, ...filterData } = params;
+
+  const filters: Prisma.UserWhereInput[] = [];
+
+  // Filter for active users and role AGENT only
+  filters.push({
+    role: UserRole.AGENT,
+    status: UserStatus.ACTIVE,
+  });
+
+  // text search
+  if (params?.searchTerm) {
+    filters.push({
+      OR: searchableFields.map((field) => ({
+        [field]: {
+          contains: params.searchTerm,
+          mode: "insensitive",
+        },
+      })),
+    });
+  }
+
+  // Exact search filter
+  if (Object.keys(filterData).length > 0) {
+    filters.push({
+      AND: Object.keys(filterData).map((key) => ({
+        [key]: {
+          equals: (filterData as any)[key],
+        },
+      })),
+    });
+  }
+
+  // timeRange filter
+  if (timeRange) {
+    const dateRange = getDateRange(timeRange);
+    if (dateRange) {
+      filters.push({
+        createdAt: dateRange,
+      });
+    }
+  }
+
+  const where: Prisma.UserWhereInput = { AND: filters };
+
+  const result = await prisma.user.findMany({
+    where,
+    skip,
+    take: limit,
+    orderBy:
+      options.sortBy && options.sortOrder
+        ? {
+            [options.sortBy]: options.sortOrder,
+          }
+        : {
+            createdAt: "desc",
+          },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      profileImage: true,
+      contactNumber: true,
+      address: true,
+      country: true,
+      role: true,
+      fcmToken: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  const total = await prisma.user.count({ where });
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+    },
+    data: result,
+  };
+};
+
+// get all inactive agents
+const getAllInactiveAgents = async (
+  params: IFilterRequest,
+  options: IPaginationOptions,
+): Promise<IGenericResponse<SafeUser[]>> => {
+  const { limit, page, skip } = paginationHelpers.calculatedPagination(options);
+
+  const { searchTerm, timeRange, ...filterData } = params;
+
+  const filters: Prisma.UserWhereInput[] = [];
+
+  // Filter for INACTIVE AGENT and role AGENT only
+  filters.push({
+    role: UserRole.AGENT,
+    status: UserStatus.INACTIVE,
+  });
+
+  // text search
+  if (params?.searchTerm) {
+    filters.push({
+      OR: searchableFields.map((field) => ({
+        [field]: {
+          contains: params.searchTerm,
+          mode: "insensitive",
+        },
+      })),
+    });
+  }
+
+  // Exact search filter
+  if (Object.keys(filterData).length > 0) {
+    filters.push({
+      AND: Object.keys(filterData).map((key) => ({
+        [key]: {
+          equals: (filterData as any)[key],
+        },
+      })),
+    });
+  }
+
+  // timeRange filter
+  if (timeRange) {
+    const dateRange = getDateRange(timeRange);
+    if (dateRange) {
+      filters.push({
+        createdAt: dateRange,
+      });
+    }
+  }
+
+  const where: Prisma.UserWhereInput = { AND: filters };
+
+  const result = await prisma.user.findMany({
+    where,
+    skip,
+    take: limit,
+    orderBy:
+      options.sortBy && options.sortOrder
+        ? {
+            [options.sortBy]: options.sortOrder,
+          }
+        : {
+            createdAt: "desc",
+          },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      profileImage: true,
+      contactNumber: true,
+      address: true,
+      country: true,
+      role: true,
+      fcmToken: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  const total = await prisma.user.count({ where });
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+    },
+    data: result,
+  };
+};
+
 // get all admins
 const getAllAdmins = async (
   params: IFilterRequest,
@@ -634,6 +818,8 @@ export const UserService = {
   createAdminBySupperAdmin,
   verifyOtpAndCreateUser,
   getAllUsers,
+  getAllAgents, 
+  getAllInactiveAgents,
   getAllAdmins,
   getUserById,
   updateUser,

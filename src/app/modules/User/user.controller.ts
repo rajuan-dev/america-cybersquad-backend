@@ -78,6 +78,34 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// get all agents
+const getAllAgents = catchAsync(async (req: Request, res: Response) => {
+  const filter = pick(req.query, filterField);
+  const options = pick(req.query, paginationFields);
+  const result = await UserService.getAllAgents(filter, options);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Agents fetched successfully",
+    data: result,
+  });
+});
+
+// get all inactive agents
+const getAllInactiveAgents = catchAsync(async (req: Request, res: Response) => {
+  const filter = pick(req.query, filterField);
+  const options = pick(req.query, paginationFields);
+  const result = await UserService.getAllInactiveAgents(filter, options);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Inactive agents fetched successfully",
+    data: result,
+  });
+});
+
 // get all admins
 const getAllAdmins = catchAsync(async (req: Request, res: Response) => {
   const filter = pick(req.query, filterField);
@@ -205,6 +233,8 @@ export const UserController = {
   createAdminBySupperAdmin,
   verifyOtpAndCreateUser,
   getAllUsers,
+  getAllAgents,
+  getAllInactiveAgents,
   getAllAdmins,
   getUserById,
   updateUser,

@@ -16,11 +16,18 @@ router.get(
   UserController.getAllUsers,
 );
 
-// get all admins
+// get all agents
 router.get(
-  "/admins",
-  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.USER),
-  UserController.getAllAdmins,
+  "/agents",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  UserController.getAllAgents,
+);
+
+// get all inactive agents
+router.get(
+  "/inactive-agents",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  UserController.getAllInactiveAgents,
 );
 
 //get my profile
