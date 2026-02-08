@@ -10,7 +10,7 @@ import { getDateRange } from "../../../helpars/filterByDate";
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 
-// get overview total clients, total providers,total revenue
+// get overview total users, total agents,total revenue
 const getOverview = async (params: IFilterRequest) => {
   const { timeRange, year } = params;
   const dateRange = getDateRange(timeRange);
@@ -83,7 +83,7 @@ const getOverview = async (params: IFilterRequest) => {
     "Dec",
   ];
 
-  // user chart data 
+  // user chart data
   const userChartData = await prisma.user.findMany({
     where: {
       role: UserRole.USER,
@@ -117,7 +117,6 @@ const getOverview = async (params: IFilterRequest) => {
     },
   });
 
-  
   const userChart = monthNames.map((month, index) => {
     const monthUsers = userChartData.filter((user) => {
       const userDate = new Date(user.createdAt);
