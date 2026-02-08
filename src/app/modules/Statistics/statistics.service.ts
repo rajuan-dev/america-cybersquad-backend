@@ -521,7 +521,7 @@ const getUserDashboardTabInfo = async (userId: string, status?: string) => {
     {},
   );
 
-  // current & Previous Month calculation
+  // current & previous Month calculation
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(
     now.getMonth() + 1,
