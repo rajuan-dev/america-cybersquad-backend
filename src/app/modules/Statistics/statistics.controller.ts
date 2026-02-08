@@ -96,34 +96,17 @@ const getAdminTotalEarnings = catchAsync(
   },
 );
 
-// get my properties, services bookings, guest bookings, earnings
-const getMyDashboardForPropertyOwner = catchAsync(
+// admin booking
+const getAdminTotalBookings = catchAsync(
   async (req: Request, res: Response) => {
-    const userId = req.user?.id;
-    const result =
-      await StatisticsService.getMyDashboardForPropertyOwner(userId);
+    const options = pick(req.query, paginationFields);
+
+    const result = await StatisticsService.getAdminTotalBookings(options);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: "My dashboard fetched successfully",
-      data: result,
-    });
-  },
-);
-
-// get my services, services bookings,  earnings
-const getMyDashboardForServiceProvider = catchAsync(
-  async (req: Request, res: Response) => {
-    const userId = req.user?.id;
-
-    const result =
-      await StatisticsService.getMyDashboardForServiceProvider(userId);
-
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: "My dashboard fetched successfully",
+      message: "Admin bookings fetched successfully",
       data: result,
     });
   },
@@ -136,8 +119,7 @@ export const StatisticsController = {
   getAgentTotalEarningsAndBookings,
   getAgentBookings,
   getUserDashboardTabInfo,
-  getMyDashboardForPropertyOwner,
-  getMyDashboardForServiceProvider,
+  getAdminTotalBookings,
 
   // admin earns
   getAdminTotalEarnings,

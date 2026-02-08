@@ -40,18 +40,11 @@ router.get(
   StatisticsController.getAdminTotalEarnings,
 );
 
-// get my properties, services bookings, guest bookings, earnings
+// admin total bookings
 router.get(
-  "/my-dashboard/property-owner",
-  auth(UserRole.AGENT),
-  StatisticsController.getMyDashboardForPropertyOwner,
-);
-
-// get my services, services bookings,  earnings
-router.get(
-  "/my-dashboard/service-provider",
-  auth(UserRole.AGENT),
-  StatisticsController.getMyDashboardForServiceProvider,
+  "/admin-bookings",
+  auth(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  StatisticsController.getAdminTotalBookings,
 );
 
 export const statisticsRoutes = router;

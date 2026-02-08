@@ -736,74 +736,51 @@ const getAdminTotalEarnings = async (options: IPaginationOptions) => {
   };
 };
 
-// get my properties, services bookings, guest bookings, earnings
-const getMyDashboardForPropertyOwner = async (userId: string) => {
-  // total properties
-  const totalProperties = await prisma.tripService.count({});
-
-  // total services bookings
-  const totalServices = await prisma.tripServiceBooking.count({
-    where: {
-      userId,
-      status: BookingStatus.CONFIRMED,
-    },
-  });
-
-  // total hotel bookings (guest bookings)
-  const totalBookings = await prisma.tripServiceBooking.count({
-    where: {
-      userId,
-      status: BookingStatus.CONFIRMED,
-    },
-  });
-
-  // total payments sum
-  const totalPaymentsAgg = await prisma.payment.aggregate({
-    where: {
-      status: PaymentStatus.PAID,
-    },
-    _sum: {
-      amount: true,
-    },
-  });
-
-  let totalPayments = 0;
-  if (
-    totalPaymentsAgg &&
-    totalPaymentsAgg._sum &&
-    totalPaymentsAgg._sum.amount
-  ) {
-    totalPayments = totalPaymentsAgg._sum.amount;
-  }
-
-  return {
-    totalProperties,
-    totalServices,
-    totalBookings,
-    totalPayments,
-  };
-};
-
-// get my services, services bookings,  earnings
-const getMyDashboardForServiceProvider = async (userId: string) => {
-  // total services
-  const totalServices = await prisma.tripService.count({});
-
-  // total services bookings
-  const totalServicesBookings = await prisma.tripServiceBooking.count({});
+// admin booking
+const getAdminTotalBookings = async (options: IPaginationOptions) => {
+  const { page, limit, skip } = paginationHelpers.calculatedPagination(options);
 
   // total payments
-  const totalPayments = await prisma.payment.count({
+  const totalBookings = await prisma.tripServiceBooking.count({
     where: {
-      userId,
-      status: PaymentStatus.PAID,
+      status: {
+        in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
+      },
+    },
+  });
+
+  // completed rides
+  const completedRides = await prisma.tripServiceBooking.count({
+    where: {
+      status: {
+        in: [BookingStatus.COMPLETED],
+      },
+    },
+  });
+
+  // total bookings database info
+  const bookingInfo = await prisma.tripServiceBooking.findMany({
+    where: {
+      status: {
+        in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
+      },
+    },
+    skip,
+    take: limit,
+    orderBy: {
+      createdAt: "desc",
     },
   });
 
   return {
-    totalServices,
-    totalServicesBookings,
-    totalPayments,
+    totalBookings,
+    completedRides,
+    meta: {
+      totalBookings,
+      page,
+      limit,
+    },
+    data: bookingInfo,
   };
 };
 
@@ -814,8 +791,7 @@ export const StatisticsService = {
   getAgentTotalEarningsAndBookings,
   getAgentBookings,
   getUserDashboardTabInfo,
-  getMyDashboardForPropertyOwner,
-  getMyDashboardForServiceProvider,
+  getAdminTotalBookings,
 
   // admin earns
   getAdminTotalEarnings,
