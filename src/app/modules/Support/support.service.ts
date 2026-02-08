@@ -1,11 +1,13 @@
 import httpStatus from "http-status";
 import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
-import { Prisma, SupportStatus, UserStatus, SupportType } from "@prisma/client";
+import { Prisma, SupportStatus, UserStatus } from "@prisma/client";
 import { IFilterRequest } from "./support.interface";
 import { IPaginationOptions } from "../../../interfaces/paginations";
 import { paginationHelpers } from "../../../helpars/paginationHelper";
 import { searchableFields } from "./support.constant";
+import emailSender from "../../../helpars/emailSender";
+import config from "../../../config";
 
 // create user-to-user report
 const createUserReport = async (
@@ -58,7 +60,7 @@ const createUserReport = async (
   return support;
 };
 
-// create user support by the mail
+// create user support by mail
 const createUserSupportByMail = async (data: any) => {
   const { fullName, email, contactNumber, subject, description } = data;
   if (!fullName || !email || !contactNumber || !subject || !description) {
@@ -74,6 +76,95 @@ const createUserSupportByMail = async (data: any) => {
       serviceTypes: "SUPPORT",
     },
   });
+
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Support Request</title>
+</head>
+
+<body style="margin:0; padding:0; background-color:#f4f6f8; font-family: Arial, sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding: 20px;">
+    <tr>
+      <td align="center">
+
+        <table width="600" cellpadding="0" cellspacing="0" 
+          style="background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,0.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#2563eb; padding:20px; text-align:center;">
+              <h2 style="color:#ffffff; margin:0;">New Support Request</h2>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding:30px; color:#333;">
+
+              <p style="margin-bottom:20px;">
+                A new support request has been submitted from the platform.
+              </p>
+
+              <table width="100%" cellpadding="8" cellspacing="0" 
+                style="border-collapse: collapse;">
+
+                <tr>
+                  <td style="font-weight:bold; border-bottom:1px solid #eee;">Full Name</td>
+                  <td style="border-bottom:1px solid #eee;">${fullName}</td>
+                </tr>
+
+                <tr>
+                  <td style="font-weight:bold; border-bottom:1px solid #eee;">Email</td>
+                  <td style="border-bottom:1px solid #eee;">${email}</td>
+                </tr>
+
+                <tr>
+                  <td style="font-weight:bold; border-bottom:1px solid #eee;">Contact Number</td>
+                  <td style="border-bottom:1px solid #eee;">${contactNumber}</td>
+                </tr>
+
+                <tr>
+                  <td style="font-weight:bold; border-bottom:1px solid #eee;">Subject</td>
+                  <td style="border-bottom:1px solid #eee;">${subject}</td>
+                </tr>
+
+                <tr>
+                  <td style="font-weight:bold; vertical-align:top;">Description</td>
+                  <td>${description}</td>
+                </tr>
+
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f9fafb; padding:20px; text-align:center; font-size:13px; color:#777;">
+              This is an automated message from <strong>Wasiq Platform Support System</strong>.
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+`;
+
+  await emailSender(
+    `New Support Request: ${subject}`,
+    config.emailSender.email as string,
+    emailHtml,
+  );
 };
 
 // get all support
