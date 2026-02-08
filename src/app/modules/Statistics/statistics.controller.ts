@@ -7,9 +7,10 @@ import { pick } from "../../../shared/pick";
 import { filterField } from "./statistics.constant";
 import { paginationFields } from "../../../constants/pagination";
 
-// get overview total clients, total providers,total revenue
+// get overview total users, total agents,total revenue
 const getOverview = catchAsync(async (req: Request, res: Response) => {
   const filter = pick(req.query, filterField);
+
   const result = await StatisticsService.getOverview(filter);
 
   sendResponse(res, {
@@ -79,34 +80,13 @@ const getUserDashboardTabInfo = catchAsync(
   },
 );
 
-// service provider total earnings service
-const getServiceProviderTotalEarningsService = catchAsync(
-  async (req: Request, res: Response) => {
-    const providerId = req.user?.id;
-    const { timeRange } = req.query;
-
-    const result =
-      await StatisticsService.getServiceProviderTotalEarningsService(
-        providerId,
-        timeRange as string,
-      );
-
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: "Property owner earnings fetched successfully",
-      data: result,
-    });
-  },
-);
-
 // admin total earnings
 const getAdminTotalEarnings = catchAsync(
   async (req: Request, res: Response) => {
-    const { timeRange } = req.query;
-    const result = await StatisticsService.getAdminTotalEarnings(
-      timeRange as string,
-    );
+    const options = pick(req.query, paginationFields);
+
+    const result = await StatisticsService.getAdminTotalEarnings(options);
+
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -122,6 +102,7 @@ const getMyDashboardForPropertyOwner = catchAsync(
     const userId = req.user?.id;
     const result =
       await StatisticsService.getMyDashboardForPropertyOwner(userId);
+
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -135,8 +116,10 @@ const getMyDashboardForPropertyOwner = catchAsync(
 const getMyDashboardForServiceProvider = catchAsync(
   async (req: Request, res: Response) => {
     const userId = req.user?.id;
+
     const result =
       await StatisticsService.getMyDashboardForServiceProvider(userId);
+
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -148,11 +131,11 @@ const getMyDashboardForServiceProvider = catchAsync(
 
 export const StatisticsController = {
   getOverview,
+
   // sales
   getAgentTotalEarningsAndBookings,
   getAgentBookings,
   getUserDashboardTabInfo,
-  getServiceProviderTotalEarningsService,
   getMyDashboardForPropertyOwner,
   getMyDashboardForServiceProvider,
 

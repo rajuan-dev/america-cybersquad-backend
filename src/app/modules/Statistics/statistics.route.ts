@@ -5,7 +5,7 @@ import auth from "../../middlewares/auth";
 
 const router = express.Router();
 
-// get overview total clients, total providers,total revenue
+// get overview total users, total agents,total revenue
 router.get(
   "/overview",
   auth(UserRole.SUPER_ADMIN, UserRole.ADMIN),
@@ -31,13 +31,6 @@ router.get(
   "/user-dashboard-tab-info",
   auth(UserRole.USER),
   StatisticsController.getUserDashboardTabInfo,
-);
-
-// service provider total earnings service
-router.get(
-  "/earnings-service",
-  auth(UserRole.AGENT),
-  StatisticsController.getServiceProviderTotalEarningsService,
 );
 
 // admin total earnings
