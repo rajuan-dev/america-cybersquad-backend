@@ -22,15 +22,15 @@ const createUser = catchAsync(async (req: Request, res: Response) => {
 });
 
 // create role for supper admin
-const createRoleSupperAdmin = catchAsync(
+const createAdminBySupperAdmin = catchAsync(
   async (req: Request, res: Response) => {
     const userData = req.body;
-    const result = await UserService.createRoleSupperAdmin(userData);
+    const result = await UserService.createAdminBySupperAdmin(userData);
 
     sendResponse(res, {
       statusCode: httpStatus.CREATED,
       success: true,
-      message: "OTP generated and sent to email successfully",
+      message: "Admin created successfully",
       data: result,
     });
   },
@@ -159,7 +159,7 @@ const deleteUser = catchAsync(async (req: Request, res: Response) => {
 
 export const UserController = {
   createUser,
-  createRoleSupperAdmin,
+  createAdminBySupperAdmin,
   verifyOtpAndCreateUser,
   getAllUsers,
   getAllAdmins,

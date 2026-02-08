@@ -52,3 +52,14 @@ export type IProfileImageResponse = {
   email: string;
   profileImage: string | null;
 };
+
+export type IAdminResponse = {
+  activeAdmin: number;
+  activeSuperAdmin: number;
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+  };
+  data: SafeUser[];
+};

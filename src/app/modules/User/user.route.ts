@@ -49,7 +49,7 @@ router.post(
   "/add-role",
   auth(UserRole.SUPER_ADMIN),
   validateRequest(userValidation.createUserZodSchema),
-  UserController.createRoleSupperAdmin
+  UserController.createAdminBySupperAdmin
 );
 
 // verify user

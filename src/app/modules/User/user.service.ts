@@ -5,7 +5,12 @@ import prisma from "../../../shared/prisma";
 import { Prisma, User, UserRole, UserStatus } from "@prisma/client";
 import { ObjectId } from "mongodb";
 import { IPaginationOptions } from "../../../interfaces/paginations";
-import { IFilterRequest, IUpdateUser, SafeUser } from "./user.interface";
+import {
+  IFilterRequest,
+  IUpdateUser,
+  SafeUser,
+  IAdminResponse,
+} from "./user.interface";
 import { paginationHelpers } from "../../../helpars/paginationHelper";
 import { searchableFields } from "./user.constant";
 import { IGenericResponse } from "../../../interfaces/common";
@@ -74,7 +79,7 @@ const createUser = async (payload: any) => {
 };
 
 // create role for supper admin
-const createRoleSupperAdmin = async (payload: any) => {
+const createAdminBySupperAdmin = async (payload: any) => {
   // check if email exists
   const existingUser = await prisma.user.findUnique({
     where: { email: payload.email, status: UserStatus.ACTIVE },
@@ -255,7 +260,7 @@ const getAllUsers = async (
 const getAllAdmins = async (
   params: IFilterRequest,
   options: IPaginationOptions,
-): Promise<IGenericResponse<SafeUser[]>> => {
+): Promise<IAdminResponse> => {
   const { limit, page, skip } = paginationHelpers.calculatedPagination(options);
 
   const { searchTerm, ...filterData } = params;
@@ -264,7 +269,9 @@ const getAllAdmins = async (
 
   // Filter for active users and role ADMIN only
   filters.push({
-    role: UserRole.ADMIN,
+    role: {
+      in: [UserRole.ADMIN, UserRole.SUPER_ADMIN],
+    },
   });
 
   // text search
@@ -322,11 +329,23 @@ const getAllAdmins = async (
 
   const total = await prisma.user.count({ where });
 
+  // get active admin
+  const activeAdmin = await prisma.user.count({
+    where: { role: UserRole.ADMIN, status: UserStatus.ACTIVE },
+  });
+
+  // get active super admin
+  const activeSuperAdmin = await prisma.user.count({
+    where: { role: UserRole.SUPER_ADMIN },
+  });
+
   return {
+    activeAdmin,
+    activeSuperAdmin,
     meta: {
+      total,
       page,
       limit,
-      total,
     },
     data: result,
   };
@@ -479,7 +498,7 @@ const deleteUser = async (
 
 export const UserService = {
   createUser,
-  createRoleSupperAdmin,
+  createAdminBySupperAdmin,
   verifyOtpAndCreateUser,
   getAllUsers,
   getAllAdmins,
