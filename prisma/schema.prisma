@@ -183,6 +183,7 @@ model TripService {
   userId               String                @db.ObjectId
   tripServiceBookings  TripServiceBooking[]
   tripServiceStoppages TripServiceStoppage[]
+  vehicles             Vehicle[]
 
   @@map("trip_services")
 }
@@ -238,6 +239,8 @@ model Vehicle {
   updatedAt   DateTime @updatedAt
 
   // relations
+  tripServiceId   String?          @db.ObjectId
+  tripService     TripService?     @relation(fields: [tripServiceId], references: [id])
   bookingVehicles BookingVehicle[] // many-to-many relationship
 
   @@map("vehicles")
