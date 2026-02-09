@@ -684,6 +684,7 @@ const getPrivateTransferTripServices = async (
           email: true,
         },
       },
+      vehicles: true
     },
   });
 
