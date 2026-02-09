@@ -333,8 +333,14 @@ const getMultiDayTourTripServicesByTourDaysGroup = catchAsync(
 const getPrivateTransferTripServices = catchAsync(
   async (req: Request, res: Response) => {
     const options = pick(req.query, paginationFields);
-    const result =
-      await TripServiceService.getPrivateTransferTripServices(options);
+    const passengers = req.query.passengers
+      ? parseInt(req.query.passengers as string)
+      : undefined;
+
+    const result = await TripServiceService.getPrivateTransferTripServices(
+      options,
+      passengers,
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,

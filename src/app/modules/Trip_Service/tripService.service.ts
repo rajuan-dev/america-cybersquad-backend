@@ -1,4 +1,4 @@
-import { Prisma, ServiceType, TripService } from "@prisma/client";
+import { Prisma, ServiceType, TripService, Vehicle } from "@prisma/client";
 import prisma from "../../../shared/prisma";
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
@@ -657,16 +657,24 @@ const getMultiDayTourTripServicesByTourDaysGroup = async (
 // get all trip services PRIVATE_TRANSFER
 const getPrivateTransferTripServices = async (
   options: IPaginationOptions,
+  passengers?: number,
 ): Promise<IGenericResponse<TripService[]>> => {
   const { page, limit, skip } = paginationHelpers.calculatedPagination(options);
 
   const filters: Prisma.TripServiceWhereInput[] = [];
 
+  // filter only PRIVATE_TRANSFER services
   filters.push({ serviceType: ServiceType.PRIVATE_TRANSFER });
 
   const where: Prisma.TripServiceWhereInput = {
     AND: filters,
   };
+
+  // all active vehicles
+  const allActiveVehicles = await prisma.vehicle.findMany({
+    where: { isActive: true },
+    orderBy: { seatCount: "asc" },
+  });
 
   const result = await prisma.tripService.findMany({
     where,
@@ -684,13 +692,75 @@ const getPrivateTransferTripServices = async (
           email: true,
         },
       },
-      vehicles: true
     },
   });
 
-  const total = await prisma.tripService.count({
-    where,
+  // helper best vehicles to passengers
+  const getSuggestedVehicles = (
+    vehicles: Vehicle[],
+    passengers: number,
+  ): Vehicle[] => {
+    const sorted = [...vehicles].sort((a, b) => a.seatCount - b.seatCount);
+
+    // try single best vehicle
+    const single = sorted.find((v) => v.seatCount >= passengers);
+    if (single) return [single];
+
+    // ---- combination logic ----
+    let bestCombination: Vehicle[] | null = null;
+
+    const dfs = (startIndex: number, remaining: number, combo: Vehicle[]) => {
+      if (remaining <= 0) {
+        // minimal vehicle count priority
+        if (!bestCombination || combo.length < bestCombination.length) {
+          bestCombination = [...combo];
+        }
+        return;
+      }
+
+      for (let i = startIndex; i < sorted.length; i++) {
+        const vehicle = sorted[i];
+
+        // pruning (skip worse solution)
+        if (bestCombination && combo.length + 1 >= bestCombination.length)
+          continue;
+
+        combo.push(vehicle);
+
+        dfs(i, remaining - vehicle.seatCount, combo);
+
+        combo.pop();
+      }
+    };
+
+    dfs(0, passengers, []);
+
+    if (!bestCombination) {
+      throw new Error("No vehicle combination found");
+    }
+
+    return bestCombination;
+  };
+
+  // manually add filtered vehicles with trip service
+  const resultWithVehicles = result.map((tripService) => {
+    let suggestedVehicles: Vehicle[] = [];
+
+    if (passengers) {
+      try {
+        suggestedVehicles = getSuggestedVehicles(allActiveVehicles, passengers);
+      } catch {
+        suggestedVehicles = [];
+      }
+    }
+
+    return {
+      ...tripService,
+      vehicles: passengers ? suggestedVehicles : allActiveVehicles,
+    };
   });
+
+  const total = await prisma.tripService.count({ where });
 
   return {
     meta: {
@@ -698,7 +768,7 @@ const getPrivateTransferTripServices = async (
       page,
       limit,
     },
-    data: result,
+    data: resultWithVehicles,
   };
 };
 
