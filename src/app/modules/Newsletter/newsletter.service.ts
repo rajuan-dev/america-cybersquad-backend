@@ -161,7 +161,7 @@ const sendDiscountEmailToAllSubscribers = async (
         </div>
         
         <div style="text-align: center; margin: 30px 0;">
-          <a href="#" style="background-color: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Shop Now & Save</a>
+          <a href="${discountData.websiteUrl || "#"}" style="background-color: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Shop Now & Save</a>
         </div>
         
         <p style="color: #999; font-size: 14px; text-align: center; margin-top: 30px;">

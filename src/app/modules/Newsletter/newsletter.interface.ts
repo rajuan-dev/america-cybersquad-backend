@@ -20,6 +20,7 @@ export interface IDiscountEmailData {
   discountDescription: string;
   expiryDate: string;
   subject?: string;
+  websiteUrl?: string;
 }
 
 export type INewsletterResponse = {

@@ -50,6 +50,7 @@ const sendDiscountEmailSchema = z.object({
       required_error: "Expiry date is required",
     }),
     subject: z.string().optional(),
+    websiteUrl: z.string().optional(),
   }),
 });
 
