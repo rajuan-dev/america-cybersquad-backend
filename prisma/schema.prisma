@@ -386,6 +386,13 @@ model Faq {
   @@map("faqs")
 }
 
+model NewsletterSubscriber {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
 model CustomerContact {
   id            String  @id @default(auto()) @map("_id") @db.ObjectId
   fullName      String
