@@ -96,10 +96,33 @@ const sendDiscountEmailToAllSubscribers = catchAsync(
   },
 );
 
+// admin only routes
+const sendDiscountEmailToSingleSubscriber = catchAsync(
+  async (req: Request, res: Response) => {
+    const { email } = req.params;
+    const { discountData } = req.body;
+
+    const result = await NewsletterService.sendDiscountEmailToSingleSubscriber(
+      email,
+      discountData,
+    );
+
+    sendResponse(res, {
+      statusCode: result.success
+        ? httpStatus.OK
+        : httpStatus.INTERNAL_SERVER_ERROR,
+      success: result.success,
+      message: result.message,
+      data: result,
+    });
+  },
+);
+
 export const NewsletterController = {
   createNewsletterSubscriber,
   getAllNewsletterSubscribers,
   deleteNewsletterSubscriber,
   updateNewsletterSubscriberStatus,
   sendDiscountEmailToAllSubscribers,
+  sendDiscountEmailToSingleSubscriber,
 };

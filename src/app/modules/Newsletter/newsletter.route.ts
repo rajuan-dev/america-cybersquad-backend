@@ -41,7 +41,15 @@ router.post(
   "/send-discount",
   auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
   validateRequest(NewsletterValidation.sendDiscountEmailSchema),
-  NewsletterController.sendDiscountEmailToAllSubscribers
+  NewsletterController.sendDiscountEmailToAllSubscribers,
+);
+
+// admin only routes
+router.post(
+  "/send-discount-single/:email",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  validateRequest(NewsletterValidation.sendDiscountEmailSchema),
+  NewsletterController.sendDiscountEmailToSingleSubscriber,
 );
 
 export const newsletterRoutes = router;

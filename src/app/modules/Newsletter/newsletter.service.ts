@@ -204,10 +204,66 @@ const sendDiscountEmailToAllSubscribers = async (
   };
 };
 
+// send discount email to single subscriber
+const sendDiscountEmailToSingleSubscriber = async (
+  email: string,
+  discountData: IDiscountEmailData,
+): Promise<{ success: boolean; message: string }> => {
+  const discountHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+      <div style="background-color: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h1 style="color: #333; text-align: center; margin-bottom: 20px;">🎉 Special Discount Offer!</h1>
+        
+        <p style="color: #666; line-height: 1.6; margin: 20px 0;">${discountData.discountDescription}</p>
+        
+        <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
+          <p style="margin: 0; color: #856404;"><strong>⏰ Hurry! Offer expires on: ${discountData.expiryDate}</strong></p>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${discountData.websiteUrl || "#"}" style="background-color: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Shop Now & Save</a>
+        </div>
+        
+        <p style="color: #999; font-size: 14px; text-align: center; margin-top: 30px;">
+          This offer is exclusively for our newsletter subscribers.<br>
+          Don't miss out on this amazing deal!
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+        
+        <p style="color: #666; font-size: 14px; text-align: center; margin: 0;">
+          Best regards,<br>
+          Wasiq Ali Team
+        </p>
+      </div>
+    </div>
+  `;
+
+  try {
+    await emailSender(
+      discountData.subject ||
+        `🎉 ${discountData.discountPercentage}% OFF - Special Discount!`,
+      email,
+      discountHtml,
+    );
+    return {
+      success: true,
+      message: "Discount email sent successfully",
+    };
+  } catch (error) {
+    console.error(`Failed to send email to ${email}:`, error);
+    return {
+      success: false,
+      message: "Failed to send discount email",
+    };
+  }
+};
+
 export const NewsletterService = {
   createNewsletterSubscriber,
   getAllNewsletterSubscribers,
   deleteNewsletterSubscriber,
   updateNewsletterSubscriberStatus,
   sendDiscountEmailToAllSubscribers,
+  sendDiscountEmailToSingleSubscriber,
 };
