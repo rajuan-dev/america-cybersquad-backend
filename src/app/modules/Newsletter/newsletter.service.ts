@@ -4,6 +4,7 @@ import { INewsletterFilter, INewsletterResponse } from "./newsletter.interface";
 import { paginationHelpers } from "../../../helpars/paginationHelper";
 import { IPaginationOptions } from "../../../interfaces/paginations";
 import prisma from "../../../shared/prisma";
+import emailSender from "../../../helpars/emailSender";
 
 // anyone can subscribe
 const createNewsletterSubscriber = async (email: string) => {
@@ -21,6 +22,20 @@ const createNewsletterSubscriber = async (email: string) => {
       email,
     },
   });
+
+  // send welcome email
+  const welcomeHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #333;">Welcome to Our Newsletter!</h2>
+      <p>Hi,</p>
+      <p>Thank you for subscribing to our newsletter. You're now part of our community!</p>
+      <p>You'll receive the latest updates, news, and exclusive content directly in your inbox.</p>
+      <p>Stay tuned for exciting updates!</p>
+      <p>Best regards,<br>Wasiq Ali Team</p>
+    </div>
+  `;
+
+  await emailSender("Welcome to Our Newsletter!", email, welcomeHtml);
 
   return subscriber;
 };
@@ -49,11 +64,11 @@ const getAllNewsletterSubscribers = async (
     });
   }
 
-  const whereConditions =
+  const where =
     andConditions.length > 0 ? { AND: andConditions } : {};
 
   const subscribers = await prisma.newsletterSubscriber.findMany({
-    where: whereConditions,
+    where,
     skip,
     take: limit,
     orderBy: {
@@ -62,7 +77,7 @@ const getAllNewsletterSubscribers = async (
   });
 
   const total = await prisma.newsletterSubscriber.count({
-    where: whereConditions,
+    where,
   });
 
   return {
