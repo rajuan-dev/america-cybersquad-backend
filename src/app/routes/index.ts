@@ -20,6 +20,7 @@ import { tripServiceBookingRoute } from "../modules/TripService_booking/tripServ
 import { StoppageRoutes } from "../modules/Stoppage/stoppage.route";
 import { statisticsRoutes } from "../modules/Statistics/statistics.route";
 import { newsletterRoutes } from "../modules/Newsletter/newsletter.route";
+import { reviewRoute } from "../modules/Review/review.route";
 
 const router = express.Router();
 
@@ -91,10 +92,10 @@ const moduleRoutes = [
     route: privacyPolicyRoute,
   },
 
-  // {
-  //   path: "/rewards",
-  //   route: rewardsRoute,
-  // },
+  {
+    path: "/reviews",
+    route: reviewRoute,
+  },
   {
     path: "/settings",
     route: settingRoute,
