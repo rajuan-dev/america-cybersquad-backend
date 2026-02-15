@@ -6,6 +6,14 @@ import { IPaginationOptions } from "../../../interfaces/paginations";
 import prisma from "../../../shared/prisma";
 import emailSender from "../../../helpars/emailSender";
 
+interface IDiscountEmailData {
+  // discountCode: string;
+  discountPercentage: number;
+  discountDescription: string;
+  expiryDate: string;
+  subject?: string;
+}
+
 // anyone can subscribe
 const createNewsletterSubscriber = async (email: string) => {
   // check if email already exists
@@ -128,9 +136,82 @@ const updateNewsletterSubscriberStatus = async (
   return updatedSubscriber;
 };
 
+// send discount email to all active subscribers
+const sendDiscountEmailToAllSubscribers = async (
+  discountData: IDiscountEmailData
+): Promise<{ sentCount: number; failedCount: number }> => {
+  // get all active subscribers
+  const activeSubscribers = await prisma.newsletterSubscriber.findMany({
+    where: {
+      isActive: true,
+    },
+    select: {
+      email: true,
+    },
+  });
+
+  if (activeSubscribers.length === 0) {
+    throw new ApiError(httpStatus.NOT_FOUND, "No active subscribers found");
+  }
+
+  const discountHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+      <div style="background-color: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h1 style="color: #333; text-align: center; margin-bottom: 20px;">🎉 Special Discount Offer!</h1>
+        
+        <p style="color: #666; line-height: 1.6; margin: 20px 0;">${discountData.discountDescription}</p>
+        
+        <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
+          <p style="margin: 0; color: #856404;"><strong>⏰ Hurry! Offer expires on: ${discountData.expiryDate}</strong></p>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="#" style="background-color: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Shop Now & Save</a>
+        </div>
+        
+        <p style="color: #999; font-size: 14px; text-align: center; margin-top: 30px;">
+          This offer is exclusively for our newsletter subscribers.<br>
+          Don't miss out on this amazing deal!
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+        
+        <p style="color: #666; font-size: 14px; text-align: center; margin: 0;">
+          Best regards,<br>
+          Wasiq Ali Team
+        </p>
+      </div>
+    </div>
+  `;
+
+  let sentCount = 0;
+  let failedCount = 0;
+
+  // send email to each subscriber
+  for (const subscriber of activeSubscribers) {
+    try {
+      await emailSender(
+        discountData.subject || `🎉 ${discountData.discountPercentage}% OFF - Special Discount!`,
+        subscriber.email,
+        discountHtml
+      );
+      sentCount++;
+    } catch (error) {
+      console.error(`Failed to send email to ${subscriber.email}:`, error);
+      failedCount++;
+    }
+  }
+
+  return {
+    sentCount,
+    failedCount,
+  };
+};
+
 export const NewsletterService = {
   createNewsletterSubscriber,
   getAllNewsletterSubscribers,
   deleteNewsletterSubscriber,
   updateNewsletterSubscriberStatus,
+  sendDiscountEmailToAllSubscribers,
 };

@@ -19,7 +19,7 @@ const createNewsletterSubscriber = catchAsync(
       message: "Newsletter subscriber created successfully",
       data: result,
     });
-  }
+  },
 );
 
 // admin only routes
@@ -30,7 +30,7 @@ const getAllNewsletterSubscribers = catchAsync(
 
     const result = await NewsletterService.getAllNewsletterSubscribers(
       filters,
-      options
+      options,
     );
 
     sendResponse(res, {
@@ -40,7 +40,7 @@ const getAllNewsletterSubscribers = catchAsync(
       meta: result.meta,
       data: result.data,
     });
-  }
+  },
 );
 
 // admin only routes
@@ -56,7 +56,7 @@ const deleteNewsletterSubscriber = catchAsync(
       message: "Newsletter subscriber deleted successfully",
       data: result,
     });
-  }
+  },
 );
 
 // admin only routes
@@ -67,7 +67,7 @@ const updateNewsletterSubscriberStatus = catchAsync(
 
     const result = await NewsletterService.updateNewsletterSubscriberStatus(
       id,
-      isActive
+      isActive,
     );
 
     sendResponse(res, {
@@ -76,7 +76,24 @@ const updateNewsletterSubscriberStatus = catchAsync(
       message: "Newsletter subscriber status updated successfully",
       data: result,
     });
-  }
+  },
+);
+
+// admin only routes
+const sendDiscountEmailToAllSubscribers = catchAsync(
+  async (req: Request, res: Response) => {
+    const discountData = req.body;
+
+    const result =
+      await NewsletterService.sendDiscountEmailToAllSubscribers(discountData);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: `Discount email sent to ${result.sentCount} subscribers. ${result.failedCount > 0 ? `Failed to send to ${result.failedCount} subscribers.` : ""}`,
+      data: result,
+    });
+  },
 );
 
 export const NewsletterController = {
@@ -84,4 +101,5 @@ export const NewsletterController = {
   getAllNewsletterSubscribers,
   deleteNewsletterSubscriber,
   updateNewsletterSubscriberStatus,
+  sendDiscountEmailToAllSubscribers,
 };

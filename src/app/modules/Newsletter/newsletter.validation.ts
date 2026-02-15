@@ -27,7 +27,34 @@ const updateNewsletterSubscriberStatusSchema = z.object({
   }),
 });
 
+// send discount email to all subscribers
+const sendDiscountEmailSchema = z.object({
+  body: z.object({
+    // discountCode: z
+    //   .string({
+    //     required_error: "Discount code is required",
+    //   })
+    //   .min(1, "Discount code is required"),
+    discountPercentage: z
+      .number({
+        required_error: "Discount percentage is required",
+      })
+      .min(1, "Discount percentage must be at least 1")
+      .max(100, "Discount percentage cannot exceed 100"),
+    discountDescription: z
+      .string({
+        required_error: "Discount description is required",
+      })
+      .min(10, "Description must be at least 10 characters"),
+    expiryDate: z.string({
+      required_error: "Expiry date is required",
+    }),
+    subject: z.string().optional(),
+  }),
+});
+
 export const NewsletterValidation = {
   createNewsletterSubscriberSchema,
   updateNewsletterSubscriberStatusSchema,
+  sendDiscountEmailSchema,
 };

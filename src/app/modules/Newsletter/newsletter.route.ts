@@ -36,4 +36,12 @@ router.delete(
   NewsletterController.deleteNewsletterSubscriber,
 );
 
+// admin only routes
+router.post(
+  "/send-discount",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  validateRequest(NewsletterValidation.sendDiscountEmailSchema),
+  NewsletterController.sendDiscountEmailToAllSubscribers
+);
+
 export const newsletterRoutes = router;
