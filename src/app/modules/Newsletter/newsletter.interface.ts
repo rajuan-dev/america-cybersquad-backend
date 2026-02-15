@@ -14,6 +14,14 @@ export interface INewsletterFilter {
   isActive?: boolean;
 }
 
+export interface IDiscountEmailData {
+  // discountCode: string;
+  discountPercentage: number;
+  discountDescription: string;
+  expiryDate: string;
+  subject?: string;
+}
+
 export type INewsletterResponse = {
   meta: {
     total: number;

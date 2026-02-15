@@ -1,18 +1,14 @@
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
-import { INewsletterFilter, INewsletterResponse } from "./newsletter.interface";
+import {
+  IDiscountEmailData,
+  INewsletterFilter,
+  INewsletterResponse,
+} from "./newsletter.interface";
 import { paginationHelpers } from "../../../helpars/paginationHelper";
 import { IPaginationOptions } from "../../../interfaces/paginations";
 import prisma from "../../../shared/prisma";
 import emailSender from "../../../helpars/emailSender";
-
-interface IDiscountEmailData {
-  // discountCode: string;
-  discountPercentage: number;
-  discountDescription: string;
-  expiryDate: string;
-  subject?: string;
-}
 
 // anyone can subscribe
 const createNewsletterSubscriber = async (email: string) => {
@@ -72,8 +68,7 @@ const getAllNewsletterSubscribers = async (
     });
   }
 
-  const where =
-    andConditions.length > 0 ? { AND: andConditions } : {};
+  const where = andConditions.length > 0 ? { AND: andConditions } : {};
 
   const subscribers = await prisma.newsletterSubscriber.findMany({
     where,
@@ -138,7 +133,7 @@ const updateNewsletterSubscriberStatus = async (
 
 // send discount email to all active subscribers
 const sendDiscountEmailToAllSubscribers = async (
-  discountData: IDiscountEmailData
+  discountData: IDiscountEmailData,
 ): Promise<{ sentCount: number; failedCount: number }> => {
   // get all active subscribers
   const activeSubscribers = await prisma.newsletterSubscriber.findMany({
@@ -191,9 +186,10 @@ const sendDiscountEmailToAllSubscribers = async (
   for (const subscriber of activeSubscribers) {
     try {
       await emailSender(
-        discountData.subject || `🎉 ${discountData.discountPercentage}% OFF - Special Discount!`,
+        discountData.subject ||
+          `🎉 ${discountData.discountPercentage}% OFF - Special Discount!`,
         subscriber.email,
-        discountHtml
+        discountHtml,
       );
       sentCount++;
     } catch (error) {
