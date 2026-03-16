@@ -57,6 +57,25 @@ model Contact {
   updatedAt   DateTime @updatedAt
 
   @@map("contacts")
+  @@index([name])
+  @@index([email])
+   @@index([phoneNumber])
+}
+
+model Testimonials {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(100)
+  designation String   @db.VarChar(100)
+  workingPlace String  @db.VarChar(150)
+  videoUrl    String?  @db.VarChar(255)
+  isDeleted   Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("testimonials")
+  @@index([name])
+  @@index([designation])
 }
 
 
@@ -72,3 +91,4 @@ model Admin {
 
   @@map("admins")
 }
+// npx prisma migrate dev --name create_contact_table

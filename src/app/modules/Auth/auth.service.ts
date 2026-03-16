@@ -14,7 +14,7 @@ import config from "../../../config";
 import { JwtPayload } from "jsonwebtoken";
 import catchError from "../../../errors/catchError";
 import { uploadFile } from "../../../helpars/fileUploader";
-import catchAsync from "../../../shared/catchAsync";
+
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { TUser } from "../User/user.interface";
 import authConstants from "./auth.constant";

@@ -122,6 +122,20 @@ cloudinary.config({
   api_secret: config.cloudinary.api_secret,
 });
 
+/**
+ * Converts an absolute local file path to a normalized relative URL.
+ * e.g. "R:/project/uploads/123-video.mp4" → "/uploads/123-video.mp4"
+ */
+const toRelativePath = (absolutePath: string): string => {
+  const normalized = absolutePath.replace(/\\/g, "/"); // fix Windows backslashes
+  const uploadsIndex = normalized.indexOf("/uploads/");
+  if (uploadsIndex !== -1) {
+    return normalized.slice(uploadsIndex); // "/uploads/filename.mp4"
+  }
+  // fallback: just return the filename under /uploads/
+  return `/uploads/${path.basename(normalized)}`;
+};
+
 // Cloudinary uploader function
 const uploadToCloudinary = async (
   file: any,
@@ -161,6 +175,72 @@ const uploadToCloudinary = async (
   });
 };
 
+// Cloudinary video uploader function (optimized for large video files)
+const uploadVideoToCloudinary = async (
+  file: any,
+): Promise<ICloudinaryUploadResponse | undefined> => {
+  return new Promise((resolve, reject) => {
+    if (!fs.existsSync(file.path)) {
+      return reject(new Error(`File not found at ${file.path}`));
+    }
+
+    if (!file.mimetype.startsWith("video/")) {
+      // Clean up local file before rejecting
+      if (fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+      return reject(new Error(`File is not a video: ${file.mimetype}`));
+    }
+
+    cloudinary.uploader.upload(
+      file.path,
+      {
+        resource_type: "video",
+        chunk_size: 6_000_000, // 6MB chunks for large video uploads
+        eager: [{ streaming_profile: "full_hd", format: "m3u8" }], // HLS streaming
+        eager_async: true, // Process eager transformations asynchronously
+      },
+      (error, result) => {
+        // Delete local file after upload attempt
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result as ICloudinaryUploadResponse | undefined);
+        }
+      },
+    );
+  });
+};
+
+/**
+ * Saves the video locally and returns a clean relative URL.
+ * Use this instead of uploadVideoToCloudinary when you want
+ * to serve videos from your own server (no Cloudinary).
+ *
+ * Returns: { videoUrl: "/uploads/1773703032366-video.mp4" }
+ */
+const saveVideoLocally = (file: any): { videoUrl: string } => {
+  if (!file) {
+    throw new Error("No file provided");
+  }
+
+  if (!file.mimetype.startsWith("video/")) {
+    // Clean up if wrong type slipped through
+    if (fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+    throw new Error(`File is not a video: ${file.mimetype}`);
+  }
+
+  return {
+    videoUrl: toRelativePath(file.path),
+  };
+};
+
 export const uploadFile = {
   upload,
   profileImage,
@@ -170,6 +250,8 @@ export const uploadFile = {
   advertiseVideo,
   invertorRelationImage,
   uploadToCloudinary,
+  uploadVideoToCloudinary,
+  saveVideoLocally,
 
   // dayTripImage and vehicle image
   image,
