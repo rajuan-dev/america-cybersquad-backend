@@ -85,10 +85,13 @@ const  deleteContactIntoDb=async(id:string)=>{
        try{
 
 
-         const result = await prisma.contact.delete({
+   const result = await prisma.contact.delete({
       where: {
         id,
       },
+      select:{
+        id:true
+      }
     });
 
 
