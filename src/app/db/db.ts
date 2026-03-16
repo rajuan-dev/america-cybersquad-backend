@@ -1,5 +1,5 @@
 import { UserRole } from "@prisma/client";
-import bcrypt from "bcrypt";
+// import bcrypt from "bcrypt";
 import prisma from "../../shared/prisma";
 
 export const initiateSuperAdmin = async () => {
@@ -20,25 +20,27 @@ export const initiateSuperAdmin = async () => {
   }
 
   try {
-    await prisma.$transaction(async (TransactionClient) => {
-      const hashedPassword: string = await bcrypt.hash(payload.password, 12);
 
-      await TransactionClient.user.create({
-        data: {
-          fullName: payload.fullName,
-          email: payload.email,
-          password: hashedPassword,
-          role: payload.role,
-        },
-      });
+    console.log("Creating super admin with email:");
+    // await prisma.$transaction(async (TransactionClient) => {
+    //   const hashedPassword: string = await bcrypt.hash(payload.password, 12);
 
-      await TransactionClient.admin.create({
-        data: {
-          email: payload.email,
-          password: hashedPassword,
-        },
-      });
-    });
+    //   await TransactionClient.user.create({
+    //     data: {
+    //       fullName: payload.fullName,
+    //       email: payload.email,
+    //       password: hashedPassword,
+    //       role: payload.role,
+    //     },
+    //   });
+
+    //   await TransactionClient.admin.create({
+    //     data: {
+    //       email: payload.email,
+    //       password: hashedPassword,
+    //     },
+    //   });
+    // });
   } catch (err) {
     console.error("Error during super admin creation:", err);
   }

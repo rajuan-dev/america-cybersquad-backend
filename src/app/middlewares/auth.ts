@@ -27,7 +27,7 @@ const auth = (...roles: string[]) => {
 
       const verifiedUser = jwtHelpers.verifyToken(
         token,
-        config.jwt.jwt_secret as Secret
+        config.jwt_access_secret as Secret
       );
 
       const user = await prisma.user.findUnique({

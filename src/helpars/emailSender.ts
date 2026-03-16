@@ -9,15 +9,15 @@ const emailSender = async (subject: string, email: string, html: string) => {
     port: 587,
     secure: false, // true for 465, false for other ports
     auth: {
-      user: config.emailSender.email,
-      pass: config.emailSender.app_pass,
+      user: config.send_email.nodemailer_email,
+      pass: config.send_email.nodemailer_password,
     },
   });
   //
   const emailTransport = transporter;
 
   const mailOptions = {
-    from: `"Wasiq Ali" <${config.emailSender.email}>`,
+    from: `"Wasiq Ali" <${ config.send_email.nodemailer_email}>`,
     to: email,
     subject,
     html,

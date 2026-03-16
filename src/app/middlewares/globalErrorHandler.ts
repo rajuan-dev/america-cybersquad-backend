@@ -3,12 +3,9 @@ import { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
 import { ZodError } from "zod";
 import ApiError from "../../errors/ApiErrors";
-import handleClientError from "../../errors/handleClientError";
-import handleValidationError from "../../errors/handleValidationError";
-import handleZodError from "../../errors/handleZodError";
-import parsePrismaValidationError from "../../errors/parsePrismaValidationError";
 import { IGenericErrorMessage } from "../../interfaces/error";
 import config from "../../config";
+import logError from "./logError";
 
 const GlobalErrorHandler = (
   error: any,
@@ -16,135 +13,147 @@ const GlobalErrorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  let statusCode: any = httpStatus.INTERNAL_SERVER_ERROR;
-  let message = error.message || "Something went wrong!";
+  let statusCode: number = httpStatus.INTERNAL_SERVER_ERROR;
+  let message = "Something went wrong!";
   let errorMessages: IGenericErrorMessage[] = [];
+  logError(error, req);
+ 
+  if (error instanceof ZodError) {
+    statusCode = httpStatus.BAD_REQUEST;
+    message = "Validation Error";
 
-  // handle prisma client validation errors
-  if (error instanceof Prisma.PrismaClientValidationError) {
-    const simplifiedError = handleValidationError(error);
-    statusCode = simplifiedError.statusCode;
-    message = simplifiedError.message;
-    errorMessages = simplifiedError.errorMessages;
+    errorMessages = error.issues.map((issue) => ({
+      path: issue.path.join("."),
+      message: issue.message,
+    }));
   }
 
-  // Handle Zod Validation Errors
-  else if (error instanceof ZodError) {
-    const simplifiedError = handleZodError(error);
-    statusCode = simplifiedError.statusCode;
-    message = simplifiedError.message;
-    errorMessages = simplifiedError.errorMessages;
+
+  else if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  ) {
+    statusCode = httpStatus.CONFLICT;
+
+    const field = (error.meta?.target as string[])?.join(", ");
+
+    message = `${field} already exists`;
+
+    errorMessages = [
+      {
+        path: field,
+        message: `${field} must be unique`,
+      },
+    ];
   }
 
-  // Handle Prisma Client Known Request Errors
-  else if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    const simplifiedError = handleClientError(error);
-    statusCode = simplifiedError.statusCode;
-    message = simplifiedError.message;
-    errorMessages = simplifiedError.errorMessages;
-  }
-
-  // Handle Custom ApiError
-  else if (error instanceof ApiError) {
-    statusCode = error?.statusCode;
-    message = error.message;
-    errorMessages = error?.message
-      ? [
-          {
-            path: "",
-            message: error?.message,
-          },
-        ]
-      : [];
-  } 
   
-  // Handle Errors
-  else if (error instanceof Error) {
-    message = error?.message;
-    errorMessages = error?.message
-      ? [
-          {
-            path: "",
-            message: error?.message,
-          },
-        ]
-      : [];
+  else if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2025"
+  ) {
+    statusCode = httpStatus.NOT_FOUND;
+
+    message = "Record not found";
+
+    errorMessages = [
+      {
+        path: "",
+        message: "Requested resource does not exist",
+      },
+    ];
   }
 
-  // Prisma Client Initialization Error
+ 
+  else if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2003"
+  ) {
+    statusCode = httpStatus.BAD_REQUEST;
+
+    message = "Invalid reference id";
+
+    errorMessages = [
+      {
+        path: "",
+        message: "Foreign key constraint failed",
+      },
+    ];
+  }
+
+  else if (error instanceof Prisma.PrismaClientValidationError) {
+    statusCode = httpStatus.BAD_REQUEST;
+    message = "Prisma validation error";
+
+    errorMessages = [
+      {
+        path: "",
+        message: error.message,
+      },
+    ];
+  }
+
+
   else if (error instanceof Prisma.PrismaClientInitializationError) {
     statusCode = httpStatus.INTERNAL_SERVER_ERROR;
-    message =
-      "Failed to initialize Prisma Client. Check your database connection or Prisma configuration.";
+
+    message = "Database connection failed";
+
     errorMessages = [
       {
         path: "",
-        message: "Failed to initialize Prisma Client.",
+        message: "Failed to initialize Prisma Client",
       },
     ];
   }
 
-  // Prisma Client Rust Panic Error
+ 
   else if (error instanceof Prisma.PrismaClientRustPanicError) {
     statusCode = httpStatus.INTERNAL_SERVER_ERROR;
-    message =
-      "A critical error occurred in the Prisma engine. Please try again later.";
+
+    message = "Database engine crashed";
+
     errorMessages = [
       {
         path: "",
-        message: "Prisma Client Rust Panic Error",
+        message: "Prisma engine panic error",
       },
     ];
   }
 
-  // Prisma Client Unknown Request Error
-  else if (error instanceof Prisma.PrismaClientUnknownRequestError) {
-    statusCode = httpStatus.INTERNAL_SERVER_ERROR;
-    message = "An unknown error occurred while processing the request.";
+
+  else if (error instanceof ApiError) {
+    statusCode = error.statusCode;
+    message = error.message;
+
     errorMessages = [
       {
         path: "",
-        message: "Prisma Client Unknown Request Error",
+        message: error.message,
       },
     ];
   }
 
-  // Generic Error Handling (e.g., JavaScript Errors)
-  else if (error instanceof SyntaxError) {
-    statusCode = httpStatus.BAD_REQUEST;
-    message = "Syntax error in the request. Please verify your input.";
+
+  else if (error instanceof Error) {
+    message = error.message;
+
     errorMessages = [
       {
         path: "",
-        message: "Syntax Error",
-      },
-    ];
-  } else if (error instanceof TypeError) {
-    statusCode = httpStatus.BAD_REQUEST;
-    message = "Type error in the application. Please verify your input.";
-    errorMessages = [
-      {
-        path: "",
-        message: "Type Error",
-      },
-    ];
-  } else if (error instanceof ReferenceError) {
-    statusCode = httpStatus.BAD_REQUEST;
-    message = "Reference error in the application. Please verify your input.";
-    errorMessages = [
-      {
-        path: "",
-        message: "Reference Error",
+        message: error.message,
       },
     ];
   }
-  // Catch any other error type
+
+
   else {
-    message = "An unexpected error occurred!";
+    message = "Unexpected error occurred";
+
     errorMessages = [
       {
         path: "",
-        message: "An unexpected error occurred!",
+        message: "Unexpected error occurred",
       },
     ];
   }
@@ -153,7 +162,6 @@ const GlobalErrorHandler = (
     success: false,
     message,
     errorMessages,
-    err: error,
     stack: config.env !== "production" ? error?.stack : undefined,
   });
 };

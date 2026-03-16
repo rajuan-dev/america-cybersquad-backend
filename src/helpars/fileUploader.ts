@@ -124,7 +124,7 @@ cloudinary.config({
 
 // Cloudinary uploader function
 const uploadToCloudinary = async (
-  file: IUploadedFile,
+  file: any,
 ): Promise<ICloudinaryUploadResponse | undefined> => {
   return new Promise((resolve, reject) => {
     if (!fs.existsSync(file.path)) {

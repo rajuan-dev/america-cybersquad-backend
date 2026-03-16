@@ -14,7 +14,6 @@ const generateToken = (
 };
 
   const verifyToken= (token: string, secret: Secret): JwtPayload => {
-    // console.log(token,secret)
     try {
       const decoded = jwt.verify(token, secret) as JwtPayload;
       return decoded;

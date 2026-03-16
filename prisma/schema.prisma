@@ -1,6 +1,5 @@
-// datasource and generator setup
 datasource db {
-  provider = "mongodb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -8,13 +7,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// ---------------------------------------------------------
-//  ENUMS
-// ---------------------------------------------------------
-
 enum UserRole {
-  USER
-  AGENT
+  STUDENT
+  PARENT
+  TEACHER
   ADMIN
   SUPER_ADMIN
 }
@@ -25,120 +21,47 @@ enum UserStatus {
   REJECTED
 }
 
-enum ServiceType {
-  BY_THE_HOUR
-  DAY_TRIP
-  MULTI_DAY_TOUR
-  PRIVATE_TRANSFER
-  AIRPORT_TRANSFER
-}
-
-enum RouteType {
-  CITY_TO_CITY
-  AIRPORT_TRANSFER
-  MULTI_DAY
-}
-
-enum EveryServiceStatus {
-  AVAILABLE
-  BOOKED
-}
-
-enum ServiceStatus {
-  ACTIVE
-  INACTIVE
-}
-
-enum PaymentStatus {
-  PAID
-  UNPAID
-  REFUNDED
-}
-
-enum BookingStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-  COMPLETED
-  EXPIRED
-}
-
-enum PaymentProvider {
-  STRIPE
-}
-
-enum PromoStatus {
-  ACTIVE
-  INACTIVE
-  EXPIRED
-}
-
-enum SupportType {
-  Critical
-  High
-  Medium
-  Low
-}
-
-enum SupportStatus {
-  Pending
-  Closed
-}
-
-// ---------------------------------------------------------
-//  MODEL
-// ---------------------------------------------------------
-
 model User {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+  id String @id @default(uuid())
 
-  fullName        String?
-  email           String     @unique
-  password        String     @default("123456")
-  profileImage    String     @default("https://i.ibb.co/Ps9gZ8DD/Profile-image.png")
-  contactNumber   String?
-  dateOfBirth     DateTime?
-  address         String?
-  country         String?
-  role            UserRole   @default(USER)
-  status          UserStatus @default(ACTIVE)
-  fcmToken        String?    @default("")
-  isEmailVerified Boolean    @default(false)
-  isPhoneVerified Boolean    @default(false)
+  name     String?
+  email    String  @unique
+  password String
+  photo    String?
+  country  String
+  city     String
 
-  // Stripe
-  stripeAccountId   String?
-  isStripeConnected Boolean @default(false)
+  role             UserRole   @default(STUDENT)
+  status           UserStatus @default(ACTIVE)
+  verificationCode Int?       @unique
+  isVerified       Boolean    @default(false)
+  fcm              String?
 
-  // notification Preferences
-  supportNotification Boolean @default(true)
-  paymentNotification Boolean @default(true)
-  emailNotification   Boolean @default(true)
-
-  otp        String?
-  otpExpiry  DateTime?
-  identifier String?
+  isDeleted Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // relationships
-  payment            Payment[]
-  notifications      Notifications[]
-  review             Review[]
-  favorite           Favorite[]
-  sender             Channel[]            @relation("ChannelPerson1")
-  receiver           Channel[]            @relation("ChannelPerson2")
-  messages           Message[]            @relation("sentMessages")
-  support            Support[]
-  tripServices       TripService[]
-  triServiceBookings TripServiceBooking[]
-
   @@map("users")
 }
 
+model Contact {
+  id          String   @id @default(uuid())
+  name        String
+  email       String
+  phoneNumber String
+  subject     String
+  message     String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("contacts")
+}
+
+
 model Admin {
-  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  id          String  @id @default(uuid())
   fullName    String?
   phoneNumber String?
   email       String  @unique
@@ -148,397 +71,4 @@ model Admin {
   updatedAt DateTime @updatedAt
 
   @@map("admins")
-}
-
-model TripService {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-
-  from              String?
-  fromLat           Float?
-  fromLng           Float?
-  to                String?
-  toLat             Float?
-  toLng             Float?
-  price             Float?
-  travelTimeMinutes Int?
-  distanceKm        Float?
-  groupType         String
-  images            String[]
-  description       String
-  serviceType       ServiceType
-  routeType         String?
-  tourDays          Int?
-  isPopular         Boolean            @default(false)
-  bookingCount      Int                @default(0)
-  features          Json?
-  ratings           Float              @default(0)
-  reviewCount       Int                @default(0)
-  isService         EveryServiceStatus @default(AVAILABLE)
-  status            ServiceStatus      @default(ACTIVE)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-
-  // relations
-  user                 User                  @relation(fields: [userId], references: [id])
-  userId               String                @db.ObjectId
-  tripServiceBookings  TripServiceBooking[]
-  tripServiceStoppages TripServiceStoppage[]
-  vehicles             Vehicle[]
-  reviews              Review[]
-
-  @@map("trip_services")
-}
-
-model Stoppage {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String   @unique
-  type        String
-  price       Float
-  duration    Int? // minutes
-  description String?
-  image       String[]
-  latitude    Float
-  longitude   Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // relationships
-  bookingStoppages     BookingStoppage[] // many-to-many relationship
-  tripServiceStoppages TripServiceStoppage[]
-
-  @@map("stoppages")
-}
-
-model TripServiceStoppage {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-
-  tripServiceId String @db.ObjectId
-  stoppageId    String @db.ObjectId
-
-  order         Int
-  isRecommended Boolean @default(false)
-
-  tripService TripService @relation(fields: [tripServiceId], references: [id])
-  stoppage    Stoppage    @relation(fields: [stoppageId], references: [id])
-
-  @@unique([tripServiceId, stoppageId])
-  @@map("trip_service_stoppages")
-}
-
-model Vehicle {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String // Sedan, Compact MPV, Van, Luxury Sedan
-  seatCount   Int
-  luggage     Int
-  basePrice   Float
-  pricePerKm  Float?
-  image       String[]
-  plateNumber String?
-  isActive    Boolean  @default(true)
-  // driverName  String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // relations
-  tripServiceId   String?          @db.ObjectId
-  tripService     TripService?     @relation(fields: [tripServiceId], references: [id])
-  bookingVehicles BookingVehicle[] // many-to-many relationship
-
-  @@map("vehicles")
-}
-
-model TripServiceBooking {
-  id            String        @id @default(auto()) @map("_id") @db.ObjectId
-  clientName    String?
-  from          String
-  fromLat       Float?
-  fromLng       Float?
-  to            String
-  toLat         Float?
-  toLng         Float?
-  serviceType   ServiceType
-  timeSlot      Json?
-  travelDate    DateTime
-  passengers    Int
-  luggage       Int?
-  distanceKm    Float?
-  basePrice     Float
-  vehiclePrice  Float
-  stoppagePrice Float         @default(0)
-  returnPrice   Float?
-  totalPrice    Float
-  isReturn      Boolean       @default(false)
-  returnDate    DateTime?
-  user_role     UserRole?
-  status        BookingStatus @default(PENDING)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  // relations
-  userId        String?     @db.ObjectId
-  user          User?       @relation(fields: [userId], references: [id])
-  tripService   TripService @relation(fields: [tripServiceId], references: [id])
-  tripServiceId String      @db.ObjectId
-
-  // many-to-many relationships junction tables
-  bookingStoppages BookingStoppage[]
-  bookingVehicles  BookingVehicle[]
-  payments         Payment[]
-
-  @@map("trip_service_bookings")
-}
-
-// junction table stoppage
-model BookingStoppage {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  bookingId  String   @db.ObjectId
-  stoppageId String   @db.ObjectId
-  quantity   Int      @default(1)
-  price      Float
-  createdAt  DateTime @default(now())
-
-  // relations
-  booking  TripServiceBooking @relation(fields: [bookingId], references: [id])
-  stoppage Stoppage           @relation(fields: [stoppageId], references: [id])
-
-  @@unique([bookingId, stoppageId])
-  @@map("booking_stoppages")
-}
-
-// junction table vehicle
-model BookingVehicle {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  bookingId String   @db.ObjectId
-  vehicleId String   @db.ObjectId
-  quantity  Int      @default(1)
-  price     Float
-  createdAt DateTime @default(now())
-
-  // Relations
-  booking TripServiceBooking @relation(fields: [bookingId], references: [id])
-  vehicle Vehicle            @relation(fields: [vehicleId], references: [id])
-
-  @@unique([bookingId, vehicleId])
-  @@map("booking_vehicles")
-}
-
-model Review {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  rating     Float
-  subRatings Json?
-  comment    String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  // relationships
-  user   User   @relation(fields: [userId], references: [id])
-  userId String @db.ObjectId
-  tripServiceId String @db.ObjectId
-  tripService TripService @relation(fields: [tripServiceId], references: [id])
-
-  @@map("reviews")
-}
-
-model Blog {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  title     String
-  content   String
-  category  String
-  image     String[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("blogs")
-}
-
-model Favorite {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String   @db.ObjectId
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("favorites")
-}
-
-model Notifications {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  receiverId   String?  @db.ObjectId
-  partnerId    String?  @db.ObjectId
-  title        String
-  message      String?
-  body         String
-  serviceTypes String?
-  bookingId    String?
-  read         Boolean  @default(false)
-  isClicked    Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User?    @relation(fields: [receiverId], references: [id])
-
-  @@map("notifications")
-}
-
-model Faq {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  question  String
-  answer    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("faqs")
-}
-
-model NewsletterSubscriber {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  email     String   @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("newsletter_subscribers")
-}
-
-model CustomerContact {
-  id            String  @id @default(auto()) @map("_id") @db.ObjectId
-  fullName      String
-  email         String
-  contactNumber String
-  subject       String
-  description   String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("customer_contacts")
-}
-
-model Cancel_Reservation {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  description String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("cancel_reservations")
-}
-
-model Refund_Policy {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  description String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("refund_policies")
-}
-
-model About_App {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  description String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("about_apps")
-}
-
-model Terms_Condition {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  description String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("terms_conditions")
-}
-
-model Privacy_Policy {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  description String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("privacy_policies")
-}
-
-model Channel {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  channelName String   @unique
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  //Relations
-  person1Id String?   @db.ObjectId
-  person1   User?     @relation("ChannelPerson1", fields: [person1Id], references: [id])
-  person2Id String?   @db.ObjectId
-  person2   User?     @relation("ChannelPerson2", fields: [person2Id], references: [id])
-  messages  Message[]
-
-  @@map("channels")
-}
-
-model Message {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  message   String?
-  files     String[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  senderId    String   @db.ObjectId
-  sender      User     @relation("sentMessages", fields: [senderId], references: [id])
-  channelName String
-  Channel     Channel? @relation(fields: [channelName], references: [channelName])
-
-  @@map("messages")
-}
-
-model Payment {
-  id               String        @id @default(auto()) @map("_id") @db.ObjectId
-  amount           Float
-  admin_commission Float?
-  agent_commission Float?
-  description      String?
-  currency         String?
-  sessionId        String?       @unique
-  paymentMethod    String?
-  status           PaymentStatus
-  // status           String
-  payable_name     String?
-  payable_email    String?
-  paymentIntentId  String?
-  country          String?
-  serviceType      ServiceType // BY_THE_HOUR , DAY_TRIP , MULTI_DAY_TOUR , PRIVATE_TRANSFER , AIRPORT_TRANSFER
-  user_role        UserRole // store user role at time of payment
-  isDeleted        Boolean       @default(false)
-  metadata         Json? // extra(fullName, email, contactNumber, country, description etc).
-
-  // Relations
-  tripServiceId        String?             @db.ObjectId
-  user                 User                @relation(fields: [userId], references: [id])
-  userId               String              @db.ObjectId
-  tripServiceBookingId String?             @db.ObjectId
-  tripServiceBooking   TripServiceBooking? @relation(fields: [tripServiceBookingId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("payments")
-}
-
-model Support {
-  id            String        @id @default(auto()) @map("_id") @db.ObjectId
-  fullName      String?
-  email         String?
-  contactNumber String?
-  subject       String
-  description   String
-  supportType   SupportType   @default(High)
-  status        SupportStatus @default(Pending)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  // Relations
-  reportedUserId String? @db.ObjectId
-  user           User?   @relation(fields: [userId], references: [id])
-  userId         String? @db.ObjectId
-
-  @@map("supports")
 }

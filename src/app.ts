@@ -54,20 +54,18 @@ app.use(express.static("public"));
 // Route handler for the root endpoint
 app.get("/", (req: Request, res: Response) => {
   res.send({
+    status:true,
     message: "How's Project API",
   });
 });
 
-// app.use("/uploads", express.static(path.join("/var/www/uploads")));
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads"))); // Serve static files from the "uploads" directory
 
-// Setup API routes
 app.use("/api/v1", router);
 
-// Error handling middleware
 app.use(GlobalErrorHandler);
 
-// 404 Not Found handler
+
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.status(httpStatus.NOT_FOUND).json({
     success: false,
@@ -80,3 +78,5 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 export default app;
+
+

@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Request, RequestHandler, Response } from "express";
 import httpStatus from "http-status";
 import config from "../../../config";
 import catchAsync from "../../../shared/catchAsync";
@@ -6,13 +6,16 @@ import sendResponse from "../../../shared/sendResponse";
 import { AuthServices } from "./auth.service";
 
 // login user
-const loginUser = catchAsync(async (req: Request, res: Response) => {
-  const result = await AuthServices.loginUser(req.body);
+const loginUser :RequestHandler= catchAsync(async (req: Request, res: Response) => {
+  const result = await AuthServices.loginUserIntoDb(req.body);
 
-  res.cookie("token", result.accessToken, {
+  const { accessToken, refreshToken } = result;
+
+  // store refresh token in cookie
+  res.cookie("refreshToken", refreshToken, {
     secure: config.env === "production",
     httpOnly: true,
-    sameSite: "none",
+    sameSite: "strict",
     maxAge: 1000 * 60 * 60 * 24 * 365,
   });
 
@@ -20,9 +23,92 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: "User logged in successfully",
+    data: {
+      accessToken,
+    },
+  });
+});
+
+const refreshToken: RequestHandler = catchAsync(async (req, res) => {
+  const token = req.cookies.refreshToken;
+
+  if (!token) {
+    return sendResponse(res, {
+      success: false,
+      statusCode: httpStatus.UNAUTHORIZED,
+      message: "No refresh token provided",
+      data: null,
+    });
+  }
+
+
+  const result = await AuthServices.refreshTokenIntoDb(token);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Access token retrieved successfully",
     data: result,
   });
 });
+
+
+const myProfile: RequestHandler = catchAsync(async (req, res) => {
+  const userId = req.user?.id;    
+
+  const result = await AuthServices.myProfileIntoDb(userId);
+   sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully retrieved user profile",
+    data: result,
+  });
+
+});
+  
+const  changeMyProfile: RequestHandler = catchAsync(async (req, res) => {
+  const userId = req.user?.id;    
+  const result = await AuthServices.changeMyProfileIntoDb(req as any, userId);
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully changed user profile",
+    data: result,
+  });
+   });
+
+   const findByAllUsersAdmin: RequestHandler = catchAsync(async (req, res) => {
+    const result = await AuthServices.findByAllUsersAdminIntoDb(req.query as Record<string, unknown>);
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Successfully find All Users",
+      data: result,
+    });
+  });
+
+
+  const deleteAccount:RequestHandler = catchAsync(async (req, res) => {
+
+     const result = await AuthServices.deleteAccountIntoDb(req.user?.id as string);
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Successfully deleted account",
+      data: result,
+    });
+  });
+
+
+  const  isBlockAccount:RequestHandler = catchAsync(async (req, res) => {
+    const result = await AuthServices.isBlockAccountIntoDb(req.params?.id as string, req.body, req.user?.role as string);
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Successfully retrieved block status",
+      data: result,
+    });
+  });
 
 // create user and login facebook and google
 const socialLogin = catchAsync(async (req: Request, res: Response) => {
@@ -47,12 +133,12 @@ const socialLogin = catchAsync(async (req: Request, res: Response) => {
 const loginWebsite = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthServices.loginWebsite(req.body);
 
-  res.cookie("token", result.accessToken, {
-    secure: config.env === "production",
-    httpOnly: true,
-    sameSite: "none",
-    maxAge: 1000 * 60 * 60 * 24 * 365,
-  });
+  // res.cookie("token", result.accessToken, {
+  //   secure: config.env === "production",
+  //   httpOnly: true,
+  //   sameSite: "none",
+  //   maxAge: 1000 * 60 * 60 * 24 * 365,
+  // });
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
@@ -62,28 +148,7 @@ const loginWebsite = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// refresh token
-const refreshToken = catchAsync(async (req, res) => {
-  const refreshToken = req.headers.authorization || "";
 
-  if (!refreshToken) {
-    return sendResponse(res, {
-      statusCode: 403,
-      success: false,
-      message: "Refresh token not found",
-      data: undefined,
-    });
-  }
-
-  const result = await AuthServices.refreshToken(refreshToken);
-
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: "User logged In successfully",
-    data: result,
-  });
-});
 
 // logout user
 const logoutUser = catchAsync(async (req: Request, res: Response) => {
@@ -121,62 +186,21 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// forgot password
-const forgotPassword = catchAsync(async (req: Request, res: Response) => {
-  const data = await AuthServices.forgotPassword(req.body);
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Check your email!",
-    data: data,
-  });
-});
 
-// verify token
-const verifyOtp = catchAsync(async (req: Request, res: Response) => {
-  const { otp } = req.body;
-  const result = await AuthServices.verifyOtp(otp);
 
-  res.cookie("token", result.accessToken, {
-    secure: config.env === "production",
-    httpOnly: true,
-    sameSite: "none",
-    maxAge: 1000 * 60 * 60 * 24 * 365,
-  });
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "OTP verified successfully",
-    data: result,
-  });
-});
-
-// reset password
-const resetPassword = catchAsync(async (req: Request, res: Response) => {
-  const token = req.headers.authorization || "";
-  // const userId = req.user?.id;
-  // console.log(token);
-
-  await AuthServices.resetPassword(token, req.body);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Password Reset!",
-    data: null,
-  });
-});
 
 export const AuthController = {
   loginUser,
+  refreshToken,
+  myProfile,
+  changeMyProfile,
+  findByAllUsersAdmin,
+   deleteAccount,
+    isBlockAccount,
   socialLogin,
   loginWebsite,
-  refreshToken,
   logoutUser,
-  changePassword,
-  forgotPassword,
-  verifyOtp,
-  resetPassword,
+  changePassword
+ 
 };

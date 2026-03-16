@@ -1,3 +1,4 @@
+import { UserStatus } from "@prisma/client";
 import { z } from "zod";
 
 const changePasswordValidationSchema = z.object({
@@ -24,7 +25,38 @@ const resetPasswordSchema = z.object({
     }),
 });
 
+
+const LoginSchema = z.object({
+  body: z.object({
+    email: z.string({ required_error: "email is required" }).email(),
+    password: z
+      .string({  required_error: "password is required" })
+      .min(6, { message: "min 6 character accepted" }),
+  }),
+  fcm: z.string({ required_error: "fcm is not required" }).optional(),
+});
+
+const requestTokenValidationSchema = z.object({
+  cookies: z.object({
+    refreshToken: z.string({ required_error: "Refresh Token is Required" }),
+  }),
+});
+
+
+const blockUserZodSchema = z.object({
+  body: z.object({
+    status: z.nativeEnum(UserStatus, {
+      required_error: "Status is required",
+      invalid_type_error: "Invalid status value",
+    }),
+  }),
+});
+
+
 export const authValidation = {
   changePasswordValidationSchema,
   resetPasswordSchema,
+  LoginSchema ,
+  blockUserZodSchema,
+  requestTokenValidationSchema
 };

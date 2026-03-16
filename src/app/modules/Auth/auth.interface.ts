@@ -43,3 +43,7 @@ export interface ISignupResponse {
     isService?: boolean | null;
   };
 }
+
+export interface RequestWithFile extends Request {
+    file?: Express.Multer.File;
+  }
