@@ -1,17 +1,18 @@
-import { RequestHandler } from "express";
+import { RequestHandler, Request, Response } from "express";
 import catchAsync from "../../../shared/catchAsync";
-import TestimonialServices from "./testimonials.services";
+
 import sendResponse from "../../../shared/sendResponse";
 import httpStatus from "http-status";
+import TestimonialServices from "./testimonials.services";
 
 
 
-const  createTestimonials:RequestHandler=catchAsync(async(req , res)=>{
+const  createTestimonials:RequestHandler=catchAsync(async(req:Request , res:Response)=>{
 
       const result=await  TestimonialServices.createTestimonialsIntoDb(req);
    sendResponse(res, {
     success: true,
-    statusCode: httpStatus.OK,
+    statusCode: httpStatus.CREATED,
     message: "Successfully Create New Testimonials",
     data: result,
   });
@@ -19,8 +20,37 @@ const  createTestimonials:RequestHandler=catchAsync(async(req , res)=>{
 });
 
 
+const  findByAllTestimonials:RequestHandler=catchAsync(async(req , res)=>{
+
+      const result=await TestimonialServices.findByAllTestimonialsIntoDb(req.query);
+   sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully  find by all Testimonials",
+    data: result,
+  });
+
+});
+
+
+const deleteTestimonials:RequestHandler=catchAsync(async(req:Request , res:Response)=>{
+
+      const result=await TestimonialServices.deleteTestimonialsFromDb(req.params.id);
+sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully  Delete Testimonials",
+    data: result,
+  });
+
+
+})
+
+
 const TestimonialController={
-    createTestimonials
+    createTestimonials,
+     findByAllTestimonials,
+      deleteTestimonials
 };
 
 export default TestimonialController;

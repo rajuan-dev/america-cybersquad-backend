@@ -24,6 +24,13 @@ route.post(
   },
   TestimonialController.createTestimonials,
 );
+
+
+route.get("/find_by_all_testimonials", TestimonialController.findByAllTestimonials);
+route.delete("/delete_testimonials/:id",auth(UserRole.ADMIN, UserRole.SUPER_ADMIN), TestimonialController.deleteTestimonials );
+
+
+
  
 const TestimonialsRoute = route;
  
