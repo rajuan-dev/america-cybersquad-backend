@@ -10,3 +10,9 @@ export type TUser = {
   status: UserStatus;
 }
 
+export type TQuestions ={
+  owner: Boolean;
+  typeOfOwner: String;
+   branches: Number
+}
+

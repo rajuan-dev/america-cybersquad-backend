@@ -1,6 +1,6 @@
 import * as bcrypt from "bcrypt";
 import catchError from "../../../errors/catchError";
-import { TUser } from "./user.interface";
+import { TQuestions, TUser } from "./user.interface";
 import prisma from "../../../shared/prisma";
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
@@ -13,10 +13,8 @@ import { UserStatus } from "@prisma/client";
 
 
 
-// create user
-const createUserIntoDb = async (payload: TUser) => {
+const createUserIntoDb = async (payload: TUser & TQuestions) => {
   try {
-    // 1. check existing user
     const existingUser = await prisma.user.findUnique({
       where: { email: payload.email },
       select: { id: true },
@@ -26,54 +24,42 @@ const createUserIntoDb = async (payload: TUser) => {
       throw new ApiError(httpStatus.CONFLICT, "User already exists");
     }
 
-    // 2. generate OTP
-    const verificationCode = Number(generateOtp()); // keep as string
+    const verificationCode = Number(generateOtp());
 
-    // 3. hash password (do not mutate payload)
     const hashedPassword = await bcrypt.hash(
       payload.password,
       Number(config.bcrypt_salt_rounds)
     );
 
-    // 4. create user
+    const { owner, typeOfOwner, branches, ...userData } = payload;
+
+    // ✅ Step 1: Create User FIRST
     const user = await prisma.user.create({
       data: {
-        ...payload,
+        ...userData,
         password: hashedPassword,
         verificationCode,
         isVerified: false,
       },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        isVerified: true,
+    });
+
+    
+    await prisma.questions.create({
+      data: {
+        owner: owner  as boolean,
+        typeOfOwner: typeOfOwner as string ,
+        branches: branches  as number,
+        userId: user.id, 
       },
     });
 
-    // 5. send email
-    await sendEmail(
-      user.email,
-      emailContext.sendVerificationData(
-        user.email,
-        verificationCode,
-        "User Verification Email"
-      ),
-      "Verification OTP Code"
-    );
+   await sendEmail( user.email, emailContext.sendVerificationData( user.email, verificationCode, "User Verification Email" ), "Verification OTP Code" ); 
+   return { status: true, message: "Check your email", };
 
-    // 6. return safe response
-    return {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      isVerified: user.isVerified,
-    };
   } catch (error) {
     catchError(error);
   }
 };
-
 
 
  const userVerificationIntoDb = async (verificationCode: number) => {

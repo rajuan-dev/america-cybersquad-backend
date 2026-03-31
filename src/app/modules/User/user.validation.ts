@@ -1,3 +1,4 @@
+
 import { object, z } from "zod";
 import { UserRole } from "@prisma/client";
 
@@ -6,7 +7,7 @@ import { UserRole } from "@prisma/client";
     name: z.string().min(2, "Name must be at least 2 characters"),
 
     email: z.string().email("Invalid email address"),
-
+    schoolName: z.string({required_error:"school name is required"}),
     password: z.string().min(6, "Password must be at least 6 characters"),
 
     role: z.nativeEnum(UserRole).default(UserRole.STUDENT),
@@ -14,6 +15,10 @@ import { UserRole } from "@prisma/client";
     country: z.string().min(1, "Country is required"),
 
     city: z.string().min(1, "City is required"),
+    owner: z.boolean({required_error:"owner field is option "}).default(true).optional(),
+    typeOfOwner: z.string({required_error:"type of owner is not required"}).optional(),
+    branches : z.number({required_error:"branches is not required"}).optional()
+
   }),
 });
 

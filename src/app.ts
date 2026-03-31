@@ -55,11 +55,11 @@ app.use(express.static("public"));
 app.get("/", (req: Request, res: Response) => {
   res.send({
     status:true,
-    message: "How's Project API",
+    message: "Successfully Run America Cybersquad Backend",
   });
 });
 
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads"))); // Serve static files from the "uploads" directory
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads"))); 
 
 app.use("/api/v1", router);
 
