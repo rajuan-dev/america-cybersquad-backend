@@ -269,29 +269,76 @@ const findByAllUsersAdminIntoDb = async (query: Record<string, unknown>) => {
 
     const queryOptions = queryBuilder.build();
 
+  
+    const { owner, typeOfOwner, branches } = query;
+
+    // ✅ Build relation filter
+    const questionFilter: any = {};
+
+    if (owner !== undefined) {
+      questionFilter.owner = owner === "true";
+    }
+
+    if (typeOfOwner) {
+      questionFilter.typeOfOwner = typeOfOwner;
+    }
+
+    if (branches) {
+      questionFilter.branches = Number(branches);
+    }
+
     const result = await prisma.user.findMany({
-      where: queryOptions.where,
+      where: {
+        ...queryOptions.where,
+
+        // ✅ relation filter
+        ...(Object.keys(questionFilter).length > 0 && {
+          questions: {
+            is: questionFilter, // ⚠️ use `is` for one-to-one
+          },
+        }),
+      },
+
       orderBy: queryOptions.orderBy,
       skip: queryOptions.skip,
       take: queryOptions.take,
-     select: {
-    id: true,
-    name: true,
-    email: true,
-    photo: true,
-    country: true,
-    city: true,
-    role: true,
-    status: true,
-    isVerified: true,
-    isDeleted: true,
-    createdAt: true,
-    updatedAt: true,
-  },
+
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        photo: true,
+        country: true,
+        city: true,
+        schoolName:true ,
+        province:true,
+        region:true,
+        state:true,
+        role: true,
+        status: true,
+        isVerified: true,
+        isDeleted: true,
+        createdAt: true,
+        updatedAt: true,
+        questions: {
+          select: {
+            owner: true,
+            typeOfOwner: true,
+            branches: true,
+          },
+        }
+      },
     });
 
     const total = await prisma.user.count({
-      where: queryOptions.where,
+      where: {
+        ...queryOptions.where,
+        ...(Object.keys(questionFilter).length > 0 && {
+          questions: {
+            is: questionFilter,
+          },
+        }),
+      },
     });
 
     const page = Number(query?.page) || 1;
@@ -308,7 +355,7 @@ const findByAllUsersAdminIntoDb = async (query: Record<string, unknown>) => {
       data: result,
     };
   } catch (error: unknown) {
-    throw error; // let global error handler manage it
+    throw error;
   }
 };
 

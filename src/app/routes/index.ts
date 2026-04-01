@@ -4,6 +4,7 @@ import { authRoutes } from "../modules/Auth/auth.routes";
 import { userRoute } from "../modules/User/user.route";
 import ContactRoute from "../modules/contact/contact.route";
 import TestimonialsRoute from "../modules/Testimonials/testimonials.route";
+import subscriptionRoute from "../modules/subscription/subscription.routes";
 
 
 const router = express.Router();
@@ -24,6 +25,10 @@ const moduleRoutes = [
   {
     path:"/testimonials",
     route: TestimonialsRoute
+  },
+  {
+    path:"/subscription",
+    route :subscriptionRoute
   }
 
   

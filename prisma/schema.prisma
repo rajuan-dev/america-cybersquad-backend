@@ -1,3 +1,6 @@
+// ---------------------------
+// Datasource & Generator
+// ---------------------------
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -7,6 +10,9 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// ---------------------------
+// Enums
+// ---------------------------
 enum UserRole {
   STUDENT
   PARENT
@@ -14,14 +20,44 @@ enum UserRole {
   ADMIN
   SUPER_ADMIN
   INSTITUTIONAL_OWNER
- 
-
 }
 
 enum UserStatus {
   ACTIVE
   INACTIVE
   REJECTED
+}
+
+// ---------------------------
+// Models
+// ---------------------------
+
+model User {
+  id String @id @default(uuid())
+
+  name             String?
+  email            String     @unique
+  password         String
+  photo            String?
+  country          String
+  city             String
+  state            String?
+  region           String?
+  province         String?
+  schoolName       String?
+  role             UserRole   @default(STUDENT)
+  status           UserStatus @default(ACTIVE)
+  verificationCode Int?       @unique
+  isVerified       Boolean    @default(false)
+  fcm              String?
+
+  isDeleted      Boolean       @default(false)
+  questions      Questions?
+  subscriptions  Subscriptions[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@map("users")
 }
 
 model Questions {
@@ -36,31 +72,6 @@ model Questions {
   updatedAt   DateTime @updatedAt
 
   @@map("questions")
-}
-
-model User {
-  id String @id @default(uuid())
-
-  name             String?
-  email            String     @unique
-  password         String
-  photo            String?
-  country          String
-  city             String
-  schoolName       String?
-  role             UserRole   @default(STUDENT)
-  status           UserStatus @default(ACTIVE)
-  verificationCode Int?       @unique
-  isVerified       Boolean    @default(false)
-  fcm              String?
-
-  isDeleted     Boolean         @default(false)
-  questions     Questions?
-  subscriptions Subscriptions[]
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-
-  @@map("users")
 }
 
 model Contact {
@@ -97,21 +108,41 @@ model Testimonials {
 }
 
 model Subscriptions {
-  id              String   @id @default(uuid())
-  country         String
-  countryCategory String
-  locationType    String
-  studentLimit    Int
-  userId          String
-  user            User     @relation(fields: [userId], references: [id])
-  price           Float
-  isDeleted       Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                  String                 @id @default(uuid())
+  studentLimit        Int
+  userId              String
+  user                User                   @relation(fields: [userId], references: [id])
+  price               Float
+  isDeleted           Boolean                @default(false)
+  subscriptiondetails SubscriptionDetails[]
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
 
-  @@index([country])
-  @@index([countryCategory])
   @@map("subscriptions")
+}
+
+model SubscriptionDetails {
+  id              String        @id @default(uuid())
+  branchName      String
+  locationContext String
+  subscriptionId  String
+  subscriptions   Subscriptions @relation(fields: [subscriptionId], references: [id])
+  student         Int
+  state           String
+  region          String
+  province        String
+  city            String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([branchName])
+  @@index([locationContext])
+  @@index([student])
+  @@index([state])
+  @@index([region])
+  @@index([province])
+  @@index([city])
+  @@map("subscriptiondetails")
 }
 
 model Admin {
@@ -126,5 +157,3 @@ model Admin {
 
   @@map("admins")
 }
-
-// npx prisma migrate dev --name create_contact_table

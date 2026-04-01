@@ -44,7 +44,7 @@ router.patch(
 
 router.get(
   "/find_by_admin_all_users",
-  // auth(UserRole.SUPER_ADMIN, UserRole.ADMIN ),
+  auth(UserRole.SUPER_ADMIN, UserRole.ADMIN ),
   AuthController.findByAllUsersAdmin
 );
 
@@ -58,14 +58,14 @@ router.patch(
 );
 
 
-// create user and login facebook and google
-router.post("/social-login", AuthController.socialLogin);
+// // create user and login facebook and google
+// router.post("/social-login", AuthController.socialLogin);
 
-// website login after booking
-router.post("/login-website", AuthController.loginWebsite);
+// // website login after booking
+// router.post("/login-website", AuthController.loginWebsite);
 
-// refresh token
-router.post("/refresh-token", AuthController.refreshToken);
+// // refresh token
+// router.post("/refresh-token", AuthController.refreshToken);
 
 
 
