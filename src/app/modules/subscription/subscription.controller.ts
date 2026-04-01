@@ -41,6 +41,20 @@ const hardDeleteSubscriptionById:RequestHandler=catchAsync(async(req , res)=>{
     message: "Successfully Delete Subscription",
     data: result,
   });
+});
+
+
+
+const findMyAllSubscriptions:RequestHandler=catchAsync(async(req , res)=>{
+
+      const result=await subscriptionServices.findMyAllSubscriptionsIntoDb(req.user.id, req.query);
+    sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find My All Subscription",
+    data: result,
+  });
+
 })
 
 
@@ -49,7 +63,8 @@ const hardDeleteSubscriptionById:RequestHandler=catchAsync(async(req , res)=>{
 const subscriptionController={
     saveUserSubscription,
      findByAllSubscriptionsAdmin,
-     hardDeleteSubscriptionById
+     hardDeleteSubscriptionById,
+     findMyAllSubscriptions
 };
 
 export default subscriptionController;

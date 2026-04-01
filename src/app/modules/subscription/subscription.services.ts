@@ -145,13 +145,104 @@ const hardDeleteSubscriptionByIdIntoDb = async (subscriptionId: string) => {
 
 
 
+const findMyAllSubscriptionsIntoDb = async (
+  userId: string,
+  query: Record<string, any>
+) => {
+  try {
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(["price", "studentLimit"]) // main fields only
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const queryOptions = queryBuilder.build();
+
+    
+    queryOptions.where = {
+      ...queryOptions.where,
+      userId
+    };
+
+    const detailsFilter: Record<string, any> = {};
+    const nestedFields = [
+      "branchName",
+      "locationContext",
+      "city",
+      "state",
+      "region",
+      "province",
+    ];
+
+    nestedFields.forEach((field) => {
+      if (query[field]) {
+        detailsFilter[field] = {
+          contains: String(query[field]),
+          mode: "insensitive",
+        };
+      }
+    });
+
+    if (Object.keys(detailsFilter).length > 0) {
+      queryOptions.where = {
+        ...queryOptions.where,
+        subscriptiondetails: {
+          some: detailsFilter,
+        },
+      };
+    }
+
+    const subscriptions = await prisma.subscriptions.findMany({
+      where: queryOptions.where,
+      include: {
+        subscriptiondetails: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            status: true,
+            isVerified: true,
+          },
+        },
+      },
+      skip: queryOptions.skip,
+      take: queryOptions.take,
+      orderBy: queryOptions.orderBy,
+    });
+
+    const total = await prisma.subscriptions.count({
+      where: queryOptions.where,
+    });
+
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+    const totalPage = Math.ceil(total / limit);
+
+    return {
+      meta: { page, limit, total, totalPage },
+      data: subscriptions,
+    };
+  } catch (error) {
+     catchError(error);
+  }
+};
+
+
+
+
+
+
 
 
 
 const subscriptionServices = {
   saveUserSubscriptionIntoDb,
   findByAllSubscriptionsAdminIntoDb,
-   hardDeleteSubscriptionByIdIntoDb
+   hardDeleteSubscriptionByIdIntoDb,
+   findMyAllSubscriptionsIntoDb
 };
 
 export default subscriptionServices;
