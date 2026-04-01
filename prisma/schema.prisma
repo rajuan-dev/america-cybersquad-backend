@@ -51,11 +51,12 @@ model User {
   isVerified       Boolean    @default(false)
   fcm              String?
 
-  isDeleted      Boolean       @default(false)
-  questions      Questions?
-  subscriptions  Subscriptions[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  isDeleted     Boolean         @default(false)
+  questions     Questions?
+  subscriptions Subscriptions[]
+  branchadmins  BranchAdmin[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
   @@map("users")
 }
@@ -108,15 +109,15 @@ model Testimonials {
 }
 
 model Subscriptions {
-  id                  String                 @id @default(uuid())
+  id                  String                @id @default(uuid())
   studentLimit        Int
   userId              String
-  user                User                   @relation(fields: [userId], references: [id])
+  user                User                  @relation(fields: [userId], references: [id])
   price               Float
-  isDeleted           Boolean                @default(false)
+  isDeleted           Boolean               @default(false)
   subscriptiondetails SubscriptionDetails[]
-  createdAt           DateTime               @default(now())
-  updatedAt           DateTime               @updatedAt
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
 
   @@map("subscriptions")
 }
@@ -143,6 +144,28 @@ model SubscriptionDetails {
   @@index([province])
   @@index([city])
   @@map("subscriptiondetails")
+}
+
+// branch admin model 
+
+model BranchAdmin {
+  id           String   @id @default(uuid())
+  fullName     String
+  phoneNumber  String   @unique
+  emailAddress String   @unique
+  password     String
+  joinDate     DateTime
+  assignBranch String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+ @@index([fullName])
+  @@index([phoneNumber])
+   @@index([emailAddress])
+    @@index([assignBranch])
+     @@map("branchadmins")
 }
 
 model Admin {
