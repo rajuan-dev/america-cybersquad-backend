@@ -7,23 +7,49 @@ import httpStatus from "http-status";
 
 
 const saveUserSubscription:RequestHandler=catchAsync(async(req , res)=>{
-
-
-      const result=await subscriptionServices.saveUserSubscriptionIntoDb(req.user.id, req.body);
-
-  sendResponse(res, {
+    const result=await subscriptionServices.saveUserSubscriptionIntoDb(req.user.id, req.body);
+    sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
     message: "Successfully  Completed Your Subscription",
     data: result,
   });
+});
 
+
+const  findByAllSubscriptionsAdmin:RequestHandler=catchAsync(async(req , res)=>{
+
+
+      const result=await subscriptionServices.findByAllSubscriptionsAdminIntoDb(req.query);
+   sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By The All Subscription",
+    data: result,
+  });
 
 });
 
 
+const hardDeleteSubscriptionById:RequestHandler=catchAsync(async(req , res)=>{
+
+     const result=await subscriptionServices.hardDeleteSubscriptionByIdIntoDb(req.params.subscriptionId);
+    //  subscriptionId
+    sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Delete Subscription",
+    data: result,
+  });
+})
+
+
+
+
 const subscriptionController={
-    saveUserSubscription
+    saveUserSubscription,
+     findByAllSubscriptionsAdmin,
+     hardDeleteSubscriptionById
 };
 
 export default subscriptionController;
