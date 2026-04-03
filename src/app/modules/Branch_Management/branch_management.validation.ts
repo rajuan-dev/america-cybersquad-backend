@@ -22,10 +22,21 @@ const branchAdminLoginSchema = z.object({
   }),
 });
 
+ const updateBranchAdminValidation = z.object({
+  body: z.object({
+    fullName: z.string().min(1).optional(),
+    phoneNumber: z.string().min(5).optional(),
+    emailAddress: z.string().email().optional(),
+    joinDate: z.string().optional(),
+    assignBranch: z.string().min(1).optional(),
+  }),
+});
+
 
 const branchManagementValidation={
     createBranchAdminValidation,
-    branchAdminLoginSchema
+    branchAdminLoginSchema,
+    updateBranchAdminValidation
 };
 
 export default branchManagementValidation;

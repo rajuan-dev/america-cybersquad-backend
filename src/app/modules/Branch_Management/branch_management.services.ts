@@ -8,6 +8,7 @@ import bcrypt from "bcrypt";
 import { jwtHelpers } from "../../../helpars/jwtHelpers";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import branchManagementConstants from "./branch_management.constant";
+import { stat } from "fs";
 
 const create_branch_admin_IntoDb = async (
   userId: string,
@@ -248,14 +249,81 @@ const findByAllBranchIntoDb = async (
   }
 };
 
+const updateByBranchAdminIntoDb = async (
+  id: string,
+  payload: Partial<TBranchAdmin>,
+  userId: string
+): Promise<{ status: boolean; message: string }> => {
+  try {
+    // 🔍 Step 1: Check ownership + existence
+    const existingBranchAdmin = await prisma.branchAdmin.findFirst({
+      where: {
+        id,
+        userId,
+      },
+      select: {
+        id: true,
+      },
+    });
 
+    if (!existingBranchAdmin) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        "Branch admin not found or unauthorized"
+      );
+    }
 
+    const updatedPayload: Partial<TBranchAdmin> = { ...payload };
+
+    if (updatedPayload.joinDate) {
+      updatedPayload.joinDate = new Date(
+        updatedPayload.joinDate
+      );
+    }
+
+    await prisma.branchAdmin.update({
+      where: {
+        id
+      },
+      data: updatedPayload,
+    });
+
+  
+    return {
+      status: true,
+      message: "Branch admin updated successfully",
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
+const deleteBranchAdminIntoDb = async (id: string, userId: string) : Promise<{ status: boolean; message: string }> => {
+  try {
+    const existingBranchAdmin = await prisma.branchAdmin.findFirst({  where: { id, userId }, select: { id: true } }); 
+
+    if (!existingBranchAdmin) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Branch admin not found or unauthorized");
+    } 
+    await prisma.branchAdmin.delete({ where: { id } });
+
+    return { 
+      status: true,
+      message: "Branch admin deleted successfully",
+    };
+  } catch (error) {
+    return catchError(error);
+  };      
+     }
+  
 
 const BranchManagementServices = {
   create_branch_admin_IntoDb,
    findSubscriptionBranchByIdIntoDb,
    login_branch_admin_IntoDb,
-    findByAllBranchIntoDb
+    findByAllBranchIntoDb,
+     updateByBranchAdminIntoDb,
+     deleteBranchAdminIntoDb 
 };
 
 export default BranchManagementServices;

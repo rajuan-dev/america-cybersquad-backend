@@ -12,8 +12,8 @@ route.post("/create_branch_admin", auth(UserRole.INSTITUTIONAL_OWNER),validateRe
 route.get("/find_by_subscription_branch/:subscriptionId", auth(UserRole.INSTITUTIONAL_OWNER), BranchManagementController.findSubscriptionBranchById);
 route.post("/login_branch_admin", validateRequest( branchManagementValidation.branchAdminLoginSchema), BranchManagementController.login_branch_admin);
 route.get("/find_my_all_branch_admin", auth(UserRole.INSTITUTIONAL_OWNER), BranchManagementController.findByAllBranches);
-
-
+route.patch("/update_branch_admin/:id", auth(UserRole.INSTITUTIONAL_OWNER), validateRequest( branchManagementValidation.updateBranchAdminValidation), BranchManagementController.updateByBranchAdmin);
+route.delete("/delete_branch_admin/:id", auth(UserRole.INSTITUTIONAL_OWNER), BranchManagementController.deleteBranchAdmin);
 
 const branchManagement=route;
 

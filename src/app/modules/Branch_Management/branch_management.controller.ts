@@ -71,11 +71,38 @@ const findByAllBranches:RequestHandler=catchAsync(async(req , res)=>{
   });
 
 
+
+  const updateByBranchAdmin:RequestHandler=catchAsync(async(req , res)=>{
+
+      const result=await BranchManagementServices.updateByBranchAdminIntoDb( req.params.id, req.body,req.user.id);  
+      sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Updated Branch Admin",
+    data: result,
+  });
+});
+
+
+const deleteBranchAdmin:RequestHandler=catchAsync(async(req , res)=>{
+
+      const result=await BranchManagementServices.deleteBranchAdminIntoDb( req.params.id,req.user.id);  
+      sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Deleted Branch Admin",
+    data: result,
+  });
+});
+
+
 const BranchManagementController={
     create_branch_admin,
     findSubscriptionBranchById,
     login_branch_admin,
-    findByAllBranches
+    findByAllBranches,
+    updateByBranchAdmin,
+    deleteBranchAdmin
 };
 
 export default BranchManagementController;
