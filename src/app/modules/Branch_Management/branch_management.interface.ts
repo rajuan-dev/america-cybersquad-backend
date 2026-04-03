@@ -3,6 +3,7 @@ export  interface TBranchAdmin {
     phoneNumber: string;
     emailAddress: string;
     joinDate: string;
+    role : string;
     assignBranch: string;
     password: string;
     isDelete: string;

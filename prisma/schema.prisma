@@ -20,6 +20,7 @@ enum UserRole {
   ADMIN
   SUPER_ADMIN
   INSTITUTIONAL_OWNER
+  BRANCH_ADMIN
 }
 
 enum UserStatus {
@@ -154,6 +155,7 @@ model BranchAdmin {
   phoneNumber  String   @unique
   emailAddress String   @unique
   password     String
+  role         String
   joinDate     DateTime
   assignBranch String   @unique
   userId       String
@@ -163,6 +165,7 @@ model BranchAdmin {
 
  @@index([fullName])
   @@index([phoneNumber])
+  @@index([role])
    @@index([emailAddress])
     @@index([assignBranch])
      @@map("branchadmins")

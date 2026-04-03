@@ -10,7 +10,7 @@ class PrismaQueryBuilder {
     this.query = query;
   }
 
-
+  // 🔍 SEARCH
   search(searchableFields: string[]) {
     const searchTerm = this.query?.searchTerm;
 
@@ -26,27 +26,42 @@ class PrismaQueryBuilder {
     return this;
   }
 
+  // 🎯 FILTER (DYNAMIC)
   filter() {
     const queryObject = { ...this.query };
 
-    const excludeField = ["searchTerm", "sort", "limit", "page", "fields"];
+    const excludeField = [
+      "searchTerm",
+      "sort",
+      "limit",
+      "page",
+      "fields",
+      "joinDateFrom",
+      "joinDateTo",
+      "branchName",
+    ];
+
     excludeField.forEach((el) => delete queryObject[el]);
 
-    if (this.query?.maxPrice) {
-      this.where.price = {
-        gte: Number(this.query.minPrice),
-        lte: Number(this.query.maxPrice),
-      };
-    }
+    Object.entries(queryObject).forEach(([key, value]) => {
+      if (!value) return;
 
-    if (this.query?.releaseDate) {
-      this.where.releaseDate = new Date(this.query.releaseDate);
-    }
+      // exact match fields
+      if (["id", "userId", "role"].includes(key)) {
+        this.where[key] = value;
+      } else {
+        // partial match
+        this.where[key] = {
+          contains: String(value),
+          mode: "insensitive",
+        };
+      }
+    });
 
     return this;
   }
 
- 
+  // 🔀 SORT
   sort() {
     const sort = this.query?.sort;
 
@@ -66,7 +81,7 @@ class PrismaQueryBuilder {
     return this;
   }
 
- 
+  // 📄 PAGINATION
   paginate() {
     const limit = Math.max(Number(this.query.limit) || 10, 1);
     const page = Math.max(Number(this.query.page) || 1, 1);
@@ -77,6 +92,7 @@ class PrismaQueryBuilder {
     return this;
   }
 
+  // 🎯 SELECT FIELDS
   fields() {
     if (this.query?.fields) {
       const fields = this.query.fields.split(",");
@@ -90,7 +106,7 @@ class PrismaQueryBuilder {
     return this;
   }
 
-
+  // 🏗 BUILD
   build() {
     return {
       where: this.where,

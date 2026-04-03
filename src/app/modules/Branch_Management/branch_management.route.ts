@@ -10,6 +10,10 @@ import BranchManagementController from './branch_management.controller';
 const route=express.Router();
 route.post("/create_branch_admin", auth(UserRole.INSTITUTIONAL_OWNER),validateRequest( branchManagementValidation.createBranchAdminValidation),BranchManagementController.create_branch_admin );
 route.get("/find_by_subscription_branch/:subscriptionId", auth(UserRole.INSTITUTIONAL_OWNER), BranchManagementController.findSubscriptionBranchById);
+route.post("/login_branch_admin", validateRequest( branchManagementValidation.branchAdminLoginSchema), BranchManagementController.login_branch_admin);
+route.get("/find_my_all_branch_admin", auth(UserRole.INSTITUTIONAL_OWNER), BranchManagementController.findByAllBranches);
+
+
 
 const branchManagement=route;
 

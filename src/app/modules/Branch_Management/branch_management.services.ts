@@ -5,6 +5,9 @@ import catchError from "../../../errors/catchError";
 import prisma from "../../../shared/prisma";
 import { TBranchAdmin } from "./branch_management.interface";
 import bcrypt from "bcrypt";
+import { jwtHelpers } from "../../../helpars/jwtHelpers";
+import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
+import branchManagementConstants from "./branch_management.constant";
 
 const create_branch_admin_IntoDb = async (
   userId: string,
@@ -16,6 +19,7 @@ const create_branch_admin_IntoDb = async (
       phoneNumber,
       emailAddress,
       password,
+      role,
       joinDate,
       assignBranch,
     } = payload;
@@ -44,6 +48,7 @@ const create_branch_admin_IntoDb = async (
         password: hashedPassword,
         joinDate: new Date(joinDate),
         assignBranch,
+        role,
         userId,
       },
     });
@@ -93,9 +98,164 @@ const findSubscriptionBranchByIdIntoDb= async (
   }
 };
 
+
+const login_branch_admin_IntoDb = async (payload: { emailAddress: string; password: string }) => {
+
+
+  try {
+    const { emailAddress, password } = payload; 
+
+   const branchAdmin = await prisma.branchAdmin.findUnique({
+      where: { emailAddress },
+      select: {
+        id: true,
+        role: true,
+        emailAddress: true,
+        password: true,
+        
+      }
+    });
+
+    if (!branchAdmin) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Branch admin not found");
+    };
+
+    const isPasswordMatched = await bcrypt.compare(
+        password,
+        branchAdmin.password
+      );
+
+      if (!isPasswordMatched) {
+        throw new ApiError(httpStatus.FORBIDDEN, "Password not matched", "");
+      }
+
+      const jwtPayload = {
+        id: branchAdmin.id,
+        role: branchAdmin.role,
+        email: branchAdmin.emailAddress,
+      };
+
+      const accessToken = jwtHelpers.generateToken(
+        jwtPayload,
+        config.jwt_access_secret as string,
+        config.expires_in as string
+      );
+
+      const refreshToken = jwtHelpers.generateToken(
+        jwtPayload,
+        config.jwt_refresh_secret as string,
+        config.refresh_expires_in as string
+      );
+
+      return {
+        accessToken,
+        refreshToken,
+      };
+
+  } catch (error) {
+    return catchError(error);
+  }};
+
+
+const findByAllBranchIntoDb = async (
+  userId: string,
+  query: Record<string, unknown>
+) => {
+  try {
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(branchManagementConstants.searchableFields)
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const queryOptions = queryBuilder.build();
+
+    // 👉 custom filters
+    const { joinDateFrom, joinDateTo, branchName } = query;
+
+    const extraFilter: any = {};
+
+    // ✅ branch filter
+    if (branchName) {
+      extraFilter.assignBranch = {
+        contains: String(branchName),
+        mode: "insensitive",
+      };
+    }
+
+    // ✅ join date range filter
+    if (joinDateFrom || joinDateTo) {
+      extraFilter.joinDate = {};
+
+      if (joinDateFrom) {
+        extraFilter.joinDate.gte = new Date(joinDateFrom as string);
+      }
+
+      if (joinDateTo) {
+        extraFilter.joinDate.lte = new Date(joinDateTo as string);
+      }
+    }
+
+    // ✅ FINAL WHERE
+    const whereCondition = {
+      ...queryOptions.where,
+      userId: userId,
+      ...extraFilter,
+    };
+
+    // ✅ DATA QUERY
+    const result = await prisma.branchAdmin.findMany({
+      where: whereCondition,
+      orderBy: queryOptions.orderBy,
+      skip: queryOptions.skip,
+      take: queryOptions.take,
+
+      select: queryOptions.select || {
+        id: true,
+        fullName: true,
+        phoneNumber: true,
+        emailAddress: true,
+        role: true,
+        joinDate: true,
+        assignBranch: true,
+        createdAt: true,
+        updatedAt: true
+
+      },
+    });
+
+    // ✅ TOTAL COUNT
+    const total = await prisma.branchAdmin.count({
+      where: whereCondition,
+    });
+
+    const page = Number(query?.page) || 1;
+    const limit = Number(query?.limit) || 10;
+    const totalPage = Math.ceil(total / limit);
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage,
+      },
+      data: result,
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
+
+
+
 const BranchManagementServices = {
   create_branch_admin_IntoDb,
-   findSubscriptionBranchByIdIntoDb
+   findSubscriptionBranchByIdIntoDb,
+   login_branch_admin_IntoDb,
+    findByAllBranchIntoDb
 };
 
 export default BranchManagementServices;
