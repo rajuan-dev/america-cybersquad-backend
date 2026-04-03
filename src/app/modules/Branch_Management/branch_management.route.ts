@@ -14,7 +14,7 @@ route.post("/login_branch_admin", validateRequest( branchManagementValidation.br
 route.get("/find_my_all_branch_admin", auth(UserRole.INSTITUTIONAL_OWNER), BranchManagementController.findByAllBranches);
 route.patch("/update_branch_admin/:id", auth(UserRole.INSTITUTIONAL_OWNER), validateRequest( branchManagementValidation.updateBranchAdminValidation), BranchManagementController.updateByBranchAdmin);
 route.delete("/delete_branch_admin/:id", auth(UserRole.INSTITUTIONAL_OWNER), BranchManagementController.deleteBranchAdmin);
-
+// admin route ---- admin display the all  institutional owner branch admin and also update and delete the branch admin by id and also find the branch admin by subscription id and also login the branch admin by email and password
 const branchManagement=route;
 
 export default  branchManagement;
