@@ -1,11 +1,14 @@
 import express, { Application, NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
-import cors from "cors";
 import cookieParser from "cookie-parser";
 import path from "path";
 import bodyParser from "body-parser";
 import router from "./app/routes";
 import GlobalErrorHandler from "./app/middlewares/globalErrorHandler";
+import cors from "cors";
+import cron from "node-cron";
+import autoDeleteUnverifiedUser from "./utils/autoDeleteUnverifiedUser";
+import catchError from "./errors/catchError";
 
 declare global {
   namespace Express {
@@ -64,6 +67,17 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use("/api/v1", router);
 
 app.use(GlobalErrorHandler);
+
+// autoDeleteUnverifiedUser
+
+// Delete unverified users every 5 minutes
+cron.schedule("*/5 * * * *", async () => {
+  try {
+    await autoDeleteUnverifiedUser();
+  } catch (error: unknown) {
+    catchError(error, "[Cron] Error deleting unverified users:");
+  }
+});
 
 
 app.use((req: Request, res: Response, next: NextFunction) => {
