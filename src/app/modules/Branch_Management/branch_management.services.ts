@@ -10,6 +10,9 @@ import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import branchManagementConstants from "./branch_management.constant";
 import { stat } from "fs";
 import { JwtPayload } from "jsonwebtoken";
+import { generateOtp } from "../../../utils/generateOtp";
+import sendEmail from "../../../utils/sendEmail";
+import emailContext from "../../../utils/emailcontext/sendvarificationData";
 
 const create_branch_admin_IntoDb = async (
   userId: string,
@@ -523,6 +526,247 @@ const refreshTokenBranchAdminIntoDb = async (token: string) => {
   }
 };
 
+
+const forgotPasswordBranchADminIntoDb = async (
+  payload: string | { emailAddress: string }
+): Promise<{ status: boolean; message: string }> => {
+  try {
+    let emailString: string;
+
+    if (typeof payload === "string") {
+      emailString = payload;
+    } else if (
+      payload &&
+      typeof payload === "object" &&
+      "emailAddress" in payload
+    ) {
+      emailString = payload.emailAddress;
+    } else {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Invalid email format"
+      );
+    }
+
+ 
+    const result = await prisma.$transaction(async (tx) => {
+      const isExistUser = await tx.branchAdmin.findUnique({
+        where: {
+          emailAddress: emailString, // 🔥 FIXED
+        },
+        select: {
+          id: true,
+          emailAddress: true,
+        },
+      });
+
+      if (!isExistUser) {
+        throw new ApiError(
+          httpStatus.NOT_FOUND,
+          "Branch admin not found"
+        );
+      }
+      const otp = Number(generateOtp());
+
+      const updatedUser = await tx.branchAdmin.update({
+        where: {
+          id: isExistUser.id,
+        },
+        data: {
+          verificationCode: otp,
+          createdAt: new Date(), // 🔥 track OTP creation time
+        },
+        select: {
+          id: true,
+          emailAddress: true,
+        },
+      });
+
+      if (!updatedUser) {
+        throw new ApiError(
+          httpStatus.INTERNAL_SERVER_ERROR,
+          "Failed to save OTP"
+        );
+      }
+
+      try {
+        await sendEmail(
+          emailString,
+          emailContext.sendVerificationData(
+            emailString,
+            otp,
+            "Forgot Password Email"
+          ),
+          "Forgot Password Verification OTP Code"
+        );
+      } catch (emailError: any) {
+        throw new ApiError(
+          httpStatus.SERVICE_UNAVAILABLE,
+          "Failed to send verification email",
+          emailError
+        );
+      }
+      return {
+        status: true,
+        message: "Check your email for OTP",
+      };
+    });
+
+    return result;
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
+const verificationForgotBranchAdminIntoDb = async (
+  otp: number | { verificationCode: number }
+): Promise<{ status: boolean; resetToken: string }> => {
+  try {
+    let code: number;
+
+    // ✅ 1. Extract OTP safely
+    if (typeof otp === "object" && typeof otp.verificationCode === "number") {
+      code = otp.verificationCode;
+    } else if (typeof otp === "number") {
+      code = otp;
+    } else {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid OTP format");
+    }
+
+    // ✅ 2. Find Branch Admin (FIXED TABLE)
+    const isExistOtp = await prisma.branchAdmin.findFirst({
+      where: {
+        verificationCode: code,
+      },
+      select: {
+        id: true,
+        emailAddress: true,
+        role: true,
+        createdAt: true,
+       
+      },
+    });
+
+    if (!isExistOtp) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Invalid OTP");
+    }
+
+    
+
+    // ✅ 3. OTP Expiry Check (CORRECT WAY)
+    const now = Date.now();
+    const otpTime = new Date(isExistOtp.createdAt).getTime();
+    const FIVE_MINUTES = 5 * 60 * 1000;
+
+    if (now - otpTime > FIVE_MINUTES) {
+      throw new ApiError(
+        httpStatus.FORBIDDEN,
+        "OTP has expired. Please request a new one."
+      );
+    }
+
+    // ✅ 4. Generate RESET TOKEN (NOT access token)
+    const resetToken = jwtHelpers.generateToken(
+      {
+        id: isExistOtp.id,
+        email: isExistOtp.emailAddress,
+        role: isExistOtp.role,
+        purpose: "RESET_PASSWORD", // 🔥 important
+      },
+      config.jwt_access_secret as string,
+      "10m" 
+    );
+
+    await prisma.branchAdmin.update({
+      where: { id: isExistOtp.id },
+      data: {
+        verificationCode: null
+        
+      },
+    });
+
+    return {
+      status: true,
+      resetToken,
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
+
+const resetPasswordBranchAdminIntoDb = async (payload: {
+  resetToken: string;
+  newPassword: string;
+}): Promise<{ status: boolean; message: string }> => {
+  try {
+    const { resetToken, newPassword } = payload;
+
+    if (!resetToken || !newPassword) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Reset token and new password are required"
+      );
+    }
+
+    const decoded = jwtHelpers.verifyToken(
+      resetToken,
+      config.jwt_access_secret as string
+    ) as any;
+
+    if (!decoded || decoded.purpose !== "RESET_PASSWORD") {
+      throw new ApiError(
+        httpStatus.UNAUTHORIZED,
+        "Invalid or expired reset token"
+      );
+    }
+
+
+    const user = await prisma.branchAdmin.findUnique({
+      where: { id: decoded.id },
+      select: { id: true, password: true },
+    });
+
+    if (!user) {
+      throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+    }
+
+
+    const isSamePassword = await bcrypt.compare(
+      newPassword,
+      user.password
+    );
+
+    if (isSamePassword) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "New password must be different from old password"
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(
+      newPassword,
+      Number(config.bcrypt_salt_rounds)
+    );
+
+  
+    await prisma.branchAdmin.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+      },
+    });
+
+    return {
+      status: true,
+      message: "Password reset successfully",
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
+
 const BranchManagementServices = {
   create_branch_admin_IntoDb,
    findSubscriptionBranchByIdIntoDb,
@@ -532,7 +776,10 @@ const BranchManagementServices = {
      deleteBranchAdminIntoDb ,
       findByAllBranchAdminIntoDb,
       changePasswordBranchAdminIntoDb,
-      refreshTokenBranchAdminIntoDb
+      refreshTokenBranchAdminIntoDb,
+      forgotPasswordBranchADminIntoDb,
+      verificationForgotBranchAdminIntoDb,
+       resetPasswordBranchAdminIntoDb
 };
 
 export default BranchManagementServices;

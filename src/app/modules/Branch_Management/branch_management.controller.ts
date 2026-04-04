@@ -148,6 +148,43 @@ const refreshTokenBranchAdmin: RequestHandler = catchAsync(
     });
   }
 );
+
+
+const forgotPasswordBranchADmin: RequestHandler = catchAsync(
+  async (req, res) => {
+     const result = await BranchManagementServices.forgotPasswordBranchADminIntoDb(req.body.emailAddress);  
+      sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "If the email exists, a password reset link has been sent",
+    data: result,
+  });
+  });
+
+
+  const verificationForgotBranchAdmin: RequestHandler = catchAsync( async (req, res) => {
+
+      const result = await BranchManagementServices.verificationForgotBranchAdminIntoDb(req.body.verificationCode);
+      sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "OTP verified successfully. You can now reset your password.",
+    data: result,
+  });
+  }
+);
+
+const  resetPasswordBranchAdmin: RequestHandler = catchAsync( async (req, res) => {
+
+      const result = await BranchManagementServices.resetPasswordBranchAdminIntoDb(req.body);
+      sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Password reset successfully.",
+    data: result,
+  });
+  });
+
   
             
 
@@ -163,7 +200,10 @@ const BranchManagementController={
     deleteBranchAdmin,
     findByAllBranchAdmin,
     changePasswordBranchAdmin,
-    refreshTokenBranchAdmin
+    refreshTokenBranchAdmin,
+    forgotPasswordBranchADmin,
+    verificationForgotBranchAdmin,
+     resetPasswordBranchAdmin
 };
 
 export default BranchManagementController;

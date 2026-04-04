@@ -19,6 +19,9 @@ route.delete("/delete_branch_admin/:id", auth(UserRole.INSTITUTIONAL_OWNER), Bra
 route.get("/find_all_branch_admin", auth(UserRole.ADMIN, UserRole.SUPER_ADMIN), BranchManagementController.findByAllBranchAdmin);
 route.patch("/change_password_branch_admin",  branchAdminAuth(UserRole.BRANCH_ADMIN), validateRequest( branchManagementValidation.changePasswordValidationSchema), BranchManagementController.changePasswordBranchAdmin);
 route.post("/refresh_token_branch_admin", validateRequest( branchManagementValidation.requestTokenValidationSchema), BranchManagementController.refreshTokenBranchAdmin);
+route.post("/forgot_password_branch_admin", validateRequest( branchManagementValidation. branchAdminForgotPasswordValidationSchema), BranchManagementController.forgotPasswordBranchADmin); 
+route.post("/verification_forgot_branch_admin", validateRequest( branchManagementValidation.branchAdminVerificationCodeSchema), BranchManagementController.verificationForgotBranchAdmin);  
+route.post("/reset_password_branch_admin", validateRequest( branchManagementValidation.resetPasswordBrachAdminSchema), BranchManagementController.resetPasswordBranchAdmin);     
 const branchManagement=route;
 
 export default  branchManagement;

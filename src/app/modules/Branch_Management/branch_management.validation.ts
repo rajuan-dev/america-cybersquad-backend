@@ -51,12 +51,39 @@ const requestTokenValidationSchema = z.object({
 });
 
 
+const branchAdminForgotPasswordValidationSchema = z.object({
+  body: z.object({
+    emailAddress: z.string({required_error:"email address is required"}).email(),
+  }),
+});
+
+const branchAdminVerificationCodeSchema = z.object({
+  body: z.object({
+    verificationCode: z.number({ required_error: "Verification code is required" }),
+  }),
+});
+
+const  resetPasswordBrachAdminSchema= z.object({
+   body: z.object({
+    resetToken: z.string({ required_error: "Reset token is required" }),
+    newPassword: z
+      .string({ required_error: "New password is required" })
+      .min(6, "Password must be at least 6 characters long"),
+  }),   
+
+
+   })
+
+
 const branchManagementValidation={
     createBranchAdminValidation,
     branchAdminLoginSchema,
     updateBranchAdminValidation,
     changePasswordValidationSchema,
-     requestTokenValidationSchema
+     requestTokenValidationSchema,
+     branchAdminForgotPasswordValidationSchema,
+     branchAdminVerificationCodeSchema,
+     resetPasswordBrachAdminSchema
 };
 
 export default branchManagementValidation;
