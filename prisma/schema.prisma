@@ -155,6 +155,7 @@ model BranchAdmin {
   phoneNumber  String   @unique
   emailAddress String   @unique
   password     String
+  verificationCode Int?       @unique
   role         String
   joinDate     DateTime
   assignBranch String   @unique
@@ -168,6 +169,7 @@ model BranchAdmin {
   @@index([role])
    @@index([emailAddress])
     @@index([assignBranch])
+    @@index([verificationCode])
      @@map("branchadmins")
 }
 

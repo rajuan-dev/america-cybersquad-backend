@@ -9,6 +9,7 @@ import { jwtHelpers } from "../../../helpars/jwtHelpers";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import branchManagementConstants from "./branch_management.constant";
 import { stat } from "fs";
+import { JwtPayload } from "jsonwebtoken";
 
 const create_branch_admin_IntoDb = async (
   userId: string,
@@ -298,6 +299,8 @@ const updateByBranchAdminIntoDb = async (
   }
 };
 
+
+
 const deleteBranchAdminIntoDb = async (id: string, userId: string) : Promise<{ status: boolean; message: string }> => {
   try {
     const existingBranchAdmin = await prisma.branchAdmin.findFirst({  where: { id, userId }, select: { id: true } }); 
@@ -317,13 +320,219 @@ const deleteBranchAdminIntoDb = async (id: string, userId: string) : Promise<{ s
      }
   
 
+const findByAllBranchAdminIntoDb = async (
+  query: Record<string, unknown>
+) => {
+  try {
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(branchManagementConstants.searchableFields)
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const queryOptions = queryBuilder.build();
+
+    const { joinDateFrom, joinDateTo, branchName } = query;
+    const extraFilters: any[] = [];
+    if (branchName) {
+      extraFilters.push({
+        assignBranch: {
+          contains: String(branchName),
+          mode: "insensitive",
+        },
+      });
+    }
+    if (joinDateFrom || joinDateTo) {
+      const dateFilter: any = {};
+
+      if (joinDateFrom && !isNaN(Date.parse(joinDateFrom as string))) {
+        dateFilter.gte = new Date(joinDateFrom as string);
+      }
+
+      if (joinDateTo && !isNaN(Date.parse(joinDateTo as string))) {
+        dateFilter.lte = new Date(joinDateTo as string);
+      }
+
+      if (Object.keys(dateFilter).length > 0) {
+        extraFilters.push({ joinDate: dateFilter });
+      }
+    }
+    const whereCondition = {
+      AND: [queryOptions.where, ...extraFilters],
+    };
+
+    // ✅ DATA QUERY (FIXED: no select + include conflict)
+    const result = await prisma.branchAdmin.findMany({
+      where: whereCondition,
+      orderBy: queryOptions.orderBy,
+      skip: queryOptions.skip,
+      take: queryOptions.take,
+
+      select: {
+        ...(queryOptions.select || {
+          id: true,
+          fullName: true,
+          phoneNumber: true,
+          emailAddress: true,
+          role: true,
+          joinDate: true,
+          assignBranch: true,
+          createdAt: true,
+          updatedAt: true,
+        }),
+
+        // ✅ include relation via select
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            city: true,
+            country: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    const total = await prisma.branchAdmin.count({
+      where: whereCondition,
+    });
+
+    const page = Number(query?.page) > 0 ? Number(query.page) : 1;
+    const limit = Number(query?.limit) > 0 ? Number(query.limit) : 10;
+    const totalPage = Math.ceil(total / limit);
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage,
+      },
+      data: result,
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
+
+const changePasswordBranchAdminIntoDb = async (
+  id: string,
+  payload: { oldPassword: string; newPassword: string }
+  
+) => {
+
+
+  console.log("Changing password for branch admin ID:", id, payload);
+  try {
+    const user = await prisma.branchAdmin.findFirst({
+      where: {
+        id,
+      },
+      select: {
+        password: true,
+      },
+    });
+
+  
+
+    if (!user) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Branch admin not found", "");
+    }
+
+    // 2️⃣ Compare old password
+    const isMatch = await bcrypt.compare(payload.oldPassword, user.password);
+    console.log("Old password match result:", isMatch);
+
+    if (!isMatch) {
+      throw new ApiError(httpStatus.FORBIDDEN, "Old password does not match", "");
+    }
+
+    const hashedPassword = await bcrypt.hash(payload.newPassword, Number(config.bcrypt_salt_rounds));
+    
+    const result=await prisma.branchAdmin.update({
+      where: { id },
+      data: { password: hashedPassword },
+    });
+    if(!result){
+        throw new ApiError(httpStatus.NOT_EXTENDED, 'Issue occurred while changing password')
+    }
+
+    
+
+    return {
+      success: true,
+      message: "Password updated successfully",
+    };
+  } catch (error) {
+     return  catchError(error);
+  }
+};
+
+
+const refreshTokenBranchAdminIntoDb = async (token: string) => {
+  try {
+    if (!token) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, "You are not authorized", "");
+    }
+
+    const decoded = jwtHelpers.verifyToken(
+      token,
+      config.jwt_refresh_secret as string
+    ) as JwtPayload;
+
+    const { id } = decoded;
+    const isUserExist = await prisma.branchAdmin.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+       emailAddress: true,
+        role: true,
+  
+      },
+    });
+
+    if (!isUserExist) {
+      throw new ApiError(httpStatus.NOT_FOUND, "User not found", "");
+    }
+
+
+    const jwtPayload = {
+      id: isUserExist.id,
+      email: isUserExist.emailAddress,
+      role: isUserExist.role,
+    };
+
+    const accessToken = jwtHelpers.generateToken(
+      jwtPayload,
+      config.jwt_access_secret as string,
+      config.expires_in as string
+    );
+
+    return {
+      accessToken,
+    };
+  } catch (error) {
+    catchError(error);
+   
+  }
+};
+
 const BranchManagementServices = {
   create_branch_admin_IntoDb,
    findSubscriptionBranchByIdIntoDb,
    login_branch_admin_IntoDb,
     findByAllBranchIntoDb,
      updateByBranchAdminIntoDb,
-     deleteBranchAdminIntoDb 
+     deleteBranchAdminIntoDb ,
+      findByAllBranchAdminIntoDb,
+      changePasswordBranchAdminIntoDb,
+      refreshTokenBranchAdminIntoDb
 };
 
 export default BranchManagementServices;
