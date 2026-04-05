@@ -118,6 +118,7 @@ model Subscriptions {
   isDeleted           Boolean               @default(false)
   subscriptiondetails SubscriptionDetails[]
   student             Student[]
+  teacher             Teacher[]
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
@@ -164,6 +165,7 @@ model BranchAdmin {
   userId           String
   user             User      @relation(fields: [userId], references: [id])
   students         Student[]
+  teachers         Teacher[]
   isDeleted        Boolean   @default(false)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -205,6 +207,35 @@ model Student {
   @@index([guardianPhone])
   @@index([verificationCode])
   @@map("students")
+}
+
+model Teacher {
+  id          String  @id @default(uuid())
+  teacherName  String
+  email       String  @unique
+  phoneNumber String  @unique
+  branchName  String
+  subject     String[]
+  assignClass  String[]
+  password    String
+  address     String
+  photo       String?
+  isDeleted   Boolean @default(false)
+  subscriptionId String
+  branchAdminId    String
+  branchAdmin      BranchAdmin   @relation(fields: [branchAdminId], references: [id])
+  subscriptions Subscriptions @relation(fields: [subscriptionId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("teachers")
+  @@index([teacherName])
+  @@index([email])
+  @@index([phoneNumber])
+  @@index([branchName])
+  @@index([subject])
+  @@index([assignClass])
+  
 }
 
 model Admin {

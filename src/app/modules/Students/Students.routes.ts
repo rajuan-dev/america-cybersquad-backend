@@ -38,6 +38,13 @@ router.delete(
   StudentsController.deleteStudent
 );
 
+router.patch(
+  "/update-student/:studentId",
+  branchAdminAuth(UserRole.BRANCH_ADMIN),
+  validateRequest(studentValidation.updateStudentZodSchema),
+  StudentsController.updateStudent
+);
+
 
 const  studentRoute=router;
 export default studentRoute;

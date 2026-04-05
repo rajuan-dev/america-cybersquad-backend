@@ -290,10 +290,42 @@ const deleteStudentFromDb = async (
   }
 };
 
+
+
+ const updateStudentIntoDb = async (
+  studentId: string,
+  payload: Partial<CreateStudentDto>  ): Promise<{ status: boolean; message: string }> => {
+  try {
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+    }); 
+    if (!student) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Student not found");
+    } 
+      await prisma.student.update({ 
+        where: { id: studentId },
+        data: payload,
+      });
+
+    return {  
+      status: true,
+      message: "Student updated successfully",
+    };
+  } catch (error) {
+    return catchError(error, "Error updating student in database");
+  }
+};
+
+
+// student authentication and verification services can be added here in the future
+// now is pending for future implementation if needed
+
+
 const StudentsService = {
   createStudentIntoDb,
   findByAllStudentsIntoDb,
   findByAllStudents_Institutional_OwnerIntoDb,
-  deleteStudentFromDb
+  deleteStudentFromDb,
+  updateStudentIntoDb
 };
 export default StudentsService;

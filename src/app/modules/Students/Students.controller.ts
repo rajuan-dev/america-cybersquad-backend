@@ -50,8 +50,21 @@ const createStudent:RequestHandler = catchAsync(async (req, res) => {
           message: result.message,
           data:result
         });
-        }
-        );
+        });
+
+
+
+        const updateStudent:RequestHandler = catchAsync(async (req, res) => {
+
+          const result = await StudentsService.updateStudentIntoDb(req.params.studentId, req.body); 
+          sendResponse(res, {
+            statusCode: httpStatus.OK,
+            success: true,
+            message: result.message,
+            data:result
+          });
+          });
+          
 
 
 
@@ -61,6 +74,7 @@ const createStudent:RequestHandler = catchAsync(async (req, res) => {
     createStudent,
     findByAllStudents,
     findByAllStudents_Institutional_Owner,
-    deleteStudent
+    deleteStudent,
+    updateStudent
   }
   export default StudentsController;
