@@ -117,6 +117,7 @@ model Subscriptions {
   price               Float
   isDeleted           Boolean               @default(false)
   subscriptiondetails SubscriptionDetails[]
+  student             Student[]
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
@@ -150,27 +151,60 @@ model SubscriptionDetails {
 // branch admin model 
 
 model BranchAdmin {
-  id           String   @id @default(uuid())
-  fullName     String
-  phoneNumber  String   @unique
-  emailAddress String   @unique
-  password     String
-  verificationCode Int?       @unique
-  role         String
-  joinDate     DateTime
-  assignBranch String   @unique
-  userId       String
-  user         User     @relation(fields: [userId], references: [id])
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String    @id @default(uuid())
+  fullName         String
+  phoneNumber      String    @unique
+  emailAddress     String    @unique
+  password         String
+  photo            String?
+  verificationCode Int?      @unique
+  role             String
+  joinDate         DateTime
+  assignBranch     String    @unique
+  userId           String
+  user             User      @relation(fields: [userId], references: [id])
+  students         Student[]
+  isDeleted        Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
- @@index([fullName])
+  @@index([fullName])
   @@index([phoneNumber])
   @@index([role])
-   @@index([emailAddress])
-    @@index([assignBranch])
-    @@index([verificationCode])
-     @@map("branchadmins")
+  @@index([emailAddress])
+  @@index([assignBranch])
+  @@index([verificationCode])
+  @@map("branchadmins")
+}
+
+model Student {
+  id               String        @id @default(uuid())
+  name             String
+  email            String        @unique
+  branchName       String
+  className        String
+  guardianName     String
+  guardianPhone    String
+  password         String
+  verificationCode Int?          @unique
+  isVerified       Boolean       @default(true)
+  branchAdminId    String
+  branchAdmin      BranchAdmin   @relation(fields: [branchAdminId], references: [id])
+  subscriptions    Subscriptions @relation(fields: [subscriptionId], references: [id])
+  subscriptionId   String
+  photo            String?
+  isDeleted        Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([name])
+  @@index([email])
+  @@index([branchName])
+  @@index([className])
+  @@index([guardianName])
+  @@index([guardianPhone])
+  @@index([verificationCode])
+  @@map("students")
 }
 
 model Admin {

@@ -58,7 +58,7 @@ app.use(express.static("public"));
 app.get("/", (req: Request, res: Response) => {
   res.send({
     status:true,
-    message: "Successfully Run America Cybersquad Backend",
+    message: "Successfully Run America Cyber squad Backend",
   });
 });
 

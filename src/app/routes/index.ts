@@ -6,6 +6,7 @@ import ContactRoute from "../modules/contact/contact.route";
 import TestimonialsRoute from "../modules/Testimonials/testimonials.route";
 import subscriptionRoute from "../modules/subscription/subscription.routes";
 import branchManagement from "../modules/Branch_Management/branch_management.route";
+import studentRoute from "../modules/Students/Students.routes";
 
 
 const router = express.Router();
@@ -34,6 +35,11 @@ const moduleRoutes = [
   {
     path:"/branch_management",
     route: branchManagement
+  },
+
+  {
+    path:"/students",
+    route: studentRoute
   }
 
   
