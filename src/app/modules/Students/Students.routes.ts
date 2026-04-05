@@ -6,6 +6,7 @@ import validateRequest from "../../middlewares/validateRequest";
 import StudentsController from "./Students.controller";
 import branchAdminAuth from "../../middlewares/branchAdminAuth";
 import { UserRole } from "@prisma/client";
+import auth from "../../middlewares/auth";
 
 
 
@@ -22,6 +23,19 @@ router.get(
   "/find-specific-branch-all-students",
   branchAdminAuth(UserRole.BRANCH_ADMIN),
   StudentsController.findByAllStudents
+);
+
+router.get(
+  "/find-specific-institution-all-students/:subscriptionId",
+  auth(UserRole.INSTITUTIONAL_OWNER),
+  StudentsController.findByAllStudents_Institutional_Owner
+);
+
+
+router.delete(
+  "/delete-student/:studentId",
+  branchAdminAuth(UserRole.BRANCH_ADMIN),
+  StudentsController.deleteStudent
 );
 
 

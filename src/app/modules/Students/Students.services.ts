@@ -7,6 +7,8 @@ import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 import PrismaQueryBuilder from '../../builder/PrismaQueryBuilder';
 import { searchableFields } from './Students.constant';
+import fs from "fs";
+import path from "path";
 
 
 
@@ -152,8 +154,146 @@ const findByAllStudentsIntoDb = async (
   }
 };
 
+
+const findByAllStudents_Institutional_OwnerIntoDb = async (
+  subscriptionId: string,
+  query: Record<string, unknown>
+) => {
+
+  
+  try {
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(searchableFields)
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const queryOptions = queryBuilder.build();
+
+    const { className, branchName, subscriptionId: querySubscriptionId } = query;
+
+    const studentFilter: Record<string, any> = {};
+
+    if (className) {
+      studentFilter.className = className;
+    }
+
+    if (branchName) {
+      studentFilter.branchName = branchName;
+    }
+
+    const subscriptionFilter: Record<string, any> = {};
+
+    if (querySubscriptionId) {
+      subscriptionFilter.id = querySubscriptionId;
+    }
+
+    const whereCondition = {
+      subscriptionId, // from function param
+      ...queryOptions.where,
+      ...studentFilter,
+      ...(Object.keys(subscriptionFilter).length > 0 && {
+        subscription: {
+          is: subscriptionFilter,
+        },
+      }),
+    };
+
+    const result = await prisma.student.findMany({
+      where: whereCondition,
+      orderBy: queryOptions.orderBy,
+      skip: queryOptions.skip,
+      take: queryOptions.take,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        branchName: true,
+        className: true,
+        guardianName: true,
+        guardianPhone: true,
+        photo: true,
+        isVerified: true,
+        createdAt: true,
+        updatedAt: true,
+       subscriptions:{
+        select:{
+            studentLimit:true
+        }
+       }
+      },
+    });
+
+    const total = await prisma.student.count({
+      where: whereCondition, // ✅ reuse same condition
+    });
+
+    const page = Number(query?.page) || 1;
+    const limit = Number(query?.limit) || 10;
+    const totalPage = Math.ceil(total / limit);
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage,
+      },
+      data: result,
+    };
+  } catch (error) {
+    return catchError(error, "Error fetching students from database");
+  }
+};
+
+const deleteStudentFromDb = async (
+  studentId: string
+): Promise<{ status: boolean; message: string }> => {
+  try {
+
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      select: { photo: true }, 
+    });
+
+    if (!student) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Student not found");
+    }
+
+    if (student.photo) {
+      const photoArray = Array.isArray(student.photo) ? student.photo : [student.photo];
+
+      photoArray.forEach((photoPath) => {
+        const fullPath = path.resolve(photoPath);
+        if (fs.existsSync(fullPath)) {
+          try {
+            fs.unlinkSync(fullPath);
+            console.log(`Deleted photo file: ${fullPath}`);
+          } catch (err) {
+            console.warn(`Failed to delete file ${fullPath}:`, err);
+          }
+        }
+      });
+    }
+
+    await prisma.student.delete({
+      where: { id: studentId },
+    });
+
+    return {
+      status: true,
+      message: "Student and associated photo(s) deleted successfully",
+    };
+  } catch (error) {
+    return catchError(error, "Error deleting student from database");
+  }
+};
+
 const StudentsService = {
   createStudentIntoDb,
-  findByAllStudentsIntoDb
+  findByAllStudentsIntoDb,
+  findByAllStudents_Institutional_OwnerIntoDb,
+  deleteStudentFromDb
 };
 export default StudentsService;
