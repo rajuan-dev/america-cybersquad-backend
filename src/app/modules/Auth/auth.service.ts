@@ -311,8 +311,6 @@ const findByAllUsersAdminIntoDb = async (query: Record<string, unknown>) => {
         country: true,
         city: true,
         schoolName:true ,
-        province:true,
-        region:true,
         state:true,
         role: true,
         status: true,
@@ -320,13 +318,7 @@ const findByAllUsersAdminIntoDb = async (query: Record<string, unknown>) => {
         isDeleted: true,
         createdAt: true,
         updatedAt: true,
-        questions: {
-          select: {
-            owner: true,
-            typeOfOwner: true,
-            branches: true,
-          },
-        }
+       branches: true,
       },
     });
 

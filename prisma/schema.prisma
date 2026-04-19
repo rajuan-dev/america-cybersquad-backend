@@ -29,10 +29,6 @@ enum UserStatus {
   REJECTED
 }
 
-// ---------------------------
-// Models
-// ---------------------------
-
 model User {
   id String @id @default(uuid())
 
@@ -43,37 +39,21 @@ model User {
   country          String
   city             String
   state            String?
-  region           String?
-  province         String?
   schoolName       String?
   role             UserRole   @default(STUDENT)
   status           UserStatus @default(ACTIVE)
   verificationCode Int?       @unique
   isVerified       Boolean    @default(false)
   fcm              String?
+  branches         Int
+  isDeleted        Boolean    @default(false)
 
-  isDeleted     Boolean         @default(false)
-  questions     Questions?
   subscriptions Subscriptions[]
   branchadmins  BranchAdmin[]
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
   @@map("users")
-}
-
-model Questions {
-  id          String   @id @default(uuid())
-  owner       Boolean
-  typeOfOwner String
-  branches    Int
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id])
-  isDeleted   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("questions")
 }
 
 model Contact {
@@ -210,32 +190,31 @@ model Student {
 }
 
 model Teacher {
-  id          String  @id @default(uuid())
-  teacherName  String
-  email       String  @unique
-  phoneNumber String  @unique
-  branchName  String
-  subject     String[]
-  assignClass  String[]
-  password    String
-  address     String
-  photo       String?
-  isDeleted   Boolean @default(false)
+  id             String        @id @default(uuid())
+  teacherName    String
+  email          String        @unique
+  phoneNumber    String        @unique
+  branchName     String
+  subject        String[]
+  assignClass    String[]
+  password       String
+  address        String
+  photo          String?
+  isDeleted      Boolean       @default(false)
   subscriptionId String
-  branchAdminId    String
-  branchAdmin      BranchAdmin   @relation(fields: [branchAdminId], references: [id])
-  subscriptions Subscriptions @relation(fields: [subscriptionId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  branchAdminId  String
+  branchAdmin    BranchAdmin   @relation(fields: [branchAdminId], references: [id])
+  subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
-  @@map("teachers")
   @@index([teacherName])
   @@index([email])
   @@index([phoneNumber])
   @@index([branchName])
   @@index([subject])
   @@index([assignClass])
-  
+  @@map("teachers")
 }
 
 model Admin {

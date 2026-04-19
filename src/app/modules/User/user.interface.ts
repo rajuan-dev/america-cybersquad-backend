@@ -8,11 +8,5 @@ export type TUser = {
   city: string;
   role: UserRole;
   status: UserStatus;
-}
-
-export type TQuestions ={
-  owner: Boolean;
-  typeOfOwner: String;
-   branches: Number
-}
-
+  branches: number; 
+};

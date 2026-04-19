@@ -17,10 +17,6 @@ import { UserRole } from "@prisma/client";
     city: z.string().min(1, "City is required"),
 
     state : z.string({required_error:"state is required"}),
-    region : z.string({required_error:"region is required"}),
-    province :z.string({required_error:"province is required"}),
-    owner: z.boolean({required_error:"owner field is option "}).default(true).optional(),
-    typeOfOwner: z.string({required_error:"type of owner is not required"}).optional(),
     branches : z.number({required_error:"branches is not required"}).optional()
 
   }),

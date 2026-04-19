@@ -14,8 +14,6 @@ CREATE TABLE "users" (
     "country" TEXT NOT NULL,
     "city" TEXT NOT NULL,
     "state" TEXT,
-    "region" TEXT,
-    "province" TEXT,
     "schoolName" TEXT,
     "role" "UserRole" NOT NULL DEFAULT 'STUDENT',
     "status" "UserStatus" NOT NULL DEFAULT 'ACTIVE',
@@ -108,14 +106,60 @@ CREATE TABLE "branchadmins" (
     "phoneNumber" TEXT NOT NULL,
     "emailAddress" TEXT NOT NULL,
     "password" TEXT NOT NULL,
+    "photo" TEXT,
+    "verificationCode" INTEGER,
     "role" TEXT NOT NULL,
     "joinDate" TIMESTAMP(3) NOT NULL,
     "assignBranch" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
+    "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "branchadmins_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "students" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "branchName" TEXT NOT NULL,
+    "className" TEXT NOT NULL,
+    "guardianName" TEXT NOT NULL,
+    "guardianPhone" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "verificationCode" INTEGER,
+    "isVerified" BOOLEAN NOT NULL DEFAULT true,
+    "branchAdminId" TEXT NOT NULL,
+    "subscriptionId" TEXT NOT NULL,
+    "photo" TEXT,
+    "isDeleted" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "students_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "teachers" (
+    "id" TEXT NOT NULL,
+    "teacherName" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "phoneNumber" TEXT NOT NULL,
+    "branchName" TEXT NOT NULL,
+    "subject" TEXT[],
+    "assignClass" TEXT[],
+    "password" TEXT NOT NULL,
+    "address" TEXT NOT NULL,
+    "photo" TEXT,
+    "isDeleted" BOOLEAN NOT NULL DEFAULT false,
+    "subscriptionId" TEXT NOT NULL,
+    "branchAdminId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "teachers_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -183,6 +227,9 @@ CREATE UNIQUE INDEX "branchadmins_phoneNumber_key" ON "branchadmins"("phoneNumbe
 CREATE UNIQUE INDEX "branchadmins_emailAddress_key" ON "branchadmins"("emailAddress");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "branchadmins_verificationCode_key" ON "branchadmins"("verificationCode");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "branchadmins_assignBranch_key" ON "branchadmins"("assignBranch");
 
 -- CreateIndex
@@ -201,6 +248,60 @@ CREATE INDEX "branchadmins_emailAddress_idx" ON "branchadmins"("emailAddress");
 CREATE INDEX "branchadmins_assignBranch_idx" ON "branchadmins"("assignBranch");
 
 -- CreateIndex
+CREATE INDEX "branchadmins_verificationCode_idx" ON "branchadmins"("verificationCode");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "students_email_key" ON "students"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "students_verificationCode_key" ON "students"("verificationCode");
+
+-- CreateIndex
+CREATE INDEX "students_name_idx" ON "students"("name");
+
+-- CreateIndex
+CREATE INDEX "students_email_idx" ON "students"("email");
+
+-- CreateIndex
+CREATE INDEX "students_branchName_idx" ON "students"("branchName");
+
+-- CreateIndex
+CREATE INDEX "students_className_idx" ON "students"("className");
+
+-- CreateIndex
+CREATE INDEX "students_guardianName_idx" ON "students"("guardianName");
+
+-- CreateIndex
+CREATE INDEX "students_guardianPhone_idx" ON "students"("guardianPhone");
+
+-- CreateIndex
+CREATE INDEX "students_verificationCode_idx" ON "students"("verificationCode");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "teachers_email_key" ON "teachers"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "teachers_phoneNumber_key" ON "teachers"("phoneNumber");
+
+-- CreateIndex
+CREATE INDEX "teachers_teacherName_idx" ON "teachers"("teacherName");
+
+-- CreateIndex
+CREATE INDEX "teachers_email_idx" ON "teachers"("email");
+
+-- CreateIndex
+CREATE INDEX "teachers_phoneNumber_idx" ON "teachers"("phoneNumber");
+
+-- CreateIndex
+CREATE INDEX "teachers_branchName_idx" ON "teachers"("branchName");
+
+-- CreateIndex
+CREATE INDEX "teachers_subject_idx" ON "teachers"("subject");
+
+-- CreateIndex
+CREATE INDEX "teachers_assignClass_idx" ON "teachers"("assignClass");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "admins_email_key" ON "admins"("email");
 
 -- AddForeignKey
@@ -214,3 +315,15 @@ ALTER TABLE "subscriptiondetails" ADD CONSTRAINT "subscriptiondetails_subscripti
 
 -- AddForeignKey
 ALTER TABLE "branchadmins" ADD CONSTRAINT "branchadmins_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "students" ADD CONSTRAINT "students_branchAdminId_fkey" FOREIGN KEY ("branchAdminId") REFERENCES "branchadmins"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "students" ADD CONSTRAINT "students_subscriptionId_fkey" FOREIGN KEY ("subscriptionId") REFERENCES "subscriptions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "teachers" ADD CONSTRAINT "teachers_branchAdminId_fkey" FOREIGN KEY ("branchAdminId") REFERENCES "branchadmins"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "teachers" ADD CONSTRAINT "teachers_subscriptionId_fkey" FOREIGN KEY ("subscriptionId") REFERENCES "subscriptions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

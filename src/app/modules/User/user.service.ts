@@ -1,6 +1,5 @@
 import * as bcrypt from "bcrypt";
 import catchError from "../../../errors/catchError";
-import { TQuestions, TUser } from "./user.interface";
 import prisma from "../../../shared/prisma";
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
@@ -10,10 +9,11 @@ import sendEmail from "../../../utils/sendEmail";
 import emailContext from "../../../utils/emailcontext/sendvarificationData";
 import { jwtHelpers } from "../../../helpars/jwtHelpers";
 import { UserStatus } from "@prisma/client";
+import { TUser } from "./user.interface";
 
 
 
-const createUserIntoDb = async (payload: TUser & TQuestions) => {
+const createUserIntoDb = async (payload: TUser) => {
   try {
     const existingUser = await prisma.user.findUnique({
       where: { email: payload.email },
@@ -31,33 +31,31 @@ const createUserIntoDb = async (payload: TUser & TQuestions) => {
       Number(config.bcrypt_salt_rounds)
     );
 
-    const { owner, typeOfOwner, branches, ...userData } = payload;
-
-    // ✅ Step 1: Create User FIRST
     const user = await prisma.user.create({
       data: {
-        ...userData,
+        ...payload,
         password: hashedPassword,
         verificationCode,
         isVerified: false,
       },
     });
 
-    
-    await prisma.questions.create({
-      data: {
-        owner: owner  as boolean,
-        typeOfOwner: typeOfOwner as string ,
-        branches: branches  as number,
-        userId: user.id, 
-      },
-    });
+    await sendEmail(
+      user.email,
+      emailContext.sendVerificationData(
+        user.email,
+        verificationCode,
+        "User Verification Email"
+      ),
+      "Verification OTP Code"
+    );
 
-   await sendEmail( user.email, emailContext.sendVerificationData( user.email, verificationCode, "User Verification Email" ), "Verification OTP Code" ); 
-   return { status: true, message: "Check your email", };
-
+    return {
+      status: true,
+      message: "Check your email",
+    };
   } catch (error) {
-    catchError(error);
+    throw catchError(error);
   }
 };
 
