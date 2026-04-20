@@ -8,6 +8,7 @@ import subscriptionRoute from "../modules/subscription/subscription.routes";
 import branchManagement from "../modules/Branch_Management/branch_management.route";
 import studentRoute from "../modules/Students/Students.routes";
 import TeacherRoute from "../modules/Teacher/Teacher.route";
+import announcementRouter from "../modules/Announcements/announcements.routes";
 
 
 const router = express.Router();
@@ -45,6 +46,10 @@ const moduleRoutes = [
    {
     path:"/teacher",
     route: TeacherRoute
+   },
+   {
+    path:"/announcement",
+    route: announcementRouter
    }
 
   
