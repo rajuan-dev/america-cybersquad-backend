@@ -71,25 +71,30 @@ const create_branch_admin_IntoDb = async (
   }
 };
 
-const findSubscriptionBranchByIdIntoDb= async (
+const findSubscriptionBranchByIdIntoDb = async (
   userId: string,
   subscriptionId: string
 ) => {
   try {
-    const result = await prisma.subscriptions.findFirst({
+    const result = await prisma.subscriptions.findUnique({
       where: {
         id: subscriptionId,
         userId,
       },
       select: {
         id: true,
+        price: true,
+
         subscriptiondetails: {
           select: {
-            branchName: true,
+            id: true,
+            subscriptionType: true
+            
           },
         },
       },
     });
+
     if (!result) {
       throw new ApiError(
         httpStatus.NOT_FOUND,
@@ -97,9 +102,21 @@ const findSubscriptionBranchByIdIntoDb= async (
       );
     }
 
-    return result
+    return {
+      status: true,
+      message: "Subscription fetched successfully",
+      data: result,
+    };
   } catch (error) {
-    return catchError(error);
+    catchError(error);
+
+    return {
+      status: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch subscription",
+    };
   }
 };
 

@@ -58,94 +58,106 @@ const createStudentIntoDb = async (
 
 const findByAllStudentsIntoDb = async (
   branchAdminId: string,
-  query: Record<string, unknown>
+  query: Record<string, any>
 ) => {
   try {
-  
     const queryBuilder = new PrismaQueryBuilder(query)
-      .search( searchableFields)
+      .search(searchableFields)
       .filter()
       .sort()
       .paginate()
       .fields();
 
     const queryOptions = queryBuilder.build();
-    const { className, branchName, subscriptionId } = query;
-    const studentFilter: any = {};
 
-    if (className) {
-      studentFilter.className = className;
-    }
+    // ✅ safe extraction
+    const className = query.className;
+    const branchName = query.branchName;
+    const subscriptionId = query.subscriptionId;
 
-    if (branchName) {
-      studentFilter.branchName = branchName;
-    }
-    const subscriptionFilter: any = {};
+    // ✅ student filters
+    const studentFilter: Record<string, any> = {};
 
-    if (subscriptionId) {
-      subscriptionFilter.id = subscriptionId;
-    }
-    const result = await prisma.student.findMany({
-      where: {
-        branchAdminId, // 🔐 always restrict to logged-in admin
+    if (className) studentFilter.className = className;
+    if (branchName) studentFilter.branchName = branchName;
 
-        ...queryOptions.where,
-        ...studentFilter,
+    // ✅ subscription filter (safe)
+    const subscriptionFilter =
+      subscriptionId
+        ? {
+            id: subscriptionId,
+          }
+        : undefined;
 
-        // ✅ relation filter (many-to-one → use `is`)
-        ...(Object.keys(subscriptionFilter).length > 0 && {
-          subscription: {
-            is: subscriptionFilter,
+    const whereCondition: any = {
+      branchAdminId,
+
+      ...queryOptions.where,
+
+      ...(Object.keys(studentFilter).length && studentFilter),
+
+      ...(subscriptionFilter && {
+        subscription: {
+          is: subscriptionFilter,
+        },
+      }),
+    };
+
+    // ✅ main query
+    const [result, total] = await Promise.all([
+      prisma.student.findMany({
+        where: whereCondition,
+        orderBy: queryOptions.orderBy,
+        skip: queryOptions.skip,
+        take: queryOptions.take,
+
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          branchName: true,
+          className: true,
+          guardianName: true,
+          guardianPhone: true,
+          photo: true,
+          isVerified: true,
+          createdAt: true,
+          updatedAt: true,
+
+          // ✅ FIXED subscription select
+          subscriptions: {
+            select: {
+              id: true,
+              price: true,
+              subscriptiondetails: {
+                select: {
+                  id: true,
+                  subscriptionType: true,
+                  schoolName: true,
+                  city: true,
+                  state: true,
+                  country: true,
+                },
+              },
+            },
           },
-        }),
-      },
+        },
+      }),
 
-      orderBy: queryOptions.orderBy,
-      skip: queryOptions.skip,
-      take: queryOptions.take,
+      prisma.student.count({
+        where: whereCondition,
+      }),
+    ]);
 
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        branchName: true,
-        className: true,
-        guardianName: true,
-        guardianPhone: true,
-        photo: true,
-        isVerified: true,
-        createdAt: true,
-        updatedAt: true,
-        subscriptions:{
-            select:{  studentLimit:true}
-        }
-      },
-    });
-
-
-    const total = await prisma.student.count({
-      where: {
-        branchAdminId,
-        ...queryOptions.where,
-        ...studentFilter,
-        ...(Object.keys(subscriptionFilter).length > 0 && {
-          subscription: {
-            is: subscriptionFilter,
-          },
-        }),
-      },
-    });
-
-    const page = Number(query?.page) || 1;
-    const limit = Number(query?.limit) || 10;
-    const totalPage = Math.ceil(total / limit);
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
 
     return {
       meta: {
         page,
         limit,
         total,
-        totalPage,
+        totalPage: Math.ceil(total / limit),
       },
       data: result,
     };
@@ -157,10 +169,8 @@ const findByAllStudentsIntoDb = async (
 
 const findByAllStudents_Institutional_OwnerIntoDb = async (
   subscriptionId: string,
-  query: Record<string, unknown>
+  query: Record<string, any>
 ) => {
-
-  
   try {
     const queryBuilder = new PrismaQueryBuilder(query)
       .search(searchableFields)
@@ -171,74 +181,70 @@ const findByAllStudents_Institutional_OwnerIntoDb = async (
 
     const queryOptions = queryBuilder.build();
 
-    const { className, branchName, subscriptionId: querySubscriptionId } = query;
+    // ✅ safe extraction (no conflict)
+    const className = query.className;
+    const branchName = query.branchName;
 
+    // ✅ student filter
     const studentFilter: Record<string, any> = {};
 
-    if (className) {
-      studentFilter.className = className;
-    }
+    if (className) studentFilter.className = className;
+    if (branchName) studentFilter.branchName = branchName;
 
-    if (branchName) {
-      studentFilter.branchName = branchName;
-    }
+    // ❌ REMOVE duplicate subscription filter logic
+    const whereCondition: any = {
+      subscriptionId, // main owner filter
 
-    const subscriptionFilter: Record<string, any> = {};
-
-    if (querySubscriptionId) {
-      subscriptionFilter.id = querySubscriptionId;
-    }
-
-    const whereCondition = {
-      subscriptionId, // from function param
       ...queryOptions.where,
+
       ...studentFilter,
-      ...(Object.keys(subscriptionFilter).length > 0 && {
-        subscription: {
-          is: subscriptionFilter,
-        },
-      }),
     };
 
-    const result = await prisma.student.findMany({
-      where: whereCondition,
-      orderBy: queryOptions.orderBy,
-      skip: queryOptions.skip,
-      take: queryOptions.take,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        branchName: true,
-        className: true,
-        guardianName: true,
-        guardianPhone: true,
-        photo: true,
-        isVerified: true,
-        createdAt: true,
-        updatedAt: true,
-       subscriptions:{
-        select:{
-            studentLimit:true
-        }
-       }
-      },
-    });
+    const [result, total] = await Promise.all([
+      prisma.student.findMany({
+        where: whereCondition,
+        orderBy: queryOptions.orderBy,
+        skip: queryOptions.skip,
+        take: queryOptions.take,
 
-    const total = await prisma.student.count({
-      where: whereCondition, // ✅ reuse same condition
-    });
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          branchName: true,
+          className: true,
+          guardianName: true,
+          guardianPhone: true,
+          photo: true,
+          isVerified: true,
+          createdAt: true,
+          updatedAt: true,
 
-    const page = Number(query?.page) || 1;
-    const limit = Number(query?.limit) || 10;
-    const totalPage = Math.ceil(total / limit);
+          // ✅ clean relation select
+          subscriptions: {
+            select: {
+              id: true,
+              price: true,
+             
+            },
+          },
+        },
+      }),
+
+      prisma.student.count({
+        where: whereCondition,
+      }),
+    ]);
+
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
 
     return {
       meta: {
         page,
         limit,
         total,
-        totalPage,
+        totalPage: Math.ceil(total / limit),
       },
       data: result,
     };
