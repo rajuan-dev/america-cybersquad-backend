@@ -1,14 +1,18 @@
 import { Server } from "http";
 import app from "./app";
 import config from "./config";
+import { connectSocket } from "./socket/connectSocket";
 
-let server: Server | null = null;
+let server: Server;
 
 async function main() {
   const port = Number(config.port) || 5000;
 
   server = app.listen(port, () => {
-    console.log(`🚀 Server running on http://${`localhost`}:${config.port}`);
+    console.log(`🚀 Server running on http://localhost:${port}`);
+
+   
+    connectSocket(server);
   });
 }
 
@@ -21,6 +25,7 @@ main().catch((err) => {
 
 function shutdown(signal: string) {
   console.log(`👋 ${signal} received. Shutting down server...`);
+
   if (server) {
     server.close(() => {
       process.exit(0);
