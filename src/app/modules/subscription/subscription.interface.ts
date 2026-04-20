@@ -1,17 +1,21 @@
-export interface ISubscriptions {
-  studentLimit: number;
-  price: number;
-  subscriptiondetails?: ISubscriptionDetails[];
-}
+
+export type SubscriptionType = "free_trial" | "paid";
+export type SchoolArea = "Urban" | "Rural";
+
 
 export interface ISubscriptionDetails {
-  branchName: string;
-  locationContext: string;
-  subscriptionId: string;
-  student: number;
+  subscriptionType: SubscriptionType;
+  schoolName: string;
+  country: string;
   state: string;
-  region: string;
-  province: string;
   city: string;
-  subscription?: ISubscriptions;
+  area: SchoolArea;
+  schoolType: string;
+  studentLimit: string;
+}
+
+export interface ISubscriptions {
+  price: number;
+
+  subscriptiondetails: ISubscriptionDetails[];
 }

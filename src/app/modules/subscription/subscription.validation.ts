@@ -1,37 +1,45 @@
 import { z } from "zod";
+import { schoolArea, subscriptionType } from "./subscription.constant";
 
-/**
- * Child Schema (NO body here)
- */
+
+ 
+export const SubscriptionTypeEnum = z.enum([subscriptionType.free_trial,subscriptionType.paid]);
+
+export const SchoolAreaEnum = z.enum([ schoolArea.Rural, schoolArea.Urban]);
+
+
 const subscriptionDetailsSchema = z.object({
-  branchName: z.string().min(1, "Branch name is required"),
+  subscriptionType: SubscriptionTypeEnum,
 
-  locationContext: z.string().min(1, "Location context is required"),
+  schoolName: z.string().min(1, "School name is required"),
 
-  student: z.number().int().min(1, "Student must be at least 1"),
-
+  country: z.string().min(1, "Country is required"),
   state: z.string().min(1, "State is required"),
-  region: z.string().min(1, "Region is required"),
-  province: z.string().min(1, "Province is required"),
   city: z.string().min(1, "City is required"),
+
+  area: SchoolAreaEnum,
+
+  schoolType: z.string().min(1, "School type is required"),
+
+  studentLimit: z.string().min(1, "Student limit is required"),
 });
 
-/**
- * Parent Schema (ONLY here we use body)
- */
+
 const subscriptionsSchema = z.object({
   body: z.object({
-    studentLimit: z.number().int().min(1),
-    price: z.number().min(0),
+   
+
+    price: z.number().min(0, "Price must be >= 0").optional(),
 
     subscriptiondetails: z
       .array(subscriptionDetailsSchema)
-      .optional(),
+      .min(1, "At least one subscription detail is required"),
   }),
 });
+
 
  const subscriptionValidation = {
   subscriptionsSchema,
 };
+export default subscriptionValidation;
 
-export default subscriptionValidation

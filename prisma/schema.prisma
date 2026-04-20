@@ -89,12 +89,21 @@ model Testimonials {
   @@map("testimonials")
 }
 
+enum SubscriptionType {
+  free_trial
+  paid
+}
+
+enum SchoolArea {
+  Urban
+  Rural
+}
+
 model Subscriptions {
   id                  String                @id @default(uuid())
-  studentLimit        Int
   userId              String
   user                User                  @relation(fields: [userId], references: [id])
-  price               Float
+  price               Float                 @default(0.00)
   isDeleted           Boolean               @default(false)
   subscriptiondetails SubscriptionDetails[]
   student             Student[]
@@ -102,30 +111,32 @@ model Subscriptions {
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
+  @@index([price])
   @@map("subscriptions")
 }
 
 model SubscriptionDetails {
-  id              String        @id @default(uuid())
-  branchName      String
-  locationContext String
-  subscriptionId  String
-  subscriptions   Subscriptions @relation(fields: [subscriptionId], references: [id])
-  student         Int
-  state           String
-  region          String
-  province        String
-  city            String
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id               String           @id @default(uuid())
+  subscriptionType SubscriptionType
+  subscriptionId   String           @db.VarChar(100)
+  subscriptions    Subscriptions    @relation(fields: [subscriptionId], references: [id])
+  schoolName       String           @db.VarChar(100)
+  country          String           @db.VarChar(100)
+  state            String           @db.VarChar(100)
+  city             String           @db.VarChar(100)
+  area             SchoolArea
+  schoolType       String           @db.VarChar(100)
+  studentLimit     String           @db.VarChar(100)
+  isDeleted        Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-  @@index([branchName])
-  @@index([locationContext])
-  @@index([student])
+  @@index([schoolName])
+  @@index([country])
   @@index([state])
-  @@index([region])
-  @@index([province])
   @@index([city])
+  @@index([area])
+  @@index([schoolType])
   @@map("subscriptiondetails")
 }
 

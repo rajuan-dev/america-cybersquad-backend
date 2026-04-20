@@ -4,27 +4,52 @@ import catchError from "../../../errors/catchError";
 import prisma from "../../../shared/prisma";
 import { ISubscriptionDetails, ISubscriptions } from "./subscription.interface";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
+import { nestedFields } from "./subscription.constant";
 
 
 
 const saveUserSubscriptionIntoDb = async (
   userId: string,
-  payload: ISubscriptions & ISubscriptionDetails
-): Promise<{
-  status: boolean;
-  message: string;
-  data?: unknown;
-}> => {
+  payload: ISubscriptions
+): Promise<{ status: boolean; message: string }> => {
   try {
-    const { studentLimit, price, subscriptiondetails = [] } = payload;
+    const { price, subscriptiondetails } = payload;
+
+    const isAlreadyUsedFree = await prisma.subscriptions.findFirst({
+      where: {
+        userId,
+        subscriptiondetails: {
+          some: {
+            subscriptionType: "free_trial",
+          },
+        },
+      },
+    });
+
+    const hasFreeTrialInPayload = subscriptiondetails.some(
+      (item) => item.subscriptionType === "free_trial"
+    );
+
+    if (isAlreadyUsedFree && hasFreeTrialInPayload) {
+      throw new ApiError(httpStatus.FOUND, "Free trial already used");
+    }
+
 
     const subscription = await prisma.subscriptions.create({
       data: {
-        studentLimit,
-        price,
         userId,
+        price,
         subscriptiondetails: {
-          create: subscriptiondetails, 
+          create: subscriptiondetails.map((item) => ({
+            subscriptionType: item.subscriptionType,
+            schoolName: item.schoolName,
+            country: item.country,
+            state: item.state,
+            city: item.city,
+            area: item.area,
+            schoolType: item.schoolType,
+            studentLimit: item.studentLimit,
+          })),
         },
       },
       include: {
@@ -33,80 +58,101 @@ const saveUserSubscriptionIntoDb = async (
     });
 
     if(!subscription){
-        throw new ApiError(httpStatus.NOT_EXTENDED, 'not extended subscription ');
-    }
+      throw new ApiError(httpStatus.NOT_EXTENDED, 'issues by the buy section section ')
+    };
+
+
 
     return {
       status: true,
-      message: "Successfully Recorded"
+      message: "Successfully Recorded",
     };
   } catch (error) {
     catchError(error);
 
     return {
       status: false,
-      message: "Failed to create subscription",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to create subscription",
     };
   }
 };
 
-
-const findByAllSubscriptionsAdminIntoDb = async (query: Record<string, any>) => {
+const findByAllSubscriptionsAdminIntoDb = async (
+  query: Record<string, any>
+) => {
   try {
-   
     const queryBuilder = new PrismaQueryBuilder(query)
-      .filter() 
+      .filter()
       .sort()
       .paginate()
       .fields()
-      .search(["price", "studentLimit"]);
+      .search(["price"]); 
 
     const queryOptions = queryBuilder.build();
 
+
     const detailsFilter: Record<string, any> = {};
-    const nestedFields = ["branchName", "locationContext", "city", "state", "region", "province"];
+
     nestedFields.forEach((field) => {
       if (query[field]) {
-        detailsFilter[field] = { contains: String(query[field]), mode: "insensitive" };
+        detailsFilter[field] = {
+          contains: String(query[field]),
+          mode: "insensitive",
+        };
       }
     });
 
+    // ✅ relation filter (safe merge)
     if (Object.keys(detailsFilter).length > 0) {
-      queryOptions.where.subscriptiondetails = {
-        some: detailsFilter,
+      queryOptions.where = {
+        ...queryOptions.where,
+        subscriptiondetails: {
+          some: detailsFilter,
+        },
       };
     }
 
-    const subscriptions = await prisma.subscriptions.findMany({
-      where: queryOptions.where,
-      include: {
-        subscriptiondetails: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-            status: true,
-            isVerified: true,
+    // ✅ main query
+    const [subscriptions, total] = await Promise.all([
+      prisma.subscriptions.findMany({
+        where: queryOptions.where,
+        include: {
+          subscriptiondetails: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+              status: true,
+              isVerified: true,
+            },
           },
         },
-      },
-      skip: queryOptions.skip,
-      take: queryOptions.take,
-      orderBy: queryOptions.orderBy,
-    });
+        skip: queryOptions.skip,
+        take: queryOptions.take,
+        orderBy: queryOptions.orderBy,
+      }),
 
-    const total = await prisma.subscriptions.count({
-      where: queryOptions.where,
-    });
+      prisma.subscriptions.count({
+        where: queryOptions.where,
+      }),
+    ]);
 
+    // ✅ pagination
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
-    const totalPage = Math.ceil(total / limit);
 
     return {
-      meta: { page, limit, total, totalPage },
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
       data: subscriptions,
     };
   } catch (error) {
@@ -116,30 +162,29 @@ const findByAllSubscriptionsAdminIntoDb = async (query: Record<string, any>) => 
 
 const hardDeleteSubscriptionByIdIntoDb = async (subscriptionId: string) => {
   try {
-    const subscription = await prisma.subscriptions.findUnique({
+  
+    const deleted = await prisma.subscriptions.delete({
       where: { id: subscriptionId },
+      include: {
+        subscriptiondetails: true,
+      },
     });
-
-    if (!subscription) {
-      throw new ApiError(httpStatus.NOT_FOUND, "Subscription not found");
-    }
-
-    await prisma.$transaction([
-      prisma.subscriptionDetails.deleteMany({
-        where: { subscriptionId },
-      }),
-      prisma.subscriptions.delete({
-        where: { id: subscriptionId },
-      }),
-    ]);
 
     return {
       status: true,
-      message: "Subscription and its details deleted permanently",
+      message: "Subscription deleted permanently"
+      
     };
   } catch (error) {
-     catchError(error);
+    catchError(error);
 
+    return {
+      status: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to delete subscription",
+    };
   }
 };
 
@@ -151,7 +196,7 @@ const findMyAllSubscriptionsIntoDb = async (
 ) => {
   try {
     const queryBuilder = new PrismaQueryBuilder(query)
-      .search(["price", "studentLimit"]) // main fields only
+      .search(["price"])
       .filter()
       .sort()
       .paginate()
@@ -159,21 +204,16 @@ const findMyAllSubscriptionsIntoDb = async (
 
     const queryOptions = queryBuilder.build();
 
-    
+    // ✅ always scoped by user
     queryOptions.where = {
       ...queryOptions.where,
-      userId
+      userId,
     };
 
+    // ✅ correct schema fields
+    
+
     const detailsFilter: Record<string, any> = {};
-    const nestedFields = [
-      "branchName",
-      "locationContext",
-      "city",
-      "state",
-      "region",
-      "province",
-    ];
 
     nestedFields.forEach((field) => {
       if (query[field]) {
@@ -184,49 +224,64 @@ const findMyAllSubscriptionsIntoDb = async (
       }
     });
 
+    // optional: safe merge
     if (Object.keys(detailsFilter).length > 0) {
       queryOptions.where = {
         ...queryOptions.where,
         subscriptiondetails: {
-          some: detailsFilter,
+          some: {
+            ...detailsFilter,
+          },
         },
       };
     }
 
-    const subscriptions = await prisma.subscriptions.findMany({
-      where: queryOptions.where,
-      include: {
-        subscriptiondetails: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-            status: true,
-            isVerified: true,
+    // ✅ optimize: parallel execution
+    const [subscriptions, total] = await Promise.all([
+      prisma.subscriptions.findMany({
+        where: queryOptions.where,
+        include: {
+          subscriptiondetails: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+              status: true,
+              isVerified: true,
+            },
           },
         },
-      },
-      skip: queryOptions.skip,
-      take: queryOptions.take,
-      orderBy: queryOptions.orderBy,
-    });
+        skip: queryOptions.skip,
+        take: queryOptions.take,
+        orderBy: queryOptions.orderBy,
+      }),
 
-    const total = await prisma.subscriptions.count({
-      where: queryOptions.where,
-    });
+      prisma.subscriptions.count({
+        where: queryOptions.where,
+      }),
+    ]);
 
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
-    const totalPage = Math.ceil(total / limit);
 
     return {
-      meta: { page, limit, total, totalPage },
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
       data: subscriptions,
     };
   } catch (error) {
-     catchError(error);
+    catchError(error);
+
+    return {
+      meta: null,
+      data: [],
+    };
   }
 };
 
