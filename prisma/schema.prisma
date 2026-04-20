@@ -50,8 +50,11 @@ model User {
 
   subscriptions Subscriptions[]
   branchadmins  BranchAdmin[]
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  announcements Announcement[]
+  notification  Notification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("users")
 }
@@ -140,26 +143,26 @@ model SubscriptionDetails {
   @@map("subscriptiondetails")
 }
 
-// branch admin model 
-
 model BranchAdmin {
-  id               String    @id @default(uuid())
+  id               String         @id @default(uuid())
   fullName         String
-  phoneNumber      String    @unique
-  emailAddress     String    @unique
+  phoneNumber      String         @unique
+  emailAddress     String         @unique
   password         String
   photo            String?
-  verificationCode Int?      @unique
+  verificationCode Int?           @unique
   role             String
   joinDate         DateTime
-  assignBranch     String    @unique
+  assignBranch     String         @unique
   userId           String
-  user             User      @relation(fields: [userId], references: [id])
+  user             User           @relation(fields: [userId], references: [id])
   students         Student[]
   teachers         Teacher[]
-  isDeleted        Boolean   @default(false)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  announcements    Announcement[]
+  notification     Notification[]
+  isDeleted        Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   @@index([fullName])
   @@index([phoneNumber])
@@ -171,24 +174,26 @@ model BranchAdmin {
 }
 
 model Student {
-  id               String        @id @default(uuid())
+  id               String         @id @default(uuid())
   name             String
-  email            String        @unique
+  email            String         @unique
   branchName       String
   className        String
   guardianName     String
   guardianPhone    String
   password         String
-  verificationCode Int?          @unique
-  isVerified       Boolean       @default(true)
+  verificationCode Int?           @unique
+  isVerified       Boolean        @default(true)
   branchAdminId    String
-  branchAdmin      BranchAdmin   @relation(fields: [branchAdminId], references: [id])
-  subscriptions    Subscriptions @relation(fields: [subscriptionId], references: [id])
+  branchAdmin      BranchAdmin    @relation(fields: [branchAdminId], references: [id])
+  subscriptions    Subscriptions  @relation(fields: [subscriptionId], references: [id])
+  // announcements    Announcement[]
+  notification     Notification[]
   subscriptionId   String
   photo            String?
-  isDeleted        Boolean       @default(false)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  isDeleted        Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   @@index([name])
   @@index([email])
@@ -201,23 +206,26 @@ model Student {
 }
 
 model Teacher {
-  id             String        @id @default(uuid())
+  id             String         @id @default(uuid())
   teacherName    String
-  email          String        @unique
-  phoneNumber    String        @unique
+  email          String         @unique
+  phoneNumber    String         @unique
   branchName     String
   subject        String[]
   assignClass    String[]
   password       String
   address        String
   photo          String?
-  isDeleted      Boolean       @default(false)
+  isDeleted      Boolean        @default(false)
   subscriptionId String
   branchAdminId  String
-  branchAdmin    BranchAdmin   @relation(fields: [branchAdminId], references: [id])
-  subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  branchAdmin    BranchAdmin    @relation(fields: [branchAdminId], references: [id])
+  subscriptions  Subscriptions  @relation(fields: [subscriptionId], references: [id])
+  announcements  Announcement[]
+  notification   Notification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([teacherName])
   @@index([email])
@@ -226,6 +234,62 @@ model Teacher {
   @@index([subject])
   @@index([assignClass])
   @@map("teachers")
+}
+
+// ---------------------------
+// Announcement
+// ---------------------------
+model Announcement {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  audience    String[]
+
+  userId        String?
+  branchAdminId String?
+  studentId     String?
+  teacherId     String?
+
+  user        User?        @relation(fields: [userId], references: [id])
+  branchAdmin BranchAdmin? @relation(fields: [branchAdminId], references: [id])
+  // student     Student?     @relation(fields: [studentId], references: [id])
+  teacher     Teacher?     @relation(fields: [teacherId], references: [id])
+
+  // Parent field pending
+
+  isDelete  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("announcements")
+}
+
+// ---------------------------
+// Notification 
+// ---------------------------
+
+model Notification {
+  id            String  @id @default(uuid())
+  title         String
+  message       String
+  isRead        Boolean @default(false)
+  route         String?
+  userId        String?
+  branchAdminId String?
+  studentId     String?
+  teacherId     String?
+
+  user        User?        @relation(fields: [userId], references: [id])
+  branchAdmin BranchAdmin? @relation(fields: [branchAdminId], references: [id])
+  student     Student?     @relation(fields: [studentId], references: [id])
+  teacher     Teacher?     @relation(fields: [teacherId], references: [id])
+  // Parent field pending
+  isDelete    Boolean      @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("notifications")
 }
 
 model Admin {
