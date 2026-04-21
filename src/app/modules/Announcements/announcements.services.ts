@@ -435,10 +435,68 @@ const findAllAnnouncementIntoDb = async (
   }
 };
 
+const findBySpecificAnnouncementsIntoDb=async(id:string)=>{
+
+  try{
+
+      const result=await prisma.announcement.findUnique({where:{id}, select:{
+         id:true,
+        title:true,
+        description: true ,
+        audience:true , 
+        isDelete:true ,
+        createdAt:true,
+        updatedAt:true
+      }});
+
+      return result;
+
+  }
+  catch (error) {
+    return catchError(error);
+  }
+};
+
+const updateAnnouncementIntoDb = async (
+  id: string,
+  payload: Partial<TAnnouncements>
+):Promise<{success: boolean,message: string }> => {
+  try {
+   
+    const cleanPayload = Object.fromEntries(
+      Object.entries(payload).filter(([_, value]) => value !== undefined)
+    );
+
+    delete (cleanPayload as any).id;
+
+    const result = await prisma.announcement.update({
+      where: { id },
+      data: {
+        ...cleanPayload,
+      },
+    });
+
+    if(!result){
+      throw new ApiError(httpStatus.NOT_EXTENDED , 'issues by the update announcement section ', "");
+    }
+
+    return {
+      success: true,
+      message: "Announcement updated successfully"
+     
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
+
 const AnnouncementsServices={
     sendAnnouncementsIntoDb,
     findByAnnouncementIntoDb,
-     findAllAnnouncementIntoDb
+     findAllAnnouncementIntoDb,
+     findBySpecificAnnouncementsIntoDb,
+     updateAnnouncementIntoDb
 };
 
 export default  AnnouncementsServices;

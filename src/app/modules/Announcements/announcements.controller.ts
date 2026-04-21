@@ -56,13 +56,41 @@ const  findAllAnnouncement: RequestHandler=catchAsync(async(req , res)=>{
     message: "Successfully Find By All Announcement",
     data: result,
   });
+});
+
+
+const  findBySpecificAnnouncements:RequestHandler=catchAsync(async(req , res)=>{
+
+    const result=await AnnouncementsServices.findBySpecificAnnouncementsIntoDb(req.params.announcementId);
+   sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By Specific Announcements",
+    data: result,
+  });
+
+});
+
+const  updateAnnouncement:RequestHandler=catchAsync(async(req , res)=>{
+
+  const result=await AnnouncementsServices. updateAnnouncementIntoDb(req.params.announcementId, req.body);
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Update Announcements",
+    data: result,
+  });
+
 })
+
 
 
 const AnnouncementsController={
     sendAnnouncements,
     findByAnnouncement,
-     findAllAnnouncement
+     findAllAnnouncement,
+     findBySpecificAnnouncements,
+     updateAnnouncement
 };
 
 export default AnnouncementsController;
