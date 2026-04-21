@@ -1,0 +1,1 @@
+export const searchable_announcement_field=["title", "description"]

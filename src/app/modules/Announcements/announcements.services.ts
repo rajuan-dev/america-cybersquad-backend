@@ -8,6 +8,7 @@ import httpStatus from "http-status";
 import { getSocketIO } from "../../../socket/connectSocket";
 import prisma from "../../../shared/prisma";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
+import { searchable_announcement_field } from "./announcements.constant";
 
 
 const sendAnnouncementsIntoDb = async (
@@ -147,6 +148,8 @@ const sendAnnouncementsIntoDb = async (
             },
           });
 
+          
+
           await tx.notification.create({
             data: {
               title,
@@ -219,10 +222,8 @@ const findByAnnouncementIntoDb = async (
       }
       throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized access");
     }
-
-    // ✅ QUERY BUILDER
     const queryBuilder = new PrismaQueryBuilder(query)
-      .search(["title", "description"])
+      .search(searchable_announcement_field)
       .filter()
       .sort()
       .paginate()
@@ -256,7 +257,6 @@ const findByAnnouncementIntoDb = async (
         throw new ApiError(httpStatus.FORBIDDEN, "Access denied");
     }
 
-    // ✅ EXTRA FILTER
     const { isDelete, audience } = query;
 
     if (isDelete !== undefined) {
@@ -325,7 +325,7 @@ const findAllAnnouncementIntoDb = async (
   try {
     // ✅ QUERY BUILDER
     const queryBuilder = new PrismaQueryBuilder(query)
-      .search(["title", "description"])
+      .search(searchable_announcement_field)
       .filter()
       .sort()
       .paginate()
@@ -527,6 +527,8 @@ const AnnouncementsServices={
      updateAnnouncementIntoDb,
      deleteAnnouncementsIntoDb
 };
+
+
 
 export default  AnnouncementsServices;
 

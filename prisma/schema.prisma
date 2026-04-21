@@ -52,6 +52,7 @@ model User {
   branchadmins  BranchAdmin[]
   announcements Announcement[]
   notification  Notification[]
+  supports      Support[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -115,6 +116,7 @@ model Subscriptions {
   updatedAt           DateTime              @updatedAt
   announcements       Announcement[]
   notifications       Notification[]
+  supports            Support[]
 
   @@index([price])
   @@map("subscriptions")
@@ -162,6 +164,7 @@ model BranchAdmin {
   teachers         Teacher[]
   announcements    Announcement[]
   notification     Notification[]
+  supports         Support[]
   isDeleted        Boolean        @default(false)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
@@ -294,8 +297,38 @@ model Notification {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  support   Support? @relation(fields: [supportId], references: [id])
+  supportId String?
 
   @@map("notifications")
+}
+
+model Support {
+  id String @id @default(uuid())
+
+  name           String
+  email          String
+  subject        String
+  message        String
+  subscriptionId String?
+  subscriptions  Subscriptions? @relation(fields: [subscriptionId], references: [id]) // ✅ Added ?
+  branchAdminId  String?
+  branchAdmin    BranchAdmin?   @relation(fields: [branchAdminId], references: [id])
+  userId         String?
+  user           User?          @relation(fields: [userId], references: [id])
+  notifications  Notification[]
+
+  isDelete Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([email])
+  @@index([subscriptionId])
+  @@index([branchAdminId])
+  @@index([userId])
+  @@map("supports")
 }
 
 model Admin {

@@ -9,6 +9,7 @@ import branchManagement from "../modules/Branch_Management/branch_management.rou
 import studentRoute from "../modules/Students/Students.routes";
 import TeacherRoute from "../modules/Teacher/Teacher.route";
 import announcementRouter from "../modules/Announcements/announcements.routes";
+import SupportRouter from "../modules/support/support.route";
 
 
 const router = express.Router();
@@ -50,6 +51,10 @@ const moduleRoutes = [
    {
     path:"/announcement",
     route: announcementRouter
+   },
+   {
+    path:"/support",
+    route:SupportRouter
    }
 
   
