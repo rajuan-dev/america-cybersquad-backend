@@ -7,6 +7,7 @@ import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 import { getSocketIO } from "../../../socket/connectSocket";
 import prisma from "../../../shared/prisma";
+import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 
 
 const sendAnnouncementsIntoDb = async (
@@ -36,7 +37,7 @@ const sendAnnouncementsIntoDb = async (
       throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized access");
     }
 
-    const { isDelete, title, description, audience } = payload;
+    const { isDelete, title, description, audience, subscriptionId } = payload;
 
     const shortMsg =
       description.length > 20
@@ -54,6 +55,7 @@ const sendAnnouncementsIntoDb = async (
               description,
               audience,
               isDelete: isDelete ?? false,
+               subscriptionId,
               branchAdminId: verifiedUser.id,
             },
           });
@@ -81,6 +83,7 @@ const sendAnnouncementsIntoDb = async (
               title,
               description,
               audience,
+               subscriptionId,
               isDelete: isDelete ?? false,
               userId: verifiedUser.id,
             },
@@ -107,6 +110,7 @@ const sendAnnouncementsIntoDb = async (
               title,
               description,
               audience,
+               subscriptionId,
               isDelete: isDelete ?? false,
               teacherId: verifiedUser.id,
             },
@@ -133,6 +137,8 @@ const sendAnnouncementsIntoDb = async (
               title,
               description,
               audience,
+               subscriptionId,
+
               isDelete: isDelete ?? false,
               studentId: verifiedUser.id,
             },
@@ -181,8 +187,258 @@ const sendAnnouncementsIntoDb = async (
   }
 };
 
+
+const findByAnnouncementIntoDb = async (
+  query: Record<string, unknown>,
+  token: string
+) => {
+  try {
+    let verifiedUser;
+
+    try {
+      verifiedUser = jwtHelpers.verifyToken(
+        token,
+        config.jwt_access_secret as Secret
+      ) as {
+        id: string;
+        email: string;
+        role: string;
+        iat: number;
+        exp: number;
+      };
+    } catch (error: any) {
+      if (error.name === "TokenExpiredError") {
+        throw new ApiError(httpStatus.UNAUTHORIZED, "Token expired");
+      }
+      if (error.name === "JsonWebTokenError") {
+        throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid token");
+      }
+      throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized access");
+    }
+
+    // ✅ QUERY BUILDER
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(["title", "description"])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const queryOptions = queryBuilder.build();
+
+    let roleFilter: any = {};
+
+    // ✅ ROLE BASED FILTER
+    switch (verifiedUser.role) {
+      case "BRANCH_ADMIN":
+        roleFilter.branchAdminId = verifiedUser.id;
+        break;
+
+      case "TEACHER":
+        roleFilter.teacherId = verifiedUser.id;
+        break;
+
+      case "STUDENT":
+        roleFilter.studentId = verifiedUser.id;
+        break;
+
+      case "INSTITUTIONAL_OWNER":
+      case "SUPER_ADMIN":
+      case "ADMIN":
+        roleFilter.userId = verifiedUser.id;
+        break;
+
+      default:
+        throw new ApiError(httpStatus.FORBIDDEN, "Access denied");
+    }
+
+    // ✅ EXTRA FILTER
+    const { isDelete, audience } = query;
+
+    if (isDelete !== undefined) {
+      roleFilter.isDelete = isDelete === "true";
+    }
+
+    if (audience) {
+      roleFilter.audience = {
+        has: String(audience).toUpperCase(),
+      };
+    }
+
+    // ✅ QUERY
+    const result = await prisma.announcement.findMany({
+      where: {
+        ...queryOptions.where,
+        ...roleFilter,
+      },
+      orderBy: queryOptions.orderBy,
+      skip: queryOptions.skip,
+      take: queryOptions.take,
+      select:{
+        id:true,
+        title:true,
+        description: true ,
+        audience:true , 
+        isDelete:true ,
+        createdAt:true,
+        updatedAt:true
+      },
+
+      
+    });
+
+
+    const total = await prisma.announcement.count({
+      where: {
+        ...queryOptions.where,
+        ...roleFilter,
+      },
+    });
+
+    const page = Number(query?.page) || 1;
+    const limit = Number(query?.limit) || 10;
+    const totalPage = Math.ceil(total / limit);
+
+    
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage,
+      },
+      data: result
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
+
+const findAllAnnouncementIntoDb = async (
+  query: Record<string, unknown>
+) => {
+  try {
+    // ✅ QUERY BUILDER
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(["title", "description"])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const queryOptions = queryBuilder.build();
+
+    // ✅ EXTRA FILTER
+    const { isDelete, audience } = query;
+
+    const extraFilter: any = {};
+
+    if (isDelete !== undefined) {
+      extraFilter.isDelete = isDelete === "true";
+    }
+
+    if (audience) {
+      extraFilter.audience = {
+        has: String(audience).toUpperCase(),
+      };
+    }
+
+    // ✅ MAIN QUERY
+    const result = await prisma.announcement.findMany({
+      where: {
+        ...queryOptions.where,
+        ...extraFilter,
+      },
+
+      include: {
+        // ✅ USER
+        user: {
+          select: {
+            id: true,
+            schoolName: true,
+            branches: true,
+            city: true,
+            country: true,
+            photo: true,
+          },
+        },
+
+        // ✅ BRANCH ADMIN
+        branchAdmin: {
+          select: {
+            id: true,
+            fullName: true,
+            emailAddress: true,
+            phoneNumber: true,
+            photo: true,
+          },
+        },
+
+        // ✅ TEACHER
+        teacher: {
+          select: {
+            id: true,
+            address: true,
+            branchName: true,
+            photo: true,
+          },
+        },
+
+        // ✅ SUBSCRIPTIONS + NESTED DETAILS (FIXED)
+        subscriptions: {
+          select: {
+            price: true,
+            createdAt: true,
+            subscriptiondetails: {
+              select: {
+                subscriptionType: true,
+                schoolName: true,
+                country: true,
+                state: true,
+                city: true,
+                area: true,
+              },
+            },
+          },
+        },
+      },
+
+      orderBy: queryOptions.orderBy,
+      skip: queryOptions.skip,
+      take: queryOptions.take,
+    });
+
+    // ✅ COUNT (NO SELECT HERE)
+    const total = await prisma.announcement.count({
+      where: {
+        ...queryOptions.where,
+        ...extraFilter,
+      },
+    });
+
+    // ✅ META
+    const page = Number(query?.page) || 1;
+    const limit = Number(query?.limit) || 10;
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
+      data: result,
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
 const AnnouncementsServices={
-    sendAnnouncementsIntoDb
+    sendAnnouncementsIntoDb,
+    findByAnnouncementIntoDb,
+     findAllAnnouncementIntoDb
 };
 
 export default  AnnouncementsServices;

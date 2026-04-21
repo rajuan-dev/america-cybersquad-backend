@@ -31,8 +31,38 @@ const result = await AnnouncementsServices.sendAnnouncementsIntoDb(
 });
 
 
+const findByAnnouncement:RequestHandler=catchAsync(async(req , res)=>{
+
+   const token = req.headers.authorization;
+
+   if (!token) 
+    {throw new ApiError(httpStatus.UNAUTHORIZED, "Authorization token missing");}
+   const result=await AnnouncementsServices.findByAnnouncementIntoDb(req.query, token);
+      sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By All Announcement",
+    data: result,
+  });
+
+});
+
+const  findAllAnnouncement: RequestHandler=catchAsync(async(req , res)=>{
+
+    const result=await AnnouncementsServices.findAllAnnouncementIntoDb(req.query);
+    sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By All Announcement",
+    data: result,
+  });
+})
+
+
 const AnnouncementsController={
-    sendAnnouncements
+    sendAnnouncements,
+    findByAnnouncement,
+     findAllAnnouncement
 };
 
 export default AnnouncementsController;

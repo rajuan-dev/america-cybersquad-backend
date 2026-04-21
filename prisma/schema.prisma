@@ -113,6 +113,7 @@ model Subscriptions {
   teacher             Teacher[]
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
+  announcements       Announcement[]
 
   @@index([price])
   @@map("subscriptions")
@@ -241,8 +242,8 @@ model Teacher {
 // ---------------------------
 model Announcement {
   id          String   @id @default(uuid())
-  title       String
-  description String
+  title       String   @db.VarChar(100)
+  description String   @db.VarChar(300)
   audience    String[]
 
   userId        String?
@@ -250,10 +251,12 @@ model Announcement {
   studentId     String?
   teacherId     String?
 
-  user        User?        @relation(fields: [userId], references: [id])
-  branchAdmin BranchAdmin? @relation(fields: [branchAdminId], references: [id])
+  subscriptionId String
+  subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
+  user           User?         @relation(fields: [userId], references: [id])
+  branchAdmin    BranchAdmin?  @relation(fields: [branchAdminId], references: [id])
   // student     Student?     @relation(fields: [studentId], references: [id])
-  teacher     Teacher?     @relation(fields: [teacherId], references: [id])
+  teacher        Teacher?      @relation(fields: [teacherId], references: [id])
 
   // Parent field pending
 
