@@ -117,6 +117,7 @@ model Subscriptions {
   announcements       Announcement[]
   notifications       Notification[]
   supports            Support[]
+  staffs              Staff[]
 
   @@index([price])
   @@map("subscriptions")
@@ -329,6 +330,26 @@ model Support {
   @@index([branchAdminId])
   @@index([userId])
   @@map("supports")
+}
+
+model Staff {
+  id             String         @id @default(uuid())
+  name           String         @db.VarChar(100)
+  role           String         @db.VarChar(100)
+  email          String         @db.VarChar(100)
+  phoneNumber    String         @db.VarChar(100)
+  password       String         @db.VarChar(300)
+  generateId     String         @unique @db.VarChar(100)
+  subscriptionId String
+  subscriptions  Subscriptions? @relation(fields: [subscriptionId], references: [id])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+ @@index([name])
+  @@index([email])
+  @@index([role])
+   @@index([phoneNumber])
+  @@map("staffs")
 }
 
 model Admin {

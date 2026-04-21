@@ -10,6 +10,7 @@ import studentRoute from "../modules/Students/Students.routes";
 import TeacherRoute from "../modules/Teacher/Teacher.route";
 import announcementRouter from "../modules/Announcements/announcements.routes";
 import SupportRouter from "../modules/support/support.route";
+import StaffManagementRouter from "../modules/Staff_Management/staff_management.route";
 
 
 const router = express.Router();
@@ -55,6 +56,10 @@ const moduleRoutes = [
    {
     path:"/support",
     route:SupportRouter
+   },
+   {
+    path:"/staff",
+    route: StaffManagementRouter
    }
 
   
