@@ -8,13 +8,23 @@ const staffRolePrefix = {
 
 const generateId = async (role: keyof typeof staffRolePrefix) => {
   const prefix = staffRolePrefix[role];
+  const now = new Date();
 
-  const year = new Date().getFullYear().toString().slice(-2);
+  const yearFull = now.getFullYear();
+  const year = yearFull.toString().slice(-2);
 
-  const orgCode = Math.floor(100 + Math.random() * 900);
+  const month = String(now.getMonth() + 1);
+
+  const orgCode = `${year}${month}`;
+  const startOfYear = new Date(yearFull, 0, 1);
+  const endOfYear = new Date(yearFull, 11, 31, 23, 59, 59);
   const count = await prisma.staff.count({
     where: {
       role,
+      createdAt: {
+        gte: startOfYear,
+        lte: endOfYear,
+      },
     },
   });
 
@@ -23,5 +33,4 @@ const generateId = async (role: keyof typeof staffRolePrefix) => {
   return `${prefix}-${orgCode}-${year}-${serial}`;
 };
 
-export default  generateId;
-
+export default generateId;
