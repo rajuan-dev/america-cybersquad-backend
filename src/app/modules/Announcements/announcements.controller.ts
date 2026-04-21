@@ -81,6 +81,19 @@ const  updateAnnouncement:RequestHandler=catchAsync(async(req , res)=>{
     data: result,
   });
 
+});
+
+
+const deleteAnnouncements:RequestHandler=catchAsync(async(req , res)=>{
+
+    const result=await AnnouncementsServices.deleteAnnouncementsIntoDb(req.params.announcementId);
+    sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: result.message,
+    data: result,
+  });
+
 })
 
 
@@ -90,7 +103,8 @@ const AnnouncementsController={
     findByAnnouncement,
      findAllAnnouncement,
      findBySpecificAnnouncements,
-     updateAnnouncement
+     updateAnnouncement,
+     deleteAnnouncements
 };
 
 export default AnnouncementsController;

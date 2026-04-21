@@ -494,10 +494,29 @@ const updateAnnouncementIntoDb = async (
   }
 };
 
-const deleteAnnouncementsIntoDb=async(id:string, )=>{
+const deleteAnnouncementsIntoDb = async (id: string) => {
+  try {
+  
+    const existing = await prisma.announcement.findUnique({
+      where: { id },
+    });
 
+    if (!existing) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Announcement not found");
+    }
 
-}
+    await prisma.announcement.delete({
+      where: { id },
+    });
+
+    return {
+      success: true,
+      message: "Successfully deleted announcement",
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
 
 
 const AnnouncementsServices={
@@ -505,7 +524,8 @@ const AnnouncementsServices={
     findByAnnouncementIntoDb,
      findAllAnnouncementIntoDb,
      findBySpecificAnnouncementsIntoDb,
-     updateAnnouncementIntoDb
+     updateAnnouncementIntoDb,
+     deleteAnnouncementsIntoDb
 };
 
 export default  AnnouncementsServices;
