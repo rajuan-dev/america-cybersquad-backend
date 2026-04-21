@@ -114,6 +114,7 @@ model Subscriptions {
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
   announcements       Announcement[]
+  notifications       Notification[]
 
   @@index([price])
   @@map("subscriptions")
@@ -272,15 +273,17 @@ model Announcement {
 // ---------------------------
 
 model Notification {
-  id            String  @id @default(uuid())
-  title         String
-  message       String
-  isRead        Boolean @default(false)
-  route         String?
-  userId        String?
-  branchAdminId String?
-  studentId     String?
-  teacherId     String?
+  id             String         @id @default(uuid())
+  title          String
+  message        String
+  isRead         Boolean        @default(false)
+  route          String?
+  userId         String?
+  branchAdminId  String?
+  studentId      String?
+  teacherId      String?
+  subscriptionId String
+  subscriptions  Subscriptions? @relation(fields: [subscriptionId], references: [id])
 
   user        User?        @relation(fields: [userId], references: [id])
   branchAdmin BranchAdmin? @relation(fields: [branchAdminId], references: [id])

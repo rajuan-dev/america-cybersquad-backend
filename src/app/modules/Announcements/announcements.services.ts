@@ -65,6 +65,7 @@ const sendAnnouncementsIntoDb = async (
               title,
               message: shortMsg,
               branchAdminId: verifiedUser.id,
+              subscriptionId
             },
           });
 
@@ -94,6 +95,7 @@ const sendAnnouncementsIntoDb = async (
               title,
               message: shortMsg,
               userId: verifiedUser.id,
+              subscriptionId
             },
           });
 
@@ -121,6 +123,7 @@ const sendAnnouncementsIntoDb = async (
               title,
               message: shortMsg,
               teacherId: verifiedUser.id,
+              subscriptionId
             },
           });
 
@@ -149,6 +152,7 @@ const sendAnnouncementsIntoDb = async (
               title,
               message: shortMsg,
               studentId: verifiedUser.id,
+              subscriptionId
             },
           });
 
@@ -489,6 +493,11 @@ const updateAnnouncementIntoDb = async (
     return catchError(error);
   }
 };
+
+const deleteAnnouncementsIntoDb=async(id:string, )=>{
+
+
+}
 
 
 const AnnouncementsServices={
