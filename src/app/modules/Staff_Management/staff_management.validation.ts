@@ -31,7 +31,15 @@ import { staffRole } from "./staff_management.constant";
    
 });
 
+const loginStaffManagementSchema=z.object({
+  body: z.object({
+    email: z.string({required_error:" email is required"}),
+    password: z.string({required_error:"password is required"})
+  })
+})
+
 const StaffManagementValidation ={
-    staffManagementSchema
+    staffManagementSchema,
+    loginStaffManagementSchema
 };
 export default StaffManagementValidation

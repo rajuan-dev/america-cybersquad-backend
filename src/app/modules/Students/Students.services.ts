@@ -1,4 +1,4 @@
-import { Student } from './../../../../node_modules/.prisma/client/index.d';
+
 
 import catchError from "../../../errors/catchError";
 import prisma from "../../../shared/prisma";
@@ -9,6 +9,8 @@ import PrismaQueryBuilder from '../../builder/PrismaQueryBuilder';
 import { searchableFields } from './Students.constant';
 import fs from "fs";
 import path from "path";
+import generateStudentId from '../../../utils/generateId/generateStudentId';
+import { UserRole } from "@prisma/client";
 
 
 
@@ -39,6 +41,7 @@ const createStudentIntoDb = async (
    const result= await prisma.student.create({
       data: {
         branchAdminId,
+        studentId: await generateStudentId(UserRole.STUDENT, payload.email),
         ...safePayload,
       },
     });

@@ -9,6 +9,7 @@ import StaffManagementController from './staff_management.controller';
 const router=express.Router();
 
 router.post("/create_new_staff", branchAdminAuth(UserRole.BRANCH_ADMIN), validateRequest(StaffManagementValidation.staffManagementSchema),StaffManagementController.createStaffManagement );
+router.post("/login_staff_management", validateRequest(StaffManagementValidation.loginStaffManagementSchema),StaffManagementController.loginStaffManagement );
 
 const StaffManagementRouter=router;
 

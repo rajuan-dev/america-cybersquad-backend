@@ -8,7 +8,6 @@ import bcrypt from "bcrypt";
 import { jwtHelpers } from "../../../helpars/jwtHelpers";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import branchManagementConstants from "./branch_management.constant";
-import { stat } from "fs";
 import { JwtPayload } from "jsonwebtoken";
 import { generateOtp } from "../../../utils/generateOtp";
 import sendEmail from "../../../utils/sendEmail";

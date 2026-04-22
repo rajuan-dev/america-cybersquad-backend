@@ -188,6 +188,7 @@ model Student {
   guardianName     String
   guardianPhone    String
   password         String
+  studentId        String         @unique
   verificationCode Int?           @unique
   isVerified       Boolean        @default(true)
   branchAdminId    String
@@ -214,6 +215,7 @@ model Student {
 model Teacher {
   id             String         @id @default(uuid())
   teacherName    String
+  teacherId      String         @unique
   email          String         @unique
   phoneNumber    String         @unique
   branchName     String
@@ -341,14 +343,15 @@ model Staff {
   password       String         @db.VarChar(300)
   generateId     String         @unique @db.VarChar(100)
   subscriptionId String
+  photo          String?
   subscriptions  Subscriptions? @relation(fields: [subscriptionId], references: [id])
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
- @@index([name])
+  @@index([name])
   @@index([email])
   @@index([role])
-   @@index([phoneNumber])
+  @@index([phoneNumber])
   @@map("staffs")
 }
 

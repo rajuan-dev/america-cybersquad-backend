@@ -9,6 +9,8 @@ import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { searchableTeacherFields } from "./Teacher.constant";
 import fs from "fs";
 import path from "path";
+import generateTeacherId from "../../../utils/generateId/generateTeacherId";
+import { UserRole } from "@prisma/client";
 
 
 
@@ -44,6 +46,7 @@ const createTeacherIntoDb = async (
         email,
         password: hashedPassword,
         branchAdminId,
+        teacherId: await generateTeacherId(UserRole.TEACHER, payload.email as string),
         phoneNumber: phoneNumber ?? "",
         branchName: branchName ?? "",
         subject: subject ?? [],
