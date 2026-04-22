@@ -184,11 +184,12 @@ model Student {
   name             String
   email            String         @unique
   branchName       String
+  role             String
   className        String
   guardianName     String
   guardianPhone    String
   password         String
-  studentId        String         @unique
+  studentId        String
   verificationCode Int?           @unique
   isVerified       Boolean        @default(true)
   branchAdminId    String
@@ -209,28 +210,32 @@ model Student {
   @@index([guardianName])
   @@index([guardianPhone])
   @@index([verificationCode])
+  @@index([studentId])
+  @@index([role])
   @@map("students")
 }
 
 model Teacher {
-  id             String         @id @default(uuid())
+  id             String   @id @default(uuid())
   teacherName    String
-  teacherId      String         @unique
-  email          String         @unique
-  phoneNumber    String         @unique
+  teacherId      String
+  email          String   @unique
+  phoneNumber    String   @unique
   branchName     String
+  role           String
   subject        String[]
   assignClass    String[]
   password       String
   address        String
   photo          String?
-  isDeleted      Boolean        @default(false)
+  isDeleted      Boolean  @default(false)
   subscriptionId String
   branchAdminId  String
-  branchAdmin    BranchAdmin    @relation(fields: [branchAdminId], references: [id])
-  subscriptions  Subscriptions  @relation(fields: [subscriptionId], references: [id])
-  announcements  Announcement[]
-  notification   Notification[]
+
+  branchAdmin   BranchAdmin    @relation(fields: [branchAdminId], references: [id])
+  subscriptions Subscriptions  @relation(fields: [subscriptionId], references: [id])
+  announcements Announcement[]
+  notification  Notification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -241,6 +246,8 @@ model Teacher {
   @@index([branchName])
   @@index([subject])
   @@index([assignClass])
+  @@index([teacherId])
+  @@index([role])
   @@map("teachers")
 }
 

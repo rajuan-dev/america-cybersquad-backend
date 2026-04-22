@@ -10,7 +10,7 @@ const teacherRolePrefix = {
   
 } as const;
 
-const generateTeacherId = async(role: keyof typeof  teacherRolePrefix, email: string) => {
+const generateTeacherId = async(role: keyof typeof  teacherRolePrefix) => {
   const prefix =  teacherRolePrefix[role];
   const now = new Date();
 
@@ -24,7 +24,7 @@ const generateTeacherId = async(role: keyof typeof  teacherRolePrefix, email: st
   const endOfYear = new Date(yearFull, 11, 31, 23, 59, 59);
   const count = await prisma.teacher.count({
     where: {
-      email,
+      role,
       createdAt: {
         gte: startOfYear,
         lte: endOfYear,

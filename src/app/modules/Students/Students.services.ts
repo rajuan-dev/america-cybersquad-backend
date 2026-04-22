@@ -41,7 +41,8 @@ const createStudentIntoDb = async (
    const result= await prisma.student.create({
       data: {
         branchAdminId,
-        studentId: await generateStudentId(UserRole.STUDENT, payload.email),
+        role: UserRole.STUDENT,
+        studentId: await generateStudentId(UserRole.STUDENT),
         ...safePayload,
       },
     });
