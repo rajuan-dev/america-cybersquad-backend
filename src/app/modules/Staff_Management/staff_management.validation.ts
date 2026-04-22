@@ -24,7 +24,7 @@ import { staffRole } from "./staff_management.constant";
   password: z
     .string({ required_error: "Password is required" })
     .min(6, "Password must be at least 6 characters"),
-
+  studentId: z.string({required_error:"studentId is required"}).optional(),
   subscriptionId: z
     .string({ required_error: "Subscription ID is required" })
    })

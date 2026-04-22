@@ -1,75 +1,49 @@
-// ---------------------------
-// Datasource & Generator
-// ---------------------------
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
-// ---------------------------
-// Enums
-// ---------------------------
-enum UserRole {
-  STUDENT
-  PARENT
-  TEACHER
-  ADMIN
-  SUPER_ADMIN
-  INSTITUTIONAL_OWNER
-  BRANCH_ADMIN
-}
-
-enum UserStatus {
-  ACTIVE
-  INACTIVE
-  REJECTED
-}
-
 model User {
-  id String @id @default(uuid())
-
+  id               String          @id @default(uuid())
   name             String?
-  email            String     @unique
+  email            String          @unique
   password         String
   photo            String?
   country          String
   city             String
   state            String?
   schoolName       String?
-  role             UserRole   @default(STUDENT)
-  status           UserStatus @default(ACTIVE)
-  verificationCode Int?       @unique
-  isVerified       Boolean    @default(false)
+  role             UserRole        @default(STUDENT)
+  status           UserStatus      @default(ACTIVE)
+  verificationCode Int?            @unique
+  isVerified       Boolean         @default(false)
   fcm              String?
+  isDeleted        Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
   branches         Int
-  isDeleted        Boolean    @default(false)
-
-  subscriptions Subscriptions[]
-  branchadmins  BranchAdmin[]
-  announcements Announcement[]
-  notification  Notification[]
-  supports      Support[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  announcements    Announcement[]
+  branchadmins     BranchAdmin[]
+  notification     Notification[]
+  subscriptions    Subscriptions[]
+  supports         Support[]
 
   @@map("users")
 }
 
 model Contact {
-  id          String @id @default(uuid())
+  id          String   @id @default(uuid())
   name        String
   email       String
   phoneNumber String
   subject     String
   message     String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([name])
   @@index([email])
@@ -78,46 +52,35 @@ model Contact {
 }
 
 model Testimonials {
-  id           String  @id @default(uuid())
-  name         String  @db.VarChar(100)
-  designation  String  @db.VarChar(100)
-  workingPlace String  @db.VarChar(150)
-  videoUrl     String? @db.VarChar(255)
-  isDeleted    Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(uuid())
+  name         String   @db.VarChar(100)
+  designation  String   @db.VarChar(100)
+  workingPlace String   @db.VarChar(150)
+  videoUrl     String?  @db.VarChar(255)
+  isDeleted    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([name])
   @@index([designation])
   @@map("testimonials")
 }
 
-enum SubscriptionType {
-  free_trial
-  paid
-}
-
-enum SchoolArea {
-  Urban
-  Rural
-}
-
 model Subscriptions {
   id                  String                @id @default(uuid())
   userId              String
-  user                User                  @relation(fields: [userId], references: [id])
   price               Float                 @default(0.00)
   isDeleted           Boolean               @default(false)
-  subscriptiondetails SubscriptionDetails[]
-  student             Student[]
-  teacher             Teacher[]
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
   announcements       Announcement[]
   notifications       Notification[]
-  supports            Support[]
   staffs              Staff[]
+  student             Student[]
+  subscriptiondetails SubscriptionDetails[]
+  user                User                  @relation(fields: [userId], references: [id])
+  supports            Support[]
+  teacher             Teacher[]
 
   @@index([price])
   @@map("subscriptions")
@@ -125,19 +88,19 @@ model Subscriptions {
 
 model SubscriptionDetails {
   id               String           @id @default(uuid())
-  subscriptionType SubscriptionType
   subscriptionId   String           @db.VarChar(100)
-  subscriptions    Subscriptions    @relation(fields: [subscriptionId], references: [id])
-  schoolName       String           @db.VarChar(100)
-  country          String           @db.VarChar(100)
   state            String           @db.VarChar(100)
   city             String           @db.VarChar(100)
-  area             SchoolArea
-  schoolType       String           @db.VarChar(100)
-  studentLimit     String           @db.VarChar(100)
-  isDeleted        Boolean          @default(false)
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
+  area             SchoolArea
+  country          String           @db.VarChar(100)
+  isDeleted        Boolean          @default(false)
+  schoolName       String           @db.VarChar(100)
+  schoolType       String           @db.VarChar(100)
+  studentLimit     String           @db.VarChar(100)
+  subscriptionType SubscriptionType
+  subscriptions    Subscriptions    @relation(fields: [subscriptionId], references: [id])
 
   @@index([schoolName])
   @@index([country])
@@ -160,15 +123,15 @@ model BranchAdmin {
   joinDate         DateTime
   assignBranch     String         @unique
   userId           String
-  user             User           @relation(fields: [userId], references: [id])
-  students         Student[]
-  teachers         Teacher[]
-  announcements    Announcement[]
-  notification     Notification[]
-  supports         Support[]
   isDeleted        Boolean        @default(false)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+  announcements    Announcement[]
+  user             User           @relation(fields: [userId], references: [id])
+  notification     Notification[]
+  students         Student[]
+  supports         Support[]
+  teachers         Teacher[]
 
   @@index([fullName])
   @@index([phoneNumber])
@@ -184,24 +147,23 @@ model Student {
   name             String
   email            String         @unique
   branchName       String
-  role             String
   className        String
   guardianName     String
   guardianPhone    String
   password         String
-  studentId        String
   verificationCode Int?           @unique
   isVerified       Boolean        @default(true)
   branchAdminId    String
-  branchAdmin      BranchAdmin    @relation(fields: [branchAdminId], references: [id])
-  subscriptions    Subscriptions  @relation(fields: [subscriptionId], references: [id])
-  // announcements    Announcement[]
-  notification     Notification[]
   subscriptionId   String
   photo            String?
   isDeleted        Boolean        @default(false)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+  studentId        String
+  role             String
+  notification     Notification[]
+  branchAdmin      BranchAdmin    @relation(fields: [branchAdminId], references: [id])
+  subscriptions    Subscriptions  @relation(fields: [subscriptionId], references: [id])
 
   @@index([name])
   @@index([email])
@@ -216,29 +178,27 @@ model Student {
 }
 
 model Teacher {
-  id             String   @id @default(uuid())
+  id             String         @id @default(uuid())
   teacherName    String
-  teacherId      String
-  email          String   @unique
-  phoneNumber    String   @unique
+  email          String         @unique
+  phoneNumber    String         @unique
   branchName     String
-  role           String
   subject        String[]
   assignClass    String[]
   password       String
   address        String
   photo          String?
-  isDeleted      Boolean  @default(false)
+  isDeleted      Boolean        @default(false)
   subscriptionId String
   branchAdminId  String
-
-  branchAdmin   BranchAdmin    @relation(fields: [branchAdminId], references: [id])
-  subscriptions Subscriptions  @relation(fields: [subscriptionId], references: [id])
-  announcements Announcement[]
-  notification  Notification[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  teacherId      String
+  role           String
+  announcements  Announcement[]
+  notification   Notification[]
+  branchAdmin    BranchAdmin    @relation(fields: [branchAdminId], references: [id])
+  subscriptions  Subscriptions  @relation(fields: [subscriptionId], references: [id])
 
   @@index([teacherName])
   @@index([email])
@@ -251,87 +211,68 @@ model Teacher {
   @@map("teachers")
 }
 
-// ---------------------------
-// Announcement
-// ---------------------------
 model Announcement {
-  id          String   @id @default(uuid())
-  title       String   @db.VarChar(100)
-  description String   @db.VarChar(300)
-  audience    String[]
-
-  userId        String?
-  branchAdminId String?
-  studentId     String?
-  teacherId     String?
-
+  id             String        @id @default(uuid())
+  title          String        @db.VarChar(100)
+  description    String        @db.VarChar(300)
+  audience       String[]
+  userId         String?
+  branchAdminId  String?
+  studentId      String?
+  teacherId      String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  isDelete       Boolean       @default(false)
   subscriptionId String
-  subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
-  user           User?         @relation(fields: [userId], references: [id])
   branchAdmin    BranchAdmin?  @relation(fields: [branchAdminId], references: [id])
-  // student     Student?     @relation(fields: [studentId], references: [id])
+  subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
   teacher        Teacher?      @relation(fields: [teacherId], references: [id])
-
-  // Parent field pending
-
-  isDelete  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  user           User?         @relation(fields: [userId], references: [id])
 
   @@map("announcements")
 }
 
-// ---------------------------
-// Notification 
-// ---------------------------
-
 model Notification {
-  id             String         @id @default(uuid())
+  id             String        @id @default(uuid())
   title          String
   message        String
-  isRead         Boolean        @default(false)
+  isRead         Boolean       @default(false)
   route          String?
   userId         String?
   branchAdminId  String?
   studentId      String?
   teacherId      String?
+  isDelete       Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   subscriptionId String
-  subscriptions  Subscriptions? @relation(fields: [subscriptionId], references: [id])
-
-  user        User?        @relation(fields: [userId], references: [id])
-  branchAdmin BranchAdmin? @relation(fields: [branchAdminId], references: [id])
-  student     Student?     @relation(fields: [studentId], references: [id])
-  teacher     Teacher?     @relation(fields: [teacherId], references: [id])
-  // Parent field pending
-  isDelete    Boolean      @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  support   Support? @relation(fields: [supportId], references: [id])
-  supportId String?
+  supportId      String?
+  branchAdmin    BranchAdmin?  @relation(fields: [branchAdminId], references: [id])
+  student        Student?      @relation(fields: [studentId], references: [id])
+  subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
+  support        Support?      @relation(fields: [supportId], references: [id])
+  teacher        Teacher?      @relation(fields: [teacherId], references: [id])
+  user           User?         @relation(fields: [userId], references: [id])
 
   @@map("notifications")
 }
 
 model Support {
-  id String @id @default(uuid())
-
+  id             String         @id @default(uuid())
   name           String
   email          String
   subject        String
   message        String
   subscriptionId String?
-  subscriptions  Subscriptions? @relation(fields: [subscriptionId], references: [id]) // ✅ Added ?
   branchAdminId  String?
-  branchAdmin    BranchAdmin?   @relation(fields: [branchAdminId], references: [id])
   userId         String?
-  user           User?          @relation(fields: [userId], references: [id])
+  isDelete       Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   notifications  Notification[]
-
-  isDelete Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  branchAdmin    BranchAdmin?   @relation(fields: [branchAdminId], references: [id])
+  subscriptions  Subscriptions? @relation(fields: [subscriptionId], references: [id])
+  user           User?          @relation(fields: [userId], references: [id])
 
   @@index([name])
   @@index([email])
@@ -342,35 +283,62 @@ model Support {
 }
 
 model Staff {
-  id             String         @id @default(uuid())
-  name           String         @db.VarChar(100)
-  role           String         @db.VarChar(100)
-  email          String         @db.VarChar(100)
-  phoneNumber    String         @db.VarChar(100)
-  password       String         @db.VarChar(300)
-  generateId     String         @unique @db.VarChar(100)
+  id             String        @id @default(uuid())
+  name           String        @db.VarChar(100)
+  role           String        @db.VarChar(100)
+  email          String        @db.VarChar(100)
+  phoneNumber    String        @db.VarChar(100)
+  password       String        @db.VarChar(300)
+  generateId     String        @unique @db.VarChar(100)
+  studentId      String ?     
   subscriptionId String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   photo          String?
-  subscriptions  Subscriptions? @relation(fields: [subscriptionId], references: [id])
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
 
   @@index([name])
-  @@index([email])
   @@index([role])
   @@index([phoneNumber])
+  @@index([email])
+  @@index([studentId])
   @@map("staffs")
 }
 
 model Admin {
-  id          String  @id @default(uuid())
+  id          String   @id @default(uuid())
   fullName    String?
   phoneNumber String?
-  email       String  @unique
+  email       String   @unique
   password    String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("admins")
+}
+
+enum UserRole {
+  STUDENT
+  PARENT
+  TEACHER
+  ADMIN
+  SUPER_ADMIN
+  INSTITUTIONAL_OWNER
+  BRANCH_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  REJECTED
+}
+
+enum SubscriptionType {
+  free_trial
+  paid
+}
+
+enum SchoolArea {
+  Urban
+  Rural
 }

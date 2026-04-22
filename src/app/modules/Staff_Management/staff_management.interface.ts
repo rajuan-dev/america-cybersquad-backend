@@ -5,6 +5,7 @@ export interface TStaffManagement {
     phoneNumber : string;
     password: string;
     subscriptionId: string;
+    studentId: string;
     photo: string;
     
 }

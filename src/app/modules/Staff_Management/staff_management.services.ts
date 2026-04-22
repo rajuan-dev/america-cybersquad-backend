@@ -8,50 +8,110 @@ import { TStaffManagement } from "./staff_management.interface";
 import bcrypt from 'bcrypt'
 import { jwtHelpers } from "../../../helpars/jwtHelpers";
 
-const createStaffManagementIntoDb=async(userId: string, payload:TStaffManagement)=>{
+const createStaffManagementIntoDb = async (
+  userId: string,
+  payload: TStaffManagement
+) => {
+  try {
+    const isExistAccount = await prisma.staff.findFirst({
+      where: { email: payload.email },
+    });
 
+    if (isExistAccount) {
+      throw new ApiError(
+        httpStatus.CONFLICT,
+        "This account already exists"
+      );
+    }
 
-     try{
+    const gId = await generateId(payload.role);
+    const hashedPassword = await bcrypt.hash(
+      payload.password,
+      Number(config.bcrypt_salt_rounds)
+    );
 
-        const isExistAccount=await prisma.staff.findFirst({where:{
-            email:payload.email
-        }});
+    let result;
 
-        if(isExistAccount){
-            throw new ApiError(httpStatus.NOT_EXTENDED, 'this account already exist')
-        };
+    switch (payload.role) {
+      case "nurse": {
+        result = await prisma.staff.create({
+          data: {
+            email: payload.email,
+            generateId: gId,
+            password: hashedPassword,
+            name: payload.name,
+            role: payload.role,
+            phoneNumber: payload.phoneNumber,
+            subscriptionId: payload.subscriptionId,
+          },
+        });
+        break;
+      }
 
-          const gId= await generateId(payload.role);
-          const hashedPassword = await bcrypt.hash(
-               payload.password,
-               Number(config.bcrypt_salt_rounds)
-             );
+      case "bursar": {
+        result = await prisma.staff.create({
+          data: {
+            email: payload.email,
+            generateId: gId,
+            password: hashedPassword,
+            name: payload.name,
+            role: payload.role,
+            phoneNumber: payload.phoneNumber,
+            subscriptionId: payload.subscriptionId,
+          },
+        });
+        break;
+      }
 
-              const result=await prisma.staff.create({
-                data:{
-                  email: payload.email,
-                  generateId: gId,
-                  password: hashedPassword,
-                  name: payload.name,
-                  role: payload.role,
-                  phoneNumber: payload.phoneNumber,
-                  subscriptionId: payload.subscriptionId
+      case "parent": {
+        if (!payload.studentId) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "Student ID is required"
+          );
+        }
 
-                }
-              });
+        const isExistStudent = await prisma.student.findFirst({
+          where: { studentId: payload.studentId },
+        });
 
-              if(!result){
-                throw new ApiError(httpStatus.NOT_EXTENDED, 'issues by the ')
-              };
+        if (!isExistStudent) {
+          throw new ApiError(
+            httpStatus.NOT_FOUND,
+            "Student not found in database"
+          );
+        }
 
-              return {
-                success:true , 
-                message:" successfully create account "
-              }
-     }
-     catch(error){
-        return catchError(error);
-     }
+        result = await prisma.staff.create({
+          data: {
+            email: payload.email,
+            generateId: gId,
+            password: hashedPassword,
+            name: payload.name,
+            role: payload.role,
+            phoneNumber: payload.phoneNumber,
+            subscriptionId: payload.subscriptionId,
+            studentId: payload.studentId,
+          },
+        });
+
+        break;
+      }
+
+      default: {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid role");
+      }
+    }
+
+    // 4️⃣ Final response
+    return {
+      status: true,
+      message: "Successfully account created"
+     
+    };
+  } catch (error) {
+    return catchError(error);
+  }
 };
 
 
