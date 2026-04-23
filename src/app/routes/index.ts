@@ -11,6 +11,7 @@ import TeacherRoute from "../modules/Teacher/Teacher.route";
 import announcementRouter from "../modules/Announcements/announcements.routes";
 import SupportRouter from "../modules/support/support.route";
 import StaffManagementRouter from "../modules/Staff_Management/staff_management.route";
+import SubjectRouter from "../modules/subjects/subjects.route";
 
 
 const router = express.Router();
@@ -60,6 +61,10 @@ const moduleRoutes = [
    {
     path:"/staff",
     route: StaffManagementRouter
+   },
+   {
+    path:"/subject",
+    route: SubjectRouter
    }
 
   
