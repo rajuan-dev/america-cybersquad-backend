@@ -8,6 +8,9 @@ import { TStaffManagement } from "./staff_management.interface";
 import bcrypt from 'bcrypt'
 import { jwtHelpers } from "../../../helpars/jwtHelpers";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
+import fs from "fs";
+import path from "path";
+
 
 const createStaffManagementIntoDb = async (
   userId: string,
@@ -283,19 +286,51 @@ const findBySpecificStaffIntoDb=async(id:string)=>{
 
 };
 
-const updateStaffInformationIntoDb=async(id:string, payload:Partial<TStaffManagement>)=>{
+const updateStaffInformationIntoDb = async (
+  id: string,
+  payload: Partial<TStaffManagement>
+) => {
+  try {
+    const isExistStaff = await prisma.staff.findUnique({
+      where: { id },
+    });
 
-   try{
-
-    return {
-      id, payload
+    if (!isExistStaff) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Staff not found");
     }
 
-   }
-   catch(error){
-     return catchError(error);
-   }
-}
+    const updateData: any = {};
+
+    if (payload.name) updateData.name = payload.name;
+    if (payload.email) updateData.email = payload.email;
+    if (payload.phoneNumber) updateData.phoneNumber = payload.phoneNumber;
+
+    if (payload.profileImage) {
+      updateData.photo = payload.profileImage;
+
+      if (isExistStaff.photo && fs.existsSync(isExistStaff.photo)) {
+        fs.unlinkSync(isExistStaff.photo);
+      }
+    }
+
+    const result = await prisma.staff.update({
+      where: { id },
+      data: updateData,
+    });
+    if(!result){
+      throw new ApiError(httpStatus.NOT_EXTENDED, 'issues by the update profile in to server ')
+    }
+
+    return {
+      success: true,
+      message: "Successfully Updated"
+      
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
 
 const StaffManagementServices={
    createStaffManagementIntoDb,

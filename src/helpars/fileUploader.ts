@@ -241,6 +241,8 @@ const saveVideoLocally = (file: any): { videoUrl: string } => {
   };
 };
 
+
+
 export const uploadFile = {
   upload,
   profileImage,
@@ -252,7 +254,7 @@ export const uploadFile = {
   uploadToCloudinary,
   uploadVideoToCloudinary,
   saveVideoLocally,
-
+ toRelativePath,
   // dayTripImage and vehicle image
   image,
 };

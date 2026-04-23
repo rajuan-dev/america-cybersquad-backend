@@ -6,6 +6,6 @@ export interface TStaffManagement {
     password: string;
     subscriptionId: string;
     studentId: string;
-    photo: string;
+   profileImage: string;
     
 }

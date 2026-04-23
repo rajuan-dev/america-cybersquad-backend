@@ -16,10 +16,10 @@ router.post("/login_staff_management", validateRequest(StaffManagementValidation
 router.get("/find_by_all_staff_management", branchAdminAuth(UserRole.BRANCH_ADMIN), StaffManagementController.findByAllStaffManagement);
 router.get("/find_by_specific_staff/:staffId", branchAdminAuth(UserRole.BRANCH_ADMIN), StaffManagementController.findBySpecificStaff);
 router.patch(
-  "/update_profile",
+  "/update_profile/:staffId",
   branchAdminAuth(UserRole.BRANCH_ADMIN),
 
-  uploadFile.profileImage,
+  uploadFile.profileImage, // upload.single("photo")
 
   (req: Request, _res: Response, next: NextFunction) => {
     try {
@@ -27,12 +27,9 @@ router.patch(
         req.body = JSON.parse(req.body.data);
       }
 
-      const files = req.files as {
-        [fieldname: string]: Express.Multer.File[];
-      };
+      if (req.file) {
 
-      if (files?.photo?.[0]) {
-        req.body.photo = files.photo[0].path.replace(/\\/g, "/");
+        req.body.profileImage = uploadFile.toRelativePath (req.file.path);
       }
 
       next();
@@ -42,7 +39,7 @@ router.patch(
   },
 
   validateRequest(StaffManagementValidation.updateStaffManagementSchema),
-   StaffManagementController.updateStaffInformation
+  StaffManagementController.updateStaffInformation
 );
 const StaffManagementRouter=router;
 

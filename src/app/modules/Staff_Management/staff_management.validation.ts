@@ -38,25 +38,20 @@ const loginStaffManagementSchema=z.object({
   })
 });
 
- const updateStaffManagementSchema = z.object({
+const updateStaffManagementSchema = z.object({
    body: z.object({
-    name: z
-    .string({ required_error: "Name is required" })
-    .min(1, "Name cannot be empty").optional(),
+      name: z.string().min(1, "Name cannot be empty").optional(),
 
-
-  email: z
-    .string({ required_error: "Email is required" })
-    .email("Invalid email format").optional(),
+  email: z.string().email("Invalid email format").optional(),
 
   phoneNumber: z
-    .string({ required_error: "Phone number is required" })
+    .string()
     .min(6, "Phone number is too short")
-    .max(20, "Phone number is too long").optional(),
+    .max(20, "Phone number is too long")
+    .optional(),
 
-   }),
-   photo: z.string({required_error:"photo is not required"}).optional()
-   
+  profileImage: z.string().optional(),
+   })
 });
 
 const StaffManagementValidation ={
