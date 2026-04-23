@@ -1,0 +1,1 @@
+export const searchable_subject=["subjectName", "code", "department"]

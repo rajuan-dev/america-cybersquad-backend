@@ -314,18 +314,21 @@ model Subject {
   code           String        @db.VarChar(20)
   department     String        @db.VarChar(100)
   subscriptionId String
+
   subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
   branchAdminId  String
   branchAdmin    BranchAdmin   @relation(fields: [branchAdminId], references: [id])
+
   isDelete       Boolean       @default(false)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  @@unique([branchAdminId])
+  @@index([branchAdminId])
   @@index([subjectName])
   @@index([code])
   @@index([department])
   @@index([subscriptionId])
+
   @@map("subjects")
 }
 
