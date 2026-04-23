@@ -78,6 +78,17 @@ const updateStaffInformation:RequestHandler=catchAsync(async(req , res)=>{
     data: result,
   });
 
+});
+
+const deleteStaffManagement:RequestHandler=catchAsync(async(req , res)=>{
+
+   const result=await StaffManagementServices.deleteStaffManagementIntoDb(req.params.staffId);
+               sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: result.message,
+    data: result,
+  });
 })
 
 
@@ -86,6 +97,7 @@ const StaffManagementController={
     loginStaffManagement,
     findByAllStaffManagement,
     findBySpecificStaff,
-    updateStaffInformation
+    updateStaffInformation,
+     deleteStaffManagement
 };
 export default  StaffManagementController;

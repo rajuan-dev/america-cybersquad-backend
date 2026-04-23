@@ -289,7 +289,7 @@ const findBySpecificStaffIntoDb=async(id:string)=>{
 const updateStaffInformationIntoDb = async (
   id: string,
   payload: Partial<TStaffManagement>
-) => {
+):Promise<{success:true , message: string}> => {
   try {
     const isExistStaff = await prisma.staff.findUnique({
       where: { id },
@@ -327,7 +327,44 @@ const updateStaffInformationIntoDb = async (
       
     };
   } catch (error) {
-    throw error;
+      return catchError(error);
+  }
+};
+
+const deleteStaffManagementIntoDb = async (
+  id: string
+): Promise<{ success: true; message: string }> => {
+  try {
+    // 1. check existence
+    const isExistStaff = await prisma.staff.findUnique({
+      where: { id },
+    });
+
+    if (!isExistStaff) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Staff not found");
+    }
+
+    // 2. delete photo safely
+    if (isExistStaff.photo) {
+      const filePath = isExistStaff.photo;
+
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    await prisma.staff.delete({
+      where: { id },
+    });
+
+   
+    return {
+      success: true,
+      message: "Staff deleted successfully",
+    };
+  } catch (error) {
+    return  catchError(error);
+
   }
 };
 
@@ -337,7 +374,8 @@ const StaffManagementServices={
    loginStaffManagementIntoDb,
    findByAllStaffManagementIntoDb ,
    findBySpecificStaffIntoDb,
-   updateStaffInformationIntoDb
+   updateStaffInformationIntoDb,
+   deleteStaffManagementIntoDb
 };
 
 export default StaffManagementServices;

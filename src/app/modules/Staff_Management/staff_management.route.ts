@@ -41,6 +41,8 @@ router.patch(
   validateRequest(StaffManagementValidation.updateStaffManagementSchema),
   StaffManagementController.updateStaffInformation
 );
+
+router.delete("/delete_staff/:staffId", branchAdminAuth(UserRole.BRANCH_ADMIN), StaffManagementController.deleteStaffManagement)
 const StaffManagementRouter=router;
 
 export default StaffManagementRouter;
