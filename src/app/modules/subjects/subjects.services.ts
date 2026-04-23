@@ -127,6 +127,23 @@ const findBySpecificBranchAdminAllSubjectIntoDb = async (
   }
 };
 
+const findBySpecificBranchUnderSubjectIntoDb=async(userId: string, id: string)=>{
+
+    try{
+        return await prisma.subject.findUnique({where:{id}, select:{
+            id: true , 
+            code: true , 
+            department: true , 
+            createdAt: true 
+        }});
+
+    }
+    catch (error) {
+    return catchError(error);
+  }
+
+}
+
 
 
 
@@ -134,6 +151,7 @@ const SubjectsServices = {
   createSubjectIntoDb,
   findBySpecificBranchSubjectIntoDb,
    findBySpecificBranchAdminAllSubjectIntoDb,
+    findBySpecificBranchUnderSubjectIntoDb
    
 };
 

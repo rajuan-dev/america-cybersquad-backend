@@ -38,6 +38,18 @@ const findBySpecificBranchAdminAllSubject:RequestHandler=catchAsync(async(req , 
     message: "Successfully Find My All Subject",
     data: result,
   });
+});
+
+
+const findBySpecificBranchUnderSubject: RequestHandler=catchAsync(async(req , res)=>{
+
+      const result=await SubjectsServices.findBySpecificBranchUnderSubjectIntoDb(req.user.id , req.params.id);
+       sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By The Subject",
+    data: result,
+  });
 })
 
 
@@ -46,7 +58,8 @@ const findBySpecificBranchAdminAllSubject:RequestHandler=catchAsync(async(req , 
 const SubjectController={
     createSubject,
      findBySpecificBranchSubject,
-     findBySpecificBranchAdminAllSubject
+     findBySpecificBranchAdminAllSubject,
+    findBySpecificBranchUnderSubject
 };
 
 export default SubjectController;
