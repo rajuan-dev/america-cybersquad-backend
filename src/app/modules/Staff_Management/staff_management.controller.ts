@@ -41,11 +41,51 @@ const  loginStaffManagement:RequestHandler=catchAsync(async(req , res)=>{
       accessToken
     },
   });
+});
+
+
+const findByAllStaffManagement:RequestHandler=catchAsync(async(req , res)=>{
+
+    const result=await StaffManagementServices.findByAllStaffManagementIntoDb(req.params.subscriptionId, req.query);
+        sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By All Staff ",
+    data: result,
+  });
+});
+
+
+const findBySpecificStaff:RequestHandler=catchAsync(async(req , res)=>{
+
+
+    const result=await StaffManagementServices.findBySpecificStaffIntoDb(req.params.staffId);
+            sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find  By Specific Staff ",
+    data: result,
+  });
+});
+
+const updateStaffInformation:RequestHandler=catchAsync(async(req , res)=>{
+
+    const result=await StaffManagementServices.updateStaffInformationIntoDb(req.params.staffId, req.body);
+     sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Update",
+    data: result,
+  });
+
 })
 
 
 const StaffManagementController={
     createStaffManagement,
-    loginStaffManagement
+    loginStaffManagement,
+    findByAllStaffManagement,
+    findBySpecificStaff,
+    updateStaffInformation
 };
 export default  StaffManagementController;

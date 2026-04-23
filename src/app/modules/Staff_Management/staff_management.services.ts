@@ -7,6 +7,7 @@ import generateId from "../../../utils/generateId";
 import { TStaffManagement } from "./staff_management.interface";
 import bcrypt from 'bcrypt'
 import { jwtHelpers } from "../../../helpars/jwtHelpers";
+import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 
 const createStaffManagementIntoDb = async (
   userId: string,
@@ -172,9 +173,136 @@ const loginStaffManagementIntoDb = async (payload: { email: string; password: st
     return catchError(error);
   }};
 
+
+const findByAllStaffManagementIntoDb = async (
+  subscriptionId: string,
+  query: Record<string, unknown>
+) => {
+  try {
+  
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(["name", "email", "phoneNumber", "generateId", "studentId"])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const queryOptions = queryBuilder.build();
+
+    // 2️⃣ Extract extra filters
+    const { role, studentId } = query;
+
+    const staffFilter: any = {};
+
+    if (role) {
+      staffFilter.role = role;
+    }
+
+    if (studentId) {
+      staffFilter.studentId = studentId;
+    }
+
+    // 3️⃣ Main query
+    const result = await prisma.staff.findMany({
+      where: {
+        subscriptionId, // ✅ mandatory filter
+        ...queryOptions.where,
+        ...staffFilter,
+      },
+
+      orderBy: queryOptions.orderBy,
+      skip: queryOptions.skip,
+      take: queryOptions.take,
+
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phoneNumber: true,
+        generateId: true,
+        role: true,
+        studentId: true,
+        photo: true,
+        createdAt: true,
+        updatedAt: true,
+
+    
+      },
+    });
+
+    // 4️⃣ Total count
+    const total = await prisma.staff.count({
+      where: {
+        subscriptionId,
+        ...queryOptions.where,
+        ...staffFilter,
+      },
+    });
+
+    // 5️⃣ Pagination meta
+    const page = Number(query?.page) || 1;
+    const limit = Number(query?.limit) || 10;
+    const totalPage = Math.ceil(total / limit);
+
+    // 6️⃣ Final response
+    return {
+      status: true,
+      message: "Successfully fetched staff list",
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage,
+      },
+      data: result,
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
+const findBySpecificStaffIntoDb=async(id:string)=>{
+
+  try{
+
+     return await prisma.staff.findUnique({where:{id}, select:{
+      id:true ,
+      name: true,
+      email: true , 
+      phoneNumber:true , 
+      photo:true,
+      createdAt:true , 
+      updatedAt:true
+     }})
+
+  }
+  catch (error) {
+    return catchError(error);
+  }
+
+
+};
+
+const updateStaffInformationIntoDb=async(id:string, payload:Partial<TStaffManagement>)=>{
+
+   try{
+
+    return {
+      id, payload
+    }
+
+   }
+   catch(error){
+     return catchError(error);
+   }
+}
+
 const StaffManagementServices={
    createStaffManagementIntoDb,
-   loginStaffManagementIntoDb
+   loginStaffManagementIntoDb,
+   findByAllStaffManagementIntoDb ,
+   findBySpecificStaffIntoDb,
+   updateStaffInformationIntoDb
 };
 
 export default StaffManagementServices;

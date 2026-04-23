@@ -147,6 +147,7 @@ model Student {
   name             String
   email            String         @unique
   branchName       String
+  
   className        String
   guardianName     String
   guardianPhone    String
