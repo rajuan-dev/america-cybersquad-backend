@@ -11,6 +11,9 @@ router.post("/create_subject", branchAdminAuth(UserRole.BRANCH_ADMIN), validateR
 router.get("/find_by_specific_branch_subject/:subscriptionId", branchAdminAuth(UserRole.BRANCH_ADMIN),SubjectController.findBySpecificBranchSubject);
 router.get("/find_by_specific_branch_all_subject", branchAdminAuth(UserRole.BRANCH_ADMIN), SubjectController.findBySpecificBranchAdminAllSubject);
 router.get("/find_by_specific_subject/:id", branchAdminAuth(UserRole.BRANCH_ADMIN), SubjectController.findBySpecificBranchUnderSubject);
+router.patch("/update_branch_under_subject/:id", branchAdminAuth(UserRole.BRANCH_ADMIN), validateRequest(SubjectValidation.updateSubjectValidationSchema), SubjectController.updateSubject);
+router.delete("/delete_subject/:id", branchAdminAuth(UserRole.BRANCH_ADMIN),SubjectController.deleteSubject);
+
 
 
 const SubjectRouter=router;

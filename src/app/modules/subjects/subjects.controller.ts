@@ -50,7 +50,32 @@ const findBySpecificBranchUnderSubject: RequestHandler=catchAsync(async(req , re
     message: "Successfully Find By The Subject",
     data: result,
   });
-})
+});
+
+
+const updateSubject:RequestHandler=catchAsync(async(req , res)=>{
+
+      const result=await SubjectsServices.updateSubjectIntoDb(req.params.id, req.user.id, req.body);
+        sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message:result.message,
+    data: result,
+  });
+});
+
+
+const deleteSubject: RequestHandler=catchAsync(async(req , res)=>{
+
+      const result=await SubjectsServices.deleteSubjectIntoDb(req.params.id, req.user.id);
+       sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message:result.message,
+    data: result,
+});
+
+  });
 
 
 
@@ -59,7 +84,9 @@ const SubjectController={
     createSubject,
      findBySpecificBranchSubject,
      findBySpecificBranchAdminAllSubject,
-    findBySpecificBranchUnderSubject
+    findBySpecificBranchUnderSubject,
+    updateSubject,
+    deleteSubject
 };
 
 export default SubjectController;

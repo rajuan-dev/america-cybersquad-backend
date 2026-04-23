@@ -142,7 +142,105 @@ const findBySpecificBranchUnderSubjectIntoDb=async(userId: string, id: string)=>
     return catchError(error);
   }
 
-}
+};
+
+
+const updateSubjectIntoDb = async (
+  id: string,
+  userId: string,
+  payload: Partial<TSubject>
+):Promise<{success: boolean , message: string }> => {
+  try {
+    const isExistSubject = await prisma.subject.findFirst({
+      where: {
+        id,
+        branchAdminId: userId
+       
+      },
+    });
+
+    if (!isExistSubject) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Subject not found");
+    }
+    const updateData: any = {};
+
+    if (payload.subjectName) {
+      updateData.subjectName = payload.subjectName;
+    }
+
+    if (payload.department) {
+      updateData.department = payload.department;
+    }
+
+    if (payload.code) {
+      const code = payload.code.toUpperCase();
+
+      const duplicate = await prisma.subject.findFirst({
+        where: {
+          code,
+          branchAdminId: userId,
+          NOT: { id },
+        },
+      });
+
+      if (duplicate) {
+        throw new ApiError(
+          httpStatus.CONFLICT,
+          "This subject code already exists"
+        );
+      }
+
+      updateData.code = code;
+    }
+
+    if (payload.subscriptionId) {
+      updateData.subscriptionId = payload.subscriptionId;
+    }
+
+     await prisma.subject.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return {
+      success: true,
+      message: "Successfully Updated"
+    
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
+const deleteSubjectIntoDb = async (id: string, userId: string) => {
+  try {
+
+    const isExistSubject = await prisma.subject.findFirst({
+      where: {
+        id,
+        branchAdminId: userId
+        
+      },
+    });
+
+    if (!isExistSubject) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Subject not found");
+    }
+
+    const result = await prisma.subject.delete({
+      where: { id }
+     
+    });
+
+    return {
+      success: true,
+      message: "Subject deleted successfully"
+   
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
 
 
 
@@ -151,7 +249,9 @@ const SubjectsServices = {
   createSubjectIntoDb,
   findBySpecificBranchSubjectIntoDb,
    findBySpecificBranchAdminAllSubjectIntoDb,
-    findBySpecificBranchUnderSubjectIntoDb
+    findBySpecificBranchUnderSubjectIntoDb,
+    updateSubjectIntoDb,
+    deleteSubjectIntoDb
    
 };
 
