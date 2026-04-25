@@ -66,29 +66,29 @@ model Testimonials {
   @@map("testimonials")
 }
 
-model Subscriptions {
-  id                  String                @id @default(uuid())
-  userId              String
-  price               Float                 @default(0.00)
-  isDeleted           Boolean               @default(false)
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  announcements       Announcement[]
-  notifications       Notification[]
-  staffs              Staff[]
-  student             Student[]
-  subscriptiondetails SubscriptionDetails[]
-  user                User                  @relation(fields: [userId], references: [id])
-  supports            Support[]
-  teacher             Teacher[]
-  subjects            Subject[]
-  // ✅ ONE TO ONE
-  classDistribution ClassDistribution?
+// model Subscriptions {
+//   id                  String                @id @default(uuid())
+//   userId              String
+//   price               Float                 @default(0.00)
+//   isDeleted           Boolean               @default(false)
+//   createdAt           DateTime              @default(now())
+//   updatedAt           DateTime              @updatedAt
+//   announcements       Announcement[]
+//   notifications       Notification[]
+//   staffs              Staff[]
+//   student             Student[]
+//   subscriptiondetails SubscriptionDetails[]
+//   user                User                  @relation(fields: [userId], references: [id])
+//   supports            Support[]
+//   teacher             Teacher[]
+//   subjects            Subject[]
+//   // ✅ ONE TO ONE
+//   classDistribution ClassDistribution?
 
 
-  @@index([price])
-  @@map("subscriptions")
-}
+//   @@index([price])
+//   @@map("subscriptions")
+// }
 
 model SubscriptionDetails {
   id               String           @id @default(uuid())
@@ -148,29 +148,39 @@ model BranchAdmin {
 }
 
 model Student {
-  id         String @id @default(uuid())
-  name       String
-  email      String @unique
-  branchName String
-
+  id                String   @id @default(uuid())
+  name              String
+  email             String   @unique
+  branchName        String
   className         String
+
   guardianName      String
   guardianPhone     String
   password          String
-  verificationCode  Int?                @unique
-  isVerified        Boolean             @default(true)
+
+  verificationCode  Int?     @unique
+  isVerified        Boolean  @default(true)
+
   branchAdminId     String
   subscriptionId    String
+
   photo             String?
-  isDeleted         Boolean             @default(false)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  isDeleted         Boolean  @default(false)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
   studentId         String
   role              String
+
+  // relations
   notification      Notification[]
-   classDistributions ClassDistribution[]
-  branchAdmin       BranchAdmin         @relation(fields: [branchAdminId], references: [id])
-  subscriptions     Subscriptions       @relation(fields: [subscriptionId], references: [id])
+  branchAdmin       BranchAdmin   @relation(fields: [branchAdminId], references: [id])
+  subscriptions     Subscriptions @relation(fields: [subscriptionId], references: [id])
+
+  // FIXED: Student belongs to one class distribution
+  classDistributionId String?
+  classDistribution   ClassDistribution? @relation(fields: [classDistributionId], references: [id])
 
   @@index([name])
   @@index([email])
@@ -185,28 +195,38 @@ model Student {
 }
 
 model Teacher {
-  id                String              @id @default(uuid())
-  teacherName       String
-  email             String              @unique
-  phoneNumber       String              @unique
-  branchName        String
-  subject           String[]
-  assignClass       String[]
-  password          String
-  address           String
-  photo             String?
-  isDeleted         Boolean             @default(false)
-  subscriptionId    String
-  branchAdminId     String
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  teacherId         String
-  role              String
-  announcements     Announcement[]
-  notification      Notification[]
+  id             String   @id @default(uuid())
+  teacherName    String
+  email          String   @unique
+  phoneNumber    String   @unique
+  branchName     String
+
+  subject        String[]
+  assignClass    String[]
+
+  password       String
+  address        String
+  photo          String?
+
+  isDeleted      Boolean  @default(false)
+
+  subscriptionId String
+  branchAdminId  String
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  teacherId      String
+  role           String
+
+  announcements   Announcement[]
+  notification    Notification[]
+
+  // Teacher → multiple class distributions
   classDistributions ClassDistribution[]
-  branchAdmin       BranchAdmin         @relation(fields: [branchAdminId], references: [id])
-  subscriptions     Subscriptions       @relation(fields: [subscriptionId], references: [id])
+
+  branchAdmin   BranchAdmin   @relation(fields: [branchAdminId], references: [id])
+  subscriptions Subscriptions @relation(fields: [subscriptionId], references: [id])
 
   @@index([teacherName])
   @@index([email])
@@ -220,25 +240,59 @@ model Teacher {
 }
 
 model ClassDistribution {
-  id         String  @id @default(uuid())
-  capacity   Int
-  roomNumber String  @db.VarChar(20)
-  teacherId  String  @db.VarChar(100)
-  teacher    Teacher @relation(fields: [teacherId], references: [id])
-  classLevel String  @db.VarChar(100)
-  students   Student @relation(fields: [classLevel], references: [id])
-  subscriptionId String  @db.VarChar(20) @unique
-  subscriptions     Subscriptions       @relation(fields: [subscriptionId], references: [id])
+  id          String @id @default(uuid())
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  isDelete  Boolean  @default(false)
+  capacity    Int
+  roomNumber  String
+  classLevel  String
+
+  teacherId   String
+  teacher     Teacher @relation(fields: [teacherId], references: [id])
+
+  // FIXED: one class has many students
+  students    Student[]
+
+  subscriptionId String
+  subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isDelete    Boolean  @default(false)
 
   @@index([teacherId])
   @@index([classLevel])
   @@index([capacity])
   @@index([subscriptionId])
   @@map("class_distributions")
+}
+
+model Subscriptions {
+  id          String   @id @default(uuid())
+  userId      String
+
+  price       Float    @default(0.00)
+  isDeleted   Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  announcements Announcement[]
+  notifications Notification[]
+  staffs        Staff[]
+  student       Student[]
+  teacher       Teacher[]
+  subjects      Subject[]
+  supports      Support[]
+
+  subscriptiondetails SubscriptionDetails[]
+
+  // FIXED: ONE subscription → MANY class distributions
+  classDistributions ClassDistribution[]
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([price])
+  @@map("subscriptions")
 }
 
 model Announcement {
