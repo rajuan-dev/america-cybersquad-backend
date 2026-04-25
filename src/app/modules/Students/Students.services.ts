@@ -119,6 +119,7 @@ const findByAllStudentsIntoDb = async (
           id: true,
           name: true,
           email: true,
+          studentId:true , 
           branchName: true,
           className: true,
           guardianName: true,
@@ -129,22 +130,22 @@ const findByAllStudentsIntoDb = async (
           updatedAt: true,
 
           // ✅ FIXED subscription select
-          subscriptions: {
-            select: {
-              id: true,
-              price: true,
-              subscriptiondetails: {
-                select: {
-                  id: true,
-                  subscriptionType: true,
-                  schoolName: true,
-                  city: true,
-                  state: true,
-                  country: true,
-                },
-              },
-            },
-          },
+          // subscriptions: {
+          //   select: {
+          //     id: true,
+          //     price: true,
+          //     subscriptiondetails: {
+          //       select: {
+          //         id: true,
+          //         subscriptionType: true,
+          //         schoolName: true,
+          //         city: true,
+          //         state: true,
+          //         country: true,
+          //       },
+          //     },
+          //   },
+          // },
         },
       }),
 

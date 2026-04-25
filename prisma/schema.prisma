@@ -82,6 +82,9 @@ model Subscriptions {
   supports            Support[]
   teacher             Teacher[]
   subjects            Subject[]
+  // ✅ ONE TO ONE
+  classDistribution ClassDistribution?
+
 
   @@index([price])
   @@map("subscriptions")
@@ -89,7 +92,7 @@ model Subscriptions {
 
 model SubscriptionDetails {
   id               String           @id @default(uuid())
-  subscriptionId   String           @db.VarChar(100)
+  subscriptionId   String           @db.VarChar(100) 
   state            String           @db.VarChar(100)
   city             String           @db.VarChar(100)
   createdAt        DateTime         @default(now())
@@ -150,23 +153,24 @@ model Student {
   email      String @unique
   branchName String
 
-  className        String
-  guardianName     String
-  guardianPhone    String
-  password         String
-  verificationCode Int?           @unique
-  isVerified       Boolean        @default(true)
-  branchAdminId    String
-  subscriptionId   String
-  photo            String?
-  isDeleted        Boolean        @default(false)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  studentId        String
-  role             String
-  notification     Notification[]
-  branchAdmin      BranchAdmin    @relation(fields: [branchAdminId], references: [id])
-  subscriptions    Subscriptions  @relation(fields: [subscriptionId], references: [id])
+  className         String
+  guardianName      String
+  guardianPhone     String
+  password          String
+  verificationCode  Int?                @unique
+  isVerified        Boolean             @default(true)
+  branchAdminId     String
+  subscriptionId    String
+  photo             String?
+  isDeleted         Boolean             @default(false)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  studentId         String
+  role              String
+  notification      Notification[]
+   classDistributions ClassDistribution[]
+  branchAdmin       BranchAdmin         @relation(fields: [branchAdminId], references: [id])
+  subscriptions     Subscriptions       @relation(fields: [subscriptionId], references: [id])
 
   @@index([name])
   @@index([email])
@@ -181,27 +185,28 @@ model Student {
 }
 
 model Teacher {
-  id             String         @id @default(uuid())
-  teacherName    String
-  email          String         @unique
-  phoneNumber    String         @unique
-  branchName     String
-  subject        String[]
-  assignClass    String[]
-  password       String
-  address        String
-  photo          String?
-  isDeleted      Boolean        @default(false)
-  subscriptionId String
-  branchAdminId  String
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  teacherId      String
-  role           String
-  announcements  Announcement[]
-  notification   Notification[]
-  branchAdmin    BranchAdmin    @relation(fields: [branchAdminId], references: [id])
-  subscriptions  Subscriptions  @relation(fields: [subscriptionId], references: [id])
+  id                String              @id @default(uuid())
+  teacherName       String
+  email             String              @unique
+  phoneNumber       String              @unique
+  branchName        String
+  subject           String[]
+  assignClass       String[]
+  password          String
+  address           String
+  photo             String?
+  isDeleted         Boolean             @default(false)
+  subscriptionId    String
+  branchAdminId     String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  teacherId         String
+  role              String
+  announcements     Announcement[]
+  notification      Notification[]
+  classDistributions ClassDistribution[]
+  branchAdmin       BranchAdmin         @relation(fields: [branchAdminId], references: [id])
+  subscriptions     Subscriptions       @relation(fields: [subscriptionId], references: [id])
 
   @@index([teacherName])
   @@index([email])
@@ -212,6 +217,28 @@ model Teacher {
   @@index([teacherId])
   @@index([role])
   @@map("teachers")
+}
+
+model ClassDistribution {
+  id         String  @id @default(uuid())
+  capacity   Int
+  roomNumber String  @db.VarChar(20)
+  teacherId  String  @db.VarChar(100)
+  teacher    Teacher @relation(fields: [teacherId], references: [id])
+  classLevel String  @db.VarChar(100)
+  students   Student @relation(fields: [classLevel], references: [id])
+  subscriptionId String  @db.VarChar(20) @unique
+  subscriptions     Subscriptions       @relation(fields: [subscriptionId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isDelete  Boolean  @default(false)
+
+  @@index([teacherId])
+  @@index([classLevel])
+  @@index([capacity])
+  @@index([subscriptionId])
+  @@map("class_distributions")
 }
 
 model Announcement {
@@ -309,26 +336,25 @@ model Staff {
 }
 
 model Subject {
-  id             String        @id @default(uuid())
-  subjectName    String        @db.VarChar(100)
-  code           String        @db.VarChar(20)
-  department     String        @db.VarChar(100)
+  id             String @id @default(uuid())
+  subjectName    String @db.VarChar(100)
+  code           String @db.VarChar(20)
+  department     String @db.VarChar(100)
   subscriptionId String
 
-  subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
-  branchAdminId  String
-  branchAdmin    BranchAdmin   @relation(fields: [branchAdminId], references: [id])
+  subscriptions Subscriptions @relation(fields: [subscriptionId], references: [id])
+  branchAdminId String
+  branchAdmin   BranchAdmin   @relation(fields: [branchAdminId], references: [id])
 
-  isDelete       Boolean       @default(false)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  isDelete  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([branchAdminId])
   @@index([subjectName])
   @@index([code])
   @@index([department])
   @@index([subscriptionId])
-
   @@map("subjects")
 }
 
