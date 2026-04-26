@@ -192,13 +192,107 @@ const findByBranchAdminDistributionIntoDb = async (
       data: result,
     };
   } catch (error) {
-    throw error;
+    return catchError(error);
+  }
+};
+
+const findBySpecificClassDistributionIntoDb=async(id: string)=>{
+
+  try{
+
+    return await prisma.classDistribution.findUnique({where:{id}, select:{
+      id: true ,
+      capacity:true , 
+      roomNumber: true , 
+      classLevel: true ,
+      createdAt: true ,
+      updatedAt: true 
+    }});
+
+  }
+  catch(error){
+     return catchError(error);
+  };
+};
+
+
+const updateClassDistributionIntoDb = async (
+  id: string,
+  payload: {
+    classLevel?: string;
+    roomNumber?: string;
+    capacity?: number; 
+  }
+) => {
+  try {
+    const { classLevel, roomNumber, capacity } = payload;
+
+    const result = await prisma.$transaction(async (tx) => {
+
+      const existing = await tx.classDistribution.findUnique({
+        where: { id },
+        include: { students: true },
+      });
+
+      if (!existing) {
+        throw new ApiError(404, "Class distribution not found");
+      }
+
+      if (classLevel || roomNumber) {
+        const duplicate = await tx.classDistribution.findFirst({
+          where: {
+            id: { not: id },
+            classLevel: classLevel ?? existing.classLevel,
+            roomNumber: roomNumber ?? existing.roomNumber,
+            subscriptionId: existing.subscriptionId,
+          },
+        });
+
+        if (duplicate) {
+          throw new ApiError(400, "Same class & room already exists");
+        }
+      }
+      if (
+        capacity &&
+        existing.students.length > capacity
+      ) {
+        throw new ApiError(
+          httpStatus.NOT_EXTENDED,
+          `Capacity too small. Already ${existing.students.length} students assigned`
+        );
+      }
+
+      const updatedClass = await tx.classDistribution.update({
+        where: { id },
+        data: {
+          ...(classLevel && { classLevel }),
+          ...(roomNumber && { roomNumber }),
+          ...(capacity && { capacity }),
+        },
+        include: {
+          teacher: true,
+          students: true,
+        },
+      });
+
+      return updatedClass;
+    });
+
+    return result && {
+      success: true,
+      message: "Class distribution updated successfully",
+     
+    };
+  } catch (error) {
+    return catchError(error);
   }
 };
 
 const ClassDistributionServices = {
   recordedClassDistributionIntoDb,
   findByBranchAdminDistributionIntoDb,
+  findBySpecificClassDistributionIntoDb,
+  updateClassDistributionIntoDb
   
 };
 

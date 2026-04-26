@@ -27,11 +27,41 @@ const findByBranchAdminDistribution:RequestHandler=catchAsync(async(req , res)=>
     message: "Successfully Find By Branch Admin Distribution",
     data: result,
   });
+});
+
+const findBySpecificClassDistribution:RequestHandler=catchAsync(async(req , res)=>{
+
+
+    const result=await ClassDistributionServices.findBySpecificClassDistributionIntoDb(req.params.id);
+    sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By Specific Class Distribution",
+    data: result,
+  });
+});
+
+
+const updateClassDistribution:RequestHandler=catchAsync(async(req , res)=>{
+
+
+   const result=await ClassDistributionServices.updateClassDistributionIntoDb(req.params.id, req.body);
+ sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Update Class Distribution",
+    data: result,
+  });
+
 })
+
+
 
 const ClassDistributionController={
     recordedClassDistribution,
-    findByBranchAdminDistribution
+    findByBranchAdminDistribution,
+    findBySpecificClassDistribution,
+    updateClassDistribution
 };
 
 export default ClassDistributionController;

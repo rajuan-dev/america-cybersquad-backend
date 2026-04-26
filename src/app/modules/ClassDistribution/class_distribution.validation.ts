@@ -13,8 +13,17 @@ const createClassDistributionSchema=z.object({
     })
 });
 
+const updateClassDistributionSchema= z.object({
+     body: z.object({
+        classLevel: z.string({required_error:"class level is not  required"}).optional(), 
+        roomNumber:  z.string({required_error:"room number is not  required"}).optional(),
+        capacity:z.number({required_error:"capacity is not  required"}).optional(),
+    })
+})
+
 const ClassDistributionValidation ={
-    createClassDistributionSchema
+    createClassDistributionSchema,
+    updateClassDistributionSchema
 };
 export default ClassDistributionValidation;
 
