@@ -8,6 +8,7 @@ import ClassDistributionController from './class_distribution.controller';
 const router=express.Router();
 
 router.post("/recorded_class_distribution", branchAdminAuth(UserRole.BRANCH_ADMIN), validateRequest(ClassDistributionValidation.createClassDistributionSchema),  ClassDistributionController.recordedClassDistribution);
+router.get("/find_by_branch_class_distribution/:subscriptionId", branchAdminAuth(UserRole.BRANCH_ADMIN),ClassDistributionController.findByBranchAdminDistribution);
 
 const ClassDistributionRouter= router;
 export default ClassDistributionRouter;

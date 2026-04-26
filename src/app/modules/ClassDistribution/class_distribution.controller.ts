@@ -15,12 +15,23 @@ const  recordedClassDistribution:RequestHandler=catchAsync(async(req , res)=>{
     message: "Successfully Recorded",
     data: result,
   });
-
-
 });
 
+const findByBranchAdminDistribution:RequestHandler=catchAsync(async(req , res)=>{
+
+
+  const result=await ClassDistributionServices.findByBranchAdminDistributionIntoDb(req.params.subscriptionId, req.query);
+        sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By Branch Admin Distribution",
+    data: result,
+  });
+})
+
 const ClassDistributionController={
-    recordedClassDistribution
+    recordedClassDistribution,
+    findByBranchAdminDistribution
 };
 
 export default ClassDistributionController;

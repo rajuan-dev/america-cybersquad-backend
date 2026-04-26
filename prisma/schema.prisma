@@ -173,14 +173,12 @@ model Student {
   studentId         String
   role              String
 
+  classDistributions ClassDistribution[]
+
   // relations
   notification      Notification[]
   branchAdmin       BranchAdmin   @relation(fields: [branchAdminId], references: [id])
   subscriptions     Subscriptions @relation(fields: [subscriptionId], references: [id])
-
-  // FIXED: Student belongs to one class distribution
-  classDistributionId String?
-  classDistribution   ClassDistribution? @relation(fields: [classDistributionId], references: [id])
 
   @@index([name])
   @@index([email])
@@ -193,7 +191,6 @@ model Student {
   @@index([role])
   @@map("students")
 }
-
 model Teacher {
   id             String   @id @default(uuid())
   teacherName    String
@@ -222,20 +219,11 @@ model Teacher {
   announcements   Announcement[]
   notification    Notification[]
 
-  // Teacher → multiple class distributions
   classDistributions ClassDistribution[]
 
   branchAdmin   BranchAdmin   @relation(fields: [branchAdminId], references: [id])
   subscriptions Subscriptions @relation(fields: [subscriptionId], references: [id])
 
-  @@index([teacherName])
-  @@index([email])
-  @@index([phoneNumber])
-  @@index([branchName])
-  @@index([subject])
-  @@index([assignClass])
-  @@index([teacherId])
-  @@index([role])
   @@map("teachers")
 }
 
@@ -246,10 +234,11 @@ model ClassDistribution {
   roomNumber  String
   classLevel  String
 
+  // ✅ ONE teacher
   teacherId   String
   teacher     Teacher @relation(fields: [teacherId], references: [id])
 
-  // FIXED: one class has many students
+  // ✅ MANY students
   students    Student[]
 
   subscriptionId String
@@ -257,13 +246,11 @@ model ClassDistribution {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  isDelete    Boolean  @default(false)
+  isDeleted   Boolean  @default(false)
 
   @@index([teacherId])
   @@index([classLevel])
-  @@index([capacity])
   @@index([subscriptionId])
-  @@map("class_distributions")
 }
 
 model Subscriptions {
@@ -286,14 +273,14 @@ model Subscriptions {
 
   subscriptiondetails SubscriptionDetails[]
 
-  // FIXED: ONE subscription → MANY class distributions
   classDistributions ClassDistribution[]
 
   user User @relation(fields: [userId], references: [id])
 
-  @@index([price])
   @@map("subscriptions")
 }
+
+
 
 model Announcement {
   id             String        @id @default(uuid())
