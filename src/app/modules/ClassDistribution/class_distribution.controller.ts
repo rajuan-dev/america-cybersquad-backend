@@ -53,6 +53,19 @@ const updateClassDistribution:RequestHandler=catchAsync(async(req , res)=>{
     data: result,
   });
 
+});
+
+
+const deleteClassDistribution:RequestHandler=catchAsync(async(req , res)=>{
+
+
+   const result=await ClassDistributionServices.deleteClassDistributionIntoDb(req.params.id);
+   sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Delete",
+    data: result,
+  });
 })
 
 
@@ -61,7 +74,8 @@ const ClassDistributionController={
     recordedClassDistribution,
     findByBranchAdminDistribution,
     findBySpecificClassDistribution,
-    updateClassDistribution
+    updateClassDistribution,
+    deleteClassDistribution
 };
 
 export default ClassDistributionController;

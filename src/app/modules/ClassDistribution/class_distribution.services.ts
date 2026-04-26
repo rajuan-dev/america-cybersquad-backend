@@ -288,11 +288,61 @@ const updateClassDistributionIntoDb = async (
   }
 };
 
+
+const deleteClassDistributionIntoDb = async (id: string) => {
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+
+      const existing = await tx.classDistribution.findUnique({
+        where: { id },
+        include: {
+          students: {
+            select: { id: true },
+          },
+        },
+      });
+
+      if (!existing) {
+        throw new ApiError(404, "Class distribution not found");
+      }
+
+      if (existing.students.length > 0) {
+        await tx.classDistribution.update({
+          where: { id },
+          data: {
+            students: {
+              disconnect: existing.students.map((s) => ({
+                id: s.id,
+              })),
+            },
+          },
+        });
+      }
+
+    
+      const deletedClass = await tx.classDistribution.delete({
+        where: { id },
+      });
+
+      return deletedClass;
+    });
+
+    return  result && {
+      success: true,
+      message: "Class distribution deleted successfully"
+     
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
 const ClassDistributionServices = {
   recordedClassDistributionIntoDb,
   findByBranchAdminDistributionIntoDb,
   findBySpecificClassDistributionIntoDb,
-  updateClassDistributionIntoDb
+  updateClassDistributionIntoDb,
+  deleteClassDistributionIntoDb
   
 };
 
