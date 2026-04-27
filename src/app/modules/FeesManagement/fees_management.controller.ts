@@ -17,8 +17,21 @@ const recordedFeesManagement:RequestHandler=catchAsync(async(req , res)=>{
   });
 });
 
+const findByFeesManagement:RequestHandler=catchAsync(async(req , res)=>{
+
+  const result=await FeesManagementServices.findByFeesManagementIntoDb(req.params.subscriptionId, req.query);
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: result.message,
+    data: result,
+  });
+
+})
+
 const FeesManagementController={
-    recordedFeesManagement
+    recordedFeesManagement,
+    findByFeesManagement
 };
 
 export default FeesManagementController;
