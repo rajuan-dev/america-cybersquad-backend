@@ -85,14 +85,13 @@ model Testimonials {
 //   // ✅ ONE TO ONE
 //   classDistribution ClassDistribution?
 
-
 //   @@index([price])
 //   @@map("subscriptions")
 // }
 
 model SubscriptionDetails {
   id               String           @id @default(uuid())
-  subscriptionId   String           @db.VarChar(100) 
+  subscriptionId   String           @db.VarChar(100)
   state            String           @db.VarChar(100)
   city             String           @db.VarChar(100)
   createdAt        DateTime         @default(now())
@@ -148,37 +147,37 @@ model BranchAdmin {
 }
 
 model Student {
-  id                String   @id @default(uuid())
-  name              String
-  email             String   @unique
-  branchName        String
-  className         String
+  id         String @id @default(uuid())
+  name       String
+  email      String @unique
+  branchName String
+  className  String
 
-  guardianName      String
-  guardianPhone     String
-  password          String
+  guardianName  String
+  guardianPhone String
+  password      String
 
-  verificationCode  Int?     @unique
-  isVerified        Boolean  @default(true)
+  verificationCode Int?    @unique
+  isVerified       Boolean @default(true)
 
-  branchAdminId     String
-  subscriptionId    String
+  branchAdminId  String
+  subscriptionId String
 
-  photo             String?
-  isDeleted         Boolean  @default(false)
+  photo     String?
+  isDeleted Boolean @default(false)
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  studentId         String
-  role              String
+  studentId String
+  role      String
 
   classDistributions ClassDistribution[]
 
   // relations
-  notification      Notification[]
-  branchAdmin       BranchAdmin   @relation(fields: [branchAdminId], references: [id])
-  subscriptions     Subscriptions @relation(fields: [subscriptionId], references: [id])
+  notification  Notification[]
+  branchAdmin   BranchAdmin    @relation(fields: [branchAdminId], references: [id])
+  subscriptions Subscriptions  @relation(fields: [subscriptionId], references: [id])
 
   @@index([name])
   @@index([email])
@@ -191,33 +190,34 @@ model Student {
   @@index([role])
   @@map("students")
 }
+
 model Teacher {
-  id             String   @id @default(uuid())
-  teacherName    String
-  email          String   @unique
-  phoneNumber    String   @unique
-  branchName     String
+  id          String @id @default(uuid())
+  teacherName String
+  email       String @unique
+  phoneNumber String @unique
+  branchName  String
 
-  subject        String[]
-  assignClass    String[]
+  subject     String[]
+  assignClass String[]
 
-  password       String
-  address        String
-  photo          String?
+  password String
+  address  String
+  photo    String?
 
-  isDeleted      Boolean  @default(false)
+  isDeleted Boolean @default(false)
 
   subscriptionId String
   branchAdminId  String
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  teacherId      String
-  role           String
+  teacherId String
+  role      String
 
-  announcements   Announcement[]
-  notification    Notification[]
+  announcements Announcement[]
+  notification  Notification[]
 
   classDistributions ClassDistribution[]
 
@@ -228,30 +228,30 @@ model Teacher {
 }
 
 model ClassDistribution {
-  id          String @id @default(uuid())
+  id String @id @default(uuid())
 
-  capacity    Int
-  roomNumber  String
-  classLevel  String
+  capacity          Int
+  roomNumber        String
+  classLevel        String
   assignableSubject String?
   //optional field 
-  day String ?
-  time String ?
-  isOnline Boolean ? @default(false)
+  day               String?
+  time              String?
+  isOnline          Boolean? @default(false)
 
   // ✅ ONE teacher
-  teacherId   String
-  teacher     Teacher @relation(fields: [teacherId], references: [id])
+  teacherId String
+  teacher   Teacher @relation(fields: [teacherId], references: [id])
 
   // ✅ MANY students
-  students    Student[]
+  students Student[]
 
   subscriptionId String
   subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  isDeleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isDeleted Boolean  @default(false)
 
   @@index([teacherId])
   @@index([classLevel])
@@ -259,22 +259,22 @@ model ClassDistribution {
 }
 
 model Subscriptions {
-  id          String   @id @default(uuid())
-  userId      String
+  id     String @id @default(uuid())
+  userId String
 
-  price       Float    @default(0.00)
-  isDeleted   Boolean  @default(false)
+  price     Float   @default(0.00)
+  isDeleted Boolean @default(false)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  announcements Announcement[]
-  notifications Notification[]
-  staffs        Staff[]
-  student       Student[]
-  teacher       Teacher[]
-  subjects      Subject[]
-  supports      Support[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  feesManagements FeesManagement[]
+  announcements   Announcement[]
+  notifications   Notification[]
+  staffs          Staff[]
+  student         Student[]
+  teacher         Teacher[]
+  subjects        Subject[]
+  supports        Support[]
 
   subscriptiondetails SubscriptionDetails[]
 
@@ -285,7 +285,21 @@ model Subscriptions {
   @@map("subscriptions")
 }
 
+model FeesManagement {
+  id             String        @id @default(uuid())
+  totalFees      Float         @default(5000)
+  classLevel     String
+  subscriptionId String        
+  subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
+  isDelete       Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
+  @@index([totalFees])
+  @@index([classLevel])
+  @@index([subscriptionId])
+  @@map("fees_managements")
+}
 
 model Announcement {
   id             String        @id @default(uuid())

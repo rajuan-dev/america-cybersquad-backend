@@ -1,0 +1,25 @@
+
+import {z} from 'zod';
+import { PaymentStatus } from './fees_management.constant';
+
+
+
+const createFeesManagementSchema= z.object({
+    body: z.object({
+         subscriptionId: z.string({required_error:" subscriptionId is required"}),
+         totalFees: z.number({required_error:"totalFees is required"}),
+         classLevel: z.string({required_error:"class level is required"}),
+         
+        //  paidAmount: z.number({required_error:"paidAmount is required"}),
+        //  unpaidAmount: z.number({required_error:"unpaidAmount is required"}),
+        //  classLevel: z.string({required_error:"classLevel is required"}),
+         paymentStatus: z.enum([PaymentStatus.paid, PaymentStatus.unpaid]).default(PaymentStatus.unpaid)
+    })
+});
+
+const FessManagementValidation ={
+    createFeesManagementSchema
+};
+
+export default FessManagementValidation;
+

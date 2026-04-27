@@ -399,7 +399,8 @@ const findByBranchAdminClassScheduleIntoDb=async( subscriptionId: string,query: 
         classLevel: true,
         assignableSubject: true,
         time: true , 
-        day: true , 
+        day: true ,
+        isOnline:true, 
         createdAt: true,
 
 
