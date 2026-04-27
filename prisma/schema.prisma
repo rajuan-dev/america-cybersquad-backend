@@ -237,6 +237,7 @@ model ClassDistribution {
   //optional field 
   day String ?
   time String ?
+  isOnline Boolean ? @default(false)
 
   // ✅ ONE teacher
   teacherId   String

@@ -78,6 +78,20 @@ const findByBranchAdminClassSchedule:RequestHandler=catchAsync(async(req , res)=
     message: "Successfully Find By All Class Schedule",
     data: result,
   });
+});
+
+const  classSchedule:RequestHandler=catchAsync(async(req , res)=>{
+
+    const result=await ClassDistributionServices.classScheduleIntoDb(req.params.classDistributionId, req.body);
+
+ sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: result.message,
+    data: result,
+  });
+
+
 })
 
 
@@ -88,7 +102,8 @@ const ClassDistributionController={
     findBySpecificClassDistribution,
     updateClassDistribution,
     deleteClassDistribution,
-    findByBranchAdminClassSchedule
+    findByBranchAdminClassSchedule,
+     classSchedule
 };
 
 export default ClassDistributionController;

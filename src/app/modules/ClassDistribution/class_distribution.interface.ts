@@ -8,6 +8,10 @@ export interface IClassDistribution {
     classLevel: string;
     subscriptionId: string
     assignableSubject: string
+    day?:string
+    time?: string;
+    isDelete?: boolean;
+    
 };
 
 

@@ -398,6 +398,8 @@ const findByBranchAdminClassScheduleIntoDb=async( subscriptionId: string,query: 
         roomNumber: true,
         classLevel: true,
         assignableSubject: true,
+        time: true , 
+        day: true , 
         createdAt: true,
 
 
@@ -448,7 +450,34 @@ const findByBranchAdminClassScheduleIntoDb=async( subscriptionId: string,query: 
 
   }
 
-}
+};
+
+const classScheduleIntoDb = async (
+  classDistributionId: string,
+  payload: { day?: string; time?: string }
+): Promise<{
+  status: boolean;
+  message: string;
+}> => {
+  try {
+    const result = await prisma.classDistribution.update({
+      where: {
+        id: classDistributionId,
+      },
+      data: {
+        ...(payload.day !== undefined && { day: payload.day }),
+        ...(payload.time !== undefined && { time: payload.time }),
+      },
+    });
+
+    return result && {
+      status: true,
+      message: "Successfully recorded",
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
 
 const ClassDistributionServices = {
   recordedClassDistributionIntoDb,
@@ -456,7 +485,8 @@ const ClassDistributionServices = {
   findBySpecificClassDistributionIntoDb,
   updateClassDistributionIntoDb,
   deleteClassDistributionIntoDb,
-  findByBranchAdminClassScheduleIntoDb
+  findByBranchAdminClassScheduleIntoDb,
+  classScheduleIntoDb
   
 };
 

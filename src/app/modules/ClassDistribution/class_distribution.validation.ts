@@ -21,11 +21,23 @@ const updateClassDistributionSchema= z.object({
         capacity:z.number({required_error:"capacity is not  required"}).optional(),
         assignableSubject: z.string({required_error:" assignable Subject is not required"}).optional()
     })
-})
+});
+
+const classScheduleSchema=z.object({
+
+    body: z.object({
+
+        day: z.string({required_error:"day is required"}),
+        time: z.string({required_error:"time is required"})
+
+    })
+
+});
 
 const ClassDistributionValidation ={
     createClassDistributionSchema,
-    updateClassDistributionSchema
+    updateClassDistributionSchema,
+    classScheduleSchema
 };
 export default ClassDistributionValidation;
 
