@@ -233,6 +233,10 @@ model ClassDistribution {
   capacity    Int
   roomNumber  String
   classLevel  String
+  assignableSubject String?
+  //optional field 
+  day String ?
+  time String ?
 
   // ✅ ONE teacher
   teacherId   String

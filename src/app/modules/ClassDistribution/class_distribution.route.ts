@@ -12,6 +12,7 @@ router.get("/find_by_branch_class_distribution/:subscriptionId", branchAdminAuth
 router.get("/find_by_specific_class_distribution/:id",  branchAdminAuth(UserRole.BRANCH_ADMIN), ClassDistributionController.findBySpecificClassDistribution);
 router.patch("/update_class_distribution/:id", branchAdminAuth(UserRole.BRANCH_ADMIN), validateRequest(ClassDistributionValidation.updateClassDistributionSchema),  ClassDistributionController.updateClassDistribution);
 router.delete("/delete_class_distribution/:id", branchAdminAuth(UserRole.BRANCH_ADMIN),ClassDistributionController.deleteClassDistribution);
-
+router.get("/find_by_class_schedule/:subscriptionId", branchAdminAuth(UserRole.BRANCH_ADMIN), ClassDistributionController.findByBranchAdminClassSchedule);
+         
 const ClassDistributionRouter= router;
 export default ClassDistributionRouter;

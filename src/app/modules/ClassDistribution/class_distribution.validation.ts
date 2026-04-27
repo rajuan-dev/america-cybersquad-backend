@@ -8,6 +8,7 @@ const createClassDistributionSchema=z.object({
         classLevel: z.string({required_error:"class level is required"}), 
         roomNumber:  z.string({required_error:"room number is required"}),
         capacity:z.number({required_error:"capacity is required"}),
+         assignableSubject: z.string({required_error:" assignable Subject is required"})
 
 
     })
@@ -18,6 +19,7 @@ const updateClassDistributionSchema= z.object({
         classLevel: z.string({required_error:"class level is not  required"}).optional(), 
         roomNumber:  z.string({required_error:"room number is not  required"}).optional(),
         capacity:z.number({required_error:"capacity is not  required"}).optional(),
+        assignableSubject: z.string({required_error:" assignable Subject is not required"}).optional()
     })
 })
 

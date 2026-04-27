@@ -7,6 +7,7 @@ export interface IClassDistribution {
     teacherId: string;
     classLevel: string;
     subscriptionId: string
+    assignableSubject: string
 };
 
 

@@ -8,7 +8,7 @@ const recordedClassDistributionIntoDb = async (
   payload: IClassDistribution
 ) => {
   try {
-    const { classLevel, roomNumber, capacity, subscriptionId, teacherId } =
+    const { classLevel, roomNumber, capacity, subscriptionId, teacherId, assignableSubject } =
       payload;
 
     const result = await prisma.$transaction(async (tx) => {
@@ -55,6 +55,7 @@ const recordedClassDistributionIntoDb = async (
           capacity,
           classLevel,
           teacherId: teacher.id,
+          assignableSubject,
 
           students: {
             connect: students.map((s) => ({ id: s.id })),
@@ -135,7 +136,9 @@ const findByBranchAdminDistributionIntoDb = async (
         capacity: true,
         roomNumber: true,
         classLevel: true,
+        assignableSubject: true,
         createdAt: true,
+
 
         // 👇 Teacher relation
         teacher: {
@@ -145,6 +148,7 @@ const findByBranchAdminDistributionIntoDb = async (
             email: true,
             phoneNumber: true,
             teacherId: true,
+            subject: true, 
             photo: true,
             createdAt: true,
           },
@@ -205,6 +209,7 @@ const findBySpecificClassDistributionIntoDb=async(id: string)=>{
       capacity:true , 
       roomNumber: true , 
       classLevel: true ,
+      assignableSubject: true,
       createdAt: true ,
       updatedAt: true 
     }});
@@ -221,11 +226,12 @@ const updateClassDistributionIntoDb = async (
   payload: {
     classLevel?: string;
     roomNumber?: string;
-    capacity?: number; 
+    capacity?: number;
+    assignableSubject?: string;
   }
 ) => {
   try {
-    const { classLevel, roomNumber, capacity } = payload;
+    const { classLevel, roomNumber, capacity, assignableSubject } = payload;
 
     const result = await prisma.$transaction(async (tx) => {
 
@@ -252,8 +258,9 @@ const updateClassDistributionIntoDb = async (
           throw new ApiError(400, "Same class & room already exists");
         }
       }
+
       if (
-        capacity &&
+        capacity !== undefined &&
         existing.students.length > capacity
       ) {
         throw new ApiError(
@@ -267,7 +274,8 @@ const updateClassDistributionIntoDb = async (
         data: {
           ...(classLevel && { classLevel }),
           ...(roomNumber && { roomNumber }),
-          ...(capacity && { capacity }),
+          ...(capacity !== undefined && { capacity }),
+          ...(assignableSubject && { assignableSubject }), // ✅ added
         },
         include: {
           teacher: true,
@@ -281,8 +289,8 @@ const updateClassDistributionIntoDb = async (
     return result && {
       success: true,
       message: "Class distribution updated successfully",
-     
     };
+
   } catch (error) {
     return catchError(error);
   }
@@ -337,12 +345,118 @@ const deleteClassDistributionIntoDb = async (id: string) => {
   }
 };
 
+
+const findByBranchAdminClassScheduleIntoDb=async( subscriptionId: string,query: Record<string, unknown>)=>{
+
+  try{
+
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(["classLevel", "roomNumber"])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const queryOptions = queryBuilder.build();
+
+    const { teacherId, classLevel } = query;
+
+    const extraFilter: any = {};
+
+    // 1️⃣ Teacher filter (safe mapping)
+    if (teacherId) {
+      const teacher = await prisma.teacher.findFirst({
+        where: { teacherId: teacherId as string },
+        select: { id: true },
+      });
+
+      if (!teacher) {
+        return {
+          meta: { page: 1, limit: 10, total: 0, totalPage: 0 },
+          data: [],
+        };
+      }
+
+      extraFilter.teacherId = teacher.id;
+    }
+
+    // 2️⃣ Class level filter
+    if (classLevel) {
+      extraFilter.classLevel = classLevel;
+    }
+
+    // 3️⃣ Main query
+    const result = await prisma.classDistribution.findMany({
+      where: {
+        subscriptionId,
+        ...queryOptions.where,
+        ...extraFilter,
+      },
+
+      select: {
+        id: true,
+        roomNumber: true,
+        classLevel: true,
+        assignableSubject: true,
+        createdAt: true,
+
+
+        // // 🔥 NEW: Students relation (many-to-many)
+        // students: {
+        //   select: {
+        //     id: true,
+        //     name: true,
+        //     email: true,
+        //     studentId: true,
+        //     className: true,
+        //     guardianName: true,
+        //     guardianPhone: true,
+        //     photo: true,
+        //   },
+        // },
+      },
+
+      orderBy: queryOptions.orderBy,
+      skip: queryOptions.skip,
+      take: queryOptions.take,
+    });
+
+    // 4️⃣ Count query
+    const total = await prisma.classDistribution.count({
+      where: {
+        subscriptionId,
+        ...queryOptions.where,
+        ...extraFilter,
+      },
+    });
+
+    const page = Number(query?.page) || 1;
+    const limit = Number(query?.limit) || 10;
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
+      data: result,
+    };
+  }
+  catch(error){
+    return  catchError(error);
+
+  }
+
+}
+
 const ClassDistributionServices = {
   recordedClassDistributionIntoDb,
   findByBranchAdminDistributionIntoDb,
   findBySpecificClassDistributionIntoDb,
   updateClassDistributionIntoDb,
-  deleteClassDistributionIntoDb
+  deleteClassDistributionIntoDb,
+  findByBranchAdminClassScheduleIntoDb
   
 };
 
