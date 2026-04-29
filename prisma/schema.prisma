@@ -178,6 +178,7 @@ model Student {
   notification  Notification[]
   branchAdmin   BranchAdmin    @relation(fields: [branchAdminId], references: [id])
   subscriptions Subscriptions  @relation(fields: [subscriptionId], references: [id])
+  studentFees   StudentFees[]
 
   @@index([name])
   @@index([email])
@@ -292,6 +293,7 @@ model FeesManagement {
   subscriptionId String        
   subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
   isDelete       Boolean       @default(false)
+  studentFees    StudentFees[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -300,6 +302,40 @@ model FeesManagement {
   @@index([subscriptionId])
   @@map("fees_managements")
 }
+enum FessStatus {
+  online
+  manual
+}
+
+model StudentFees {
+  id               String   @id @default(uuid())
+
+  paidAmount       Float
+  unpaidAmount     Float
+  feesStatus       FessStatus @default(manual)
+  studentId        String
+  userId           String
+  students             Student     @relation(fields: [userId], references: [id])
+
+  feesManagementId String
+  feesManagement   FeesManagement @relation(fields: [feesManagementId], references: [id])
+
+  isDelete         Boolean  @default(false)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+@@index([paidAmount])
+@@index([unpaidAmount])
+@@index([studentId])
+@@index([feesManagementId])
+@@map("student_fees")
+}
+
+
+
+
+
 
 model Announcement {
   id             String        @id @default(uuid())
