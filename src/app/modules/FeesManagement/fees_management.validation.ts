@@ -17,8 +17,18 @@ const createFeesManagementSchema= z.object({
     })
 });
 
+ const updateFeesManagementSchema =z.object({
+     body: z.object({
+        totalFees: z.number({required_error:"totalFees is not  required"}).optional(),
+        classLevel: z.string({required_error:"class level is not required"}).optional(),
+     })
+ });
+
+ 
+
 const FessManagementValidation ={
-    createFeesManagementSchema
+    createFeesManagementSchema,
+    updateFeesManagementSchema
 };
 
 export default FessManagementValidation;

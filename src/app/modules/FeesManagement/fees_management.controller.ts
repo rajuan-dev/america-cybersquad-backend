@@ -27,11 +27,37 @@ const findByFeesManagement:RequestHandler=catchAsync(async(req , res)=>{
     data: result,
   });
 
+});
+
+const updateFeesManagement:RequestHandler=catchAsync(async(req , res)=>{
+
+
+    const result=await FeesManagementServices.updateFeesManagementIntoDb(req.params.feesManagementId, req.body);
+     sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: result.message,
+    data: result,
+  });
+});
+
+
+const  findBySpecificFeesManagement:RequestHandler=catchAsync(async(req , res)=>{
+
+   const result=await FeesManagementServices.findBySpecificFeesManagementIntoDb(req.params.feesManagementId);
+    sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By Specific Fees Management",
+    data: result,
+  });
 })
 
 const FeesManagementController={
     recordedFeesManagement,
-    findByFeesManagement
+    findByFeesManagement,
+    updateFeesManagement,
+    findBySpecificFeesManagement
 };
 
 export default FeesManagementController;

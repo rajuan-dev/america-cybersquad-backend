@@ -109,9 +109,73 @@ const findByFeesManagementIntoDb = async (
   }
 };
 
+
+const findBySpecificFeesManagementIntoDb = async (id: string) => {
+  try {
+    return await prisma.feesManagement.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        totalFees: true,
+        classLevel: true,
+      },
+    });
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
+const updateFeesManagementIntoDb = async (
+  id: string,
+  payload: Partial<TFeesManagement>
+) => {
+  try {
+    const existing = await prisma.feesManagement.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Fees management not found");
+    }
+
+    let updateData: Partial<TFeesManagement> = {};
+
+    if (payload.classLevel !== undefined) {
+      updateData.classLevel = payload.classLevel;
+    }
+
+    if (payload.totalFees !== undefined) {
+      updateData.totalFees = payload.totalFees;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "No valid fields provided for update"
+      );
+    }
+
+    const result = await prisma.feesManagement.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return result && {
+      status: true,
+      message: "Successfully updated"
+     
+    };
+
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
 const FeesManagementServices = {
   recordedFeesManagementIntoDb,
-  findByFeesManagementIntoDb
+  findByFeesManagementIntoDb,
+  updateFeesManagementIntoDb,
+  findBySpecificFeesManagementIntoDb
 };
 
 export default FeesManagementServices;
