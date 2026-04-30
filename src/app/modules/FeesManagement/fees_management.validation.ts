@@ -29,14 +29,24 @@ const createFeesManagementSchema= z.object({
         studentId: z.string({required_error:"student Id is required"}),
         paidAmount: z.number({required_error:" paid amount is required"})
     })
- })
+ });
+
+  const updateStudentFeesManuallyReceivedSchema=z.object({
+    body: z.object({
+        paidAmount: z.number({required_error:" paid amount is required"})
+    })
+ });
+
+
+
 
  
 
 const FessManagementValidation ={
     createFeesManagementSchema,
     updateFeesManagementSchema,
-    studentFeesManuallyReceivedSchema
+    studentFeesManuallyReceivedSchema,
+    updateStudentFeesManuallyReceivedSchema
 };
 
 export default FessManagementValidation;

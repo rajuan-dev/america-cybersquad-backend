@@ -76,7 +76,44 @@ const findByAllPayableFees:RequestHandler=catchAsync(async(req , res)=>{
     data: result,
   });
 
-})
+});
+
+const  updateFeesManuallyReceived:RequestHandler=catchAsync(async(req , res)=>{
+
+
+   const result=await FeesManagementServices.updateFeesManuallyReceivedIntoDb(req.params.id, req.body);
+     sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: result.message,
+    data: result,
+  });
+
+});
+
+
+const  findBySpecificFeesManuallyReceived:RequestHandler=catchAsync(async(req , res)=>{
+
+   const result=await FeesManagementServices.findBySpecificFeesManuallyReceivedIntoDb(req.params.id);
+   sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By Specific Fees Manually",
+    data: result,
+  });
+});
+
+
+const deleteFeesManuallyReceived:RequestHandler=catchAsync(async(req , res)=>{
+   const result=await FeesManagementServices.deleteFeesManuallyReceivedIntoDb(req.params.id);
+   sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: result.message,
+    data: result,
+  });
+});
+
 
 const FeesManagementController={
     recordedFeesManagement,
@@ -84,7 +121,10 @@ const FeesManagementController={
     updateFeesManagement,
     findBySpecificFeesManagement,
     studentFeesManuallyReceived,
-    findByAllPayableFees
+    findByAllPayableFees,
+      updateFeesManuallyReceived,
+       findBySpecificFeesManuallyReceived,
+       deleteFeesManuallyReceived
 };
 
 export default FeesManagementController;

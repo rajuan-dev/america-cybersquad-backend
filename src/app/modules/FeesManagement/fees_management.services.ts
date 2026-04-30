@@ -378,6 +378,174 @@ const findByAllPayableFeesIntoDb = async (
   }
 };
 
+const findBySpecificFeesManuallyReceivedIntoDb=async(id:string)=>{
+
+    try{
+
+      return await prisma.studentFees.findUnique({where:{id},select:{
+        id:true, 
+        paidAmount:true,
+        unpaidAmount: true , 
+        paymentStatus: true
+      }})
+
+    }
+    catch (error) {
+    return catchError(error);
+  }
+}
+const updateFeesManuallyReceivedIntoDb = async (
+  id: string,
+  payload: Partial<TStudentFees>
+):Promise<{status: true , message: string}> => {
+  try {
+    if (!id) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "ID is required");
+    }
+
+    if (payload.paidAmount === undefined) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "paidAmount is required for update"
+      );
+    }
+
+    const newPaidAmount = Number(payload.paidAmount);
+
+    if (isNaN(newPaidAmount) || newPaidAmount < 0) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid paid amount");
+    }
+
+    return await prisma.$transaction(async (tx) => {
+
+      // ✅ Get existing record
+      const existingFees = await tx.studentFees.findFirstOrThrow({
+        where: {
+          id,
+  
+        },
+      });
+
+      // ✅ Get student + fees
+      const student = await tx.student.findFirstOrThrow({
+        where: {
+          studentId: existingFees.studentId,
+          isVerified: true,
+        },
+        select: {
+          id: true,
+          studentId: true,
+          className: true,
+        },
+      });
+
+      const fees = await tx.feesManagement.findFirstOrThrow({
+        where: {
+          id: existingFees.feesManagementId,
+        },
+        select: {
+          id: true,
+          totalFees: true,
+        },
+      });
+
+
+      const totalPaid = newPaidAmount;
+
+      if (totalPaid > fees.totalFees) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          "Paid amount cannot exceed total fees"
+        );
+      }
+
+      const unpaidAmount = fees.totalFees - totalPaid;
+
+      let paymentStatus: "PAID" | "PARTIAL" | "UNPAID";
+
+      if (totalPaid === fees.totalFees) {
+        paymentStatus = "PAID";
+      } else if (totalPaid > 0) {
+        paymentStatus = "PARTIAL";
+      } else {
+        paymentStatus = "UNPAID";
+      }
+
+   
+      const result = await tx.studentFees.update({
+        where: {
+          id,
+        },
+        data: {
+          paidAmount: totalPaid,
+          unpaidAmount,
+          paymentStatus,
+          paymentMethod: "MANUAL",
+        },
+      });
+
+      await tx.paymentHistory.create({
+        data: {
+          amount: newPaidAmount,
+          studentFeesId: result.id,
+        },
+      });
+
+      return {
+        status: true,
+        message: "Successfully Updated"
+      
+      };
+    });
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
+const deleteFeesManuallyReceivedIntoDb = async (id: string) => {
+  try {
+    if (!id) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "ID is required");
+    }
+
+    return await prisma.$transaction(async (tx) => {
+    
+      const existingFees = await tx.studentFees.findFirst({
+        where: {
+          id,
+        },
+        select:{
+          id:true
+        }
+      });
+
+      if (!existingFees) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Fees record not found");
+      };
+
+      
+      await tx.paymentHistory.deleteMany({
+        where: {
+          studentFeesId: id,
+        },
+      });
+
+  
+      const result = await tx.studentFees.delete({
+        where: {
+          id,
+        },
+      });
+
+      return {
+        status: true,
+        message: "Successfully Deleted"
+      };
+    });
+  } catch (error) {
+    throw catchError(error);
+  }
+};
 
 
 
@@ -387,7 +555,10 @@ const FeesManagementServices = {
   updateFeesManagementIntoDb,
   findBySpecificFeesManagementIntoDb,
   studentFeesManuallyReceivedIntoDb,
-  findByAllPayableFeesIntoDb
+  findByAllPayableFeesIntoDb,
+  updateFeesManuallyReceivedIntoDb,
+  findBySpecificFeesManuallyReceivedIntoDb,
+  deleteFeesManuallyReceivedIntoDb
 };
 
 export default FeesManagementServices;
