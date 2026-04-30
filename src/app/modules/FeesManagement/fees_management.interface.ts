@@ -12,11 +12,8 @@ export interface TFeesManagement {
 
 export interface TStudentFees {
        studentId: string;
-       totalAmount: number;
-       totalPaid: number;
-       remainingAmount: number;
-       dueDate: Date;
-       isPaid: boolean;
+       paidAmount: number;
+       
        isDeleted: boolean;
   
 }

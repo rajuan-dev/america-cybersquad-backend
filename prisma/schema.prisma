@@ -286,50 +286,72 @@ model Subscriptions {
   @@map("subscriptions")
 }
 
+enum PaymentMethod {
+  ONLINE
+  MANUAL
+}
+enum PaymentStatus {
+  PAID
+  PARTIAL
+  UNPAID
+}
+model StudentFees {
+  id               String   @id @default(uuid())
+
+  paidAmount       Float    @default(0)
+  unpaidAmount     Float
+
+  paymentMethod    PaymentMethod @default(MANUAL) // ✅ renamed
+  paymentStatus    PaymentStatus @default(UNPAID) // ✅ NEW
+
+  studentId        String
+  userId           String
+  student          Student @relation(fields: [userId], references: [id])
+
+  feesManagementId String
+  feesManagement   FeesManagement @relation(fields: [feesManagementId], references: [id])
+  paymentHistory   PaymentHistory[]
+  isDelete         Boolean  @default(false)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // ✅ Prevent duplicate fee per student per fees config
+  @@unique([studentId, feesManagementId])
+
+  @@index([studentId])
+  @@index([feesManagementId])
+  @@map("student_fees")
+}
+
 model FeesManagement {
   id             String        @id @default(uuid())
   totalFees      Float         @default(5000)
   classLevel     String
   subscriptionId String        
   subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
+
   isDelete       Boolean       @default(false)
   studentFees    StudentFees[]
+
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  @@index([totalFees])
   @@index([classLevel])
   @@index([subscriptionId])
   @@map("fees_managements")
 }
-enum FessStatus {
-  online
-  manual
-}
 
-model StudentFees {
-  id               String   @id @default(uuid())
-
-  paidAmount       Float
-  unpaidAmount     Float
-  feesStatus       FessStatus @default(manual)
-  studentId        String
-  userId           String
-  students             Student     @relation(fields: [userId], references: [id])
-
-  feesManagementId String
-  feesManagement   FeesManagement @relation(fields: [feesManagementId], references: [id])
-
-  isDelete         Boolean  @default(false)
-
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-@@index([paidAmount])
-@@index([unpaidAmount])
-@@index([studentId])
-@@index([feesManagementId])
-@@map("student_fees")
+model PaymentHistory {
+  id             String   @id @default(uuid())
+  amount         Float
+  studentFeesId  String
+  studentFees    StudentFees @relation(fields: [studentFeesId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime      @updatedAt
+  @@index([amount])
+   @@index([studentFeesId])
+   @@map("paymentHistory")
 }
 
 

@@ -51,14 +51,42 @@ const  findBySpecificFeesManagement:RequestHandler=catchAsync(async(req , res)=>
     message: "Successfully Find By Specific Fees Management",
     data: result,
   });
+});
+
+
+const studentFeesManuallyReceived:RequestHandler=catchAsync(async(req , res)=>{
+
+   const result=await FeesManagementServices.studentFeesManuallyReceivedIntoDb(req.body);
+    sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: result.message,
+    data: result,
+  });
+});
+
+const findByAllPayableFees:RequestHandler=catchAsync(async(req , res)=>{
+
+    const result=await FeesManagementServices. findByAllPayableFeesIntoDb(req.params.subscriptionId, req.query);
+
+      sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find All Payable Fees",
+    data: result,
+  });
+
 })
 
 const FeesManagementController={
     recordedFeesManagement,
     findByFeesManagement,
     updateFeesManagement,
-    findBySpecificFeesManagement
+    findBySpecificFeesManagement,
+    studentFeesManuallyReceived,
+    findByAllPayableFees
 };
 
 export default FeesManagementController;
+
 

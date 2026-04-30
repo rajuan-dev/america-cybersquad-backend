@@ -2,7 +2,7 @@ import httpStatus from "http-status";
 import ApiError from "../../../errors/ApiErrors";
 import catchError from "../../../errors/catchError";
 import prisma from "../../../shared/prisma";
-import { TFeesManagement } from "./fees_management.interface";
+import { TFeesManagement, TStudentFees } from "./fees_management.interface";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { searchable_fees_management } from "./fees_management.constant";
 
@@ -171,11 +171,223 @@ const updateFeesManagementIntoDb = async (
   }
 };
 
+const studentFeesManuallyReceivedIntoDb = async (
+  payload: Partial<TStudentFees>
+): Promise<{
+  status: true;
+  message: string;
+}> => {
+  try {
+    if (!payload.studentId || payload.paidAmount === undefined) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "studentId and paidAmount are required"
+      );
+    }
+
+    const paidAmount = Number(payload.paidAmount);
+
+    if (isNaN(paidAmount) || paidAmount <= 0) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid paid amount");
+    }
+
+    return await prisma.$transaction(async (tx) => {
+
+      const student = await tx.student.findFirstOrThrow({
+        where: {
+          studentId: payload.studentId,
+          isVerified: true,
+        },
+        select: {
+          id: true,
+          studentId: true,
+          className: true,
+        },
+      });
+
+    
+      const fees = await tx.feesManagement.findFirstOrThrow({
+        where: {
+          classLevel: student.className.toLowerCase(),
+        },
+        select: {
+          id: true,
+          totalFees: true,
+        },
+      });
+
+      const existingFees = await tx.studentFees.findFirst({
+        where: {
+          studentId: student.studentId,
+          feesManagementId: fees.id,
+        },
+      });
+
+      let totalPaid = paidAmount;
+
+      if (existingFees) {
+        totalPaid = existingFees.paidAmount + paidAmount;
+      }
+
+      // ❌ Prevent overpayment
+      if (totalPaid > fees.totalFees) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          "Already paid full amount, extra payment not allowed"
+        );
+      }
+
+      const unpaidAmount = fees.totalFees - totalPaid;
+
+      let paymentStatus: "PAID" | "PARTIAL" | "UNPAID";
+
+      if (totalPaid === fees.totalFees) {
+        paymentStatus = "PAID";
+      } else if (totalPaid > 0) {
+        paymentStatus = "PARTIAL";
+      } else {
+        paymentStatus = "UNPAID";
+      }
+
+      let studentFeesRecord;
+
+      // ✅ Create or Update
+      if (existingFees) {
+        studentFeesRecord = await tx.studentFees.update({
+          where: { id: existingFees.id },
+          data: {
+            paidAmount: totalPaid,
+            unpaidAmount,
+            paymentStatus,
+            paymentMethod: "MANUAL",
+          },
+        });
+      } else {
+        studentFeesRecord = await tx.studentFees.create({
+          data: {
+            studentId: student.studentId,
+            userId: student.id,
+            feesManagementId: fees.id,
+            paidAmount: totalPaid,
+            unpaidAmount,
+            paymentStatus, 
+            paymentMethod: "MANUAL",
+          },
+        });
+      }
+
+      await tx.paymentHistory.create({
+        data: {
+          amount: paidAmount,
+          studentFeesId: studentFeesRecord.id,
+        },
+      });
+
+      return {
+        status: true,
+        message: "Successfully Recorded",
+      };
+    });
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
+
+const findByAllPayableFeesIntoDb = async (
+  subscriptionId: string,
+  query: Record<string, unknown>
+) => {
+  try {
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search([])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const queryOptions = queryBuilder.build();
+
+    const result = await prisma.studentFees.findMany({
+      where: {
+        feesManagement: {
+          subscriptionId,
+          isDelete: false,
+        },
+        isDelete: false,
+        ...queryOptions.where,
+      },
+
+      orderBy: queryOptions.orderBy,
+      skip: queryOptions.skip,
+      take: queryOptions.take,
+
+      select: {
+        id: true,
+        paidAmount: true,
+        unpaidAmount: true,
+        paymentStatus: true,
+        paymentMethod: true,
+        createdAt: true,
+        updatedAt: true,
+        student: {
+          select: {
+            studentId: true,
+            className:true,
+            name:true
+                     },
+        },
+
+        feesManagement: {
+          select: {
+            id: true,
+            classLevel: true,
+
+            totalFees: true,
+          },
+        },
+      },
+    });
+
+    const total = await prisma.studentFees.count({
+      where: {
+        feesManagement: {
+          subscriptionId,
+          isDelete: false,
+        },
+        isDelete: false,
+        ...queryOptions.where,
+      },
+    });
+
+    const page = Number(query?.page) || 1;
+    const limit = Number(query?.limit) || 10;
+    const totalPage = Math.ceil(total / limit);
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage,
+      },
+      data: result,
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
+
+
+
 const FeesManagementServices = {
   recordedFeesManagementIntoDb,
   findByFeesManagementIntoDb,
   updateFeesManagementIntoDb,
-  findBySpecificFeesManagementIntoDb
+  findBySpecificFeesManagementIntoDb,
+  studentFeesManuallyReceivedIntoDb,
+  findByAllPayableFeesIntoDb
 };
 
 export default FeesManagementServices;
