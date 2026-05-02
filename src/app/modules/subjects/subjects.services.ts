@@ -243,6 +243,77 @@ const deleteSubjectIntoDb = async (id: string, userId: string) => {
 };
 
 
+const findBySpecificGlobalAdminAllSubjectIntoDb = async (
+  subscriptionId: string,
+  query: Record<string, unknown>
+) => {
+  try {
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(searchable_subject)
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const queryOptions = queryBuilder.build();
+
+    // ✅ Fetch subscription with related data
+    const result = await prisma.subscriptions.findUnique({
+      where: {
+        id: subscriptionId,
+      },
+      select: {
+        price: true,
+        subscriptiondetails: {
+          select: {
+            schoolName: true,
+            schoolType: true,
+            city: true,
+            country: true,
+            
+            
+           
+          },
+        },
+        subjects: {
+          select: {
+            subjectName: true,
+            department: true,
+            code: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    // ⚠️ FIX: total should match same model OR remove if not needed
+    const total = await prisma.subject.count({
+      where: {
+        subscriptionId: subscriptionId, // assuming relation exists
+        ...queryOptions.where,
+      },
+    });
+
+    const page = Number(query?.page) || 1;
+    const limit = Number(query?.limit) || 10;
+    const totalPage = Math.ceil(total / limit);
+
+    return {
+      status: true,
+      message: "Successfully fetched subscription subjects",
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage,
+      },
+      data: result,
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
 
 
 const SubjectsServices = {
@@ -251,7 +322,8 @@ const SubjectsServices = {
    findBySpecificBranchAdminAllSubjectIntoDb,
     findBySpecificBranchUnderSubjectIntoDb,
     updateSubjectIntoDb,
-    deleteSubjectIntoDb
+    deleteSubjectIntoDb,
+    findBySpecificGlobalAdminAllSubjectIntoDb
    
 };
 

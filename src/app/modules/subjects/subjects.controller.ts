@@ -77,6 +77,17 @@ const deleteSubject: RequestHandler=catchAsync(async(req , res)=>{
 
   });
 
+  const  findBySpecificGlobalAdminAllSubject:RequestHandler=catchAsync(async(req , res)=>{
+
+     const result=await SubjectsServices.findBySpecificGlobalAdminAllSubjectIntoDb(req.params.subscriptionId, req.query);
+            sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find My All Subject",
+    data: result,
+  });
+});
+
 
 
 
@@ -86,7 +97,8 @@ const SubjectController={
      findBySpecificBranchAdminAllSubject,
     findBySpecificBranchUnderSubject,
     updateSubject,
-    deleteSubject
-};
+    deleteSubject,
+    findBySpecificGlobalAdminAllSubject
+  };
 
 export default SubjectController;
