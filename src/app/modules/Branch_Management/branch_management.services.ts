@@ -26,6 +26,7 @@ const create_branch_admin_IntoDb = async (
       role,
       joinDate,
       assignBranch,
+      subscriptionId
     } = payload;
     const hashedPassword = await bcrypt.hash(
       password,
@@ -35,12 +36,12 @@ const create_branch_admin_IntoDb = async (
     // ⚡ Parallel duplicate checks
     const [ branchExists] = await Promise.all([
      
-      prisma.branchAdmin.findUnique({ where: { assignBranch } }),
+      prisma.branchAdmin.findUnique({ where: { emailAddress } }),
     ]);
 
 
     if (branchExists) {
-      throw new ApiError(httpStatus.CONFLICT, "Branch already assigned");
+      throw new ApiError(httpStatus.CONFLICT, "Branch Under User already assigned");
     }
 
   
@@ -52,6 +53,7 @@ const create_branch_admin_IntoDb = async (
         password: hashedPassword,
         joinDate: new Date(joinDate),
         assignBranch,
+        subscriptionId,
         role,
         userId,
       },

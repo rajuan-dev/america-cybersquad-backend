@@ -124,11 +124,13 @@ model BranchAdmin {
   verificationCode Int?           @unique
   role             String
   joinDate         DateTime
-  assignBranch     String         @unique
+  assignBranch     String        
   userId           String
   isDeleted        Boolean        @default(false)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+  subscriptionId   String?
+  subscriptions    Subscriptions?   @relation(fields: [subscriptionId], references: [id])
   announcements    Announcement[]
   user             User           @relation(fields: [userId], references: [id])
   notification     Notification[]
@@ -139,6 +141,7 @@ model BranchAdmin {
 
   @@index([fullName])
   @@index([phoneNumber])
+  @@index([subscriptionId])
   @@index([role])
   @@index([emailAddress])
   @@index([assignBranch])
@@ -276,6 +279,7 @@ model Subscriptions {
   teacher         Teacher[]
   subjects        Subject[]
   supports        Support[]
+  branchAdmins     BranchAdmin[]
 
   subscriptiondetails SubscriptionDetails[]
 

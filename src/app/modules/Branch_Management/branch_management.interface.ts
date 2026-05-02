@@ -5,6 +5,7 @@ export  interface TBranchAdmin {
     joinDate: Date ;
     role : string;
     assignBranch: string;
+    subscriptionId: string;
     password: string;
     isDelete: string;
 };

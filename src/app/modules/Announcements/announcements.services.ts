@@ -9,157 +9,151 @@ import { getSocketIO } from "../../../socket/connectSocket";
 import prisma from "../../../shared/prisma";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { searchable_announcement_field } from "./announcements.constant";
+import { UserRole } from "@prisma/client";
 
 
 const sendAnnouncementsIntoDb = async (
   payload: TAnnouncements,
   token: string
-) :Promise<{success:true , message:string}>=> {
+): Promise<{ success: true; message: string }> => {
   try {
     let verifiedUser;
+
     try {
       verifiedUser = jwtHelpers.verifyToken(
         token,
         config.jwt_access_secret as Secret
-      ) as {
-        id: string;
-        email: string;
-        role: string;
-        iat: number;
-        exp: number;
-      };
+      ) as any;
     } catch (error: any) {
       if (error.name === "TokenExpiredError") {
         throw new ApiError(httpStatus.UNAUTHORIZED, "Token expired");
       }
-      if (error.name === "JsonWebTokenError") {
-        throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid token");
-      }
-      throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized access");
+      throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid token");
     }
 
     const { isDelete, title, description, audience, subscriptionId } = payload;
+
+    // ✅ validation
+    if (!title || !description || !subscriptionId) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Title, description & subscriptionId required"
+      );
+    }
 
     const shortMsg =
       description.length > 20
         ? description.slice(0, 20) + "..."
         : description;
 
-    let result;
+    const io = getSocketIO() as any;
+
+    // ✅ reusable helper
+    const createAnnouncementWithNotification = async (
+      tx: any,
+      field: any
+    ) => {
+      const announcement = await tx.announcement.create({
+        data: {
+          title,
+          description,
+          audience,
+          subscriptionId,
+          isDelete: isDelete ?? false,
+          ...field,
+        },
+      });
+
+      await tx.notification.create({
+        data: {
+          title,
+          message: shortMsg,
+          subscriptionId,
+          ...field,
+        },
+      });
+
+      return announcement;
+    };
 
     switch (verifiedUser.role) {
-      case "BRANCH_ADMIN": {
-        result = await prisma.$transaction(async (tx) => {
-          const announcement = await tx.announcement.create({
-            data: {
-              title,
-              description,
-              audience,
-              isDelete: isDelete ?? false,
-               subscriptionId,
-              branchAdminId: verifiedUser.id,
-            },
-          });
-
-          await tx.notification.create({
-            data: {
-              title,
-              message: shortMsg,
-              branchAdminId: verifiedUser.id,
-              subscriptionId
-            },
-          });
-
-          return announcement;
-        });
-
+      case UserRole.BRANCH_ADMIN:
+        await prisma.$transaction((tx) =>
+          createAnnouncementWithNotification(tx, {
+            branchAdminId: verifiedUser.id,
+          })
+        );
         break;
-      }
 
-      case "INSTITUTIONAL_OWNER":
-      case "SUPER_ADMIN":
-      case "ADMIN": {
-        result = await prisma.$transaction(async (tx) => {
-          const announcement = await tx.announcement.create({
+      case UserRole.ADMIN:
+      case UserRole.SUPER_ADMIN:
+        await prisma.$transaction((tx) =>
+          createAnnouncementWithNotification(tx, {
+            userId: verifiedUser.id,
+          })
+        );
+        break;
+
+      case UserRole.TEACHER:
+        await prisma.$transaction((tx) =>
+          createAnnouncementWithNotification(tx, {
+            teacherId: verifiedUser.id,
+          })
+        );
+        break;
+
+      case UserRole.STUDENT:
+        await prisma.$transaction((tx) =>
+          createAnnouncementWithNotification(tx, {
+            studentId: verifiedUser.id,
+          })
+        );
+        break;
+
+      case UserRole.INSTITUTIONAL_OWNER: {
+        await prisma.$transaction(async (tx) => {
+          // ✅ create announcement
+          await tx.announcement.create({
             data: {
               title,
               description,
               audience,
-               subscriptionId,
+              subscriptionId,
               isDelete: isDelete ?? false,
               userId: verifiedUser.id,
             },
           });
 
-          await tx.notification.create({
-            data: {
-              title,
-              message: shortMsg,
-              userId: verifiedUser.id,
-              subscriptionId
-            },
+          // ✅ get branch admins
+          const branchAdmins = await tx.branchAdmin.findMany({
+            where: { subscriptionId },
+            select: { id: true },
           });
 
-          return announcement;
-        });
+          // ✅ bulk notifications
+          await Promise.all(
+            branchAdmins.map((b) =>
+              tx.notification.create({
+                data: {
+                  title,
+                  message: shortMsg,
+                  branchAdminId: b.id,
+                  userId: verifiedUser.id,
+                  subscriptionId,
+                },
+              })
+            )
+          );
 
-        break;
-      }
-
-      case "TEACHER": {
-        result = await prisma.$transaction(async (tx) => {
-          const announcement = await tx.announcement.create({
-            data: {
+          // ✅ socket emit
+          branchAdmins.forEach((b) => {
+            io.emit(`notification::${b.id}`, {
               title,
-              description,
-              audience,
-               subscriptionId,
-              isDelete: isDelete ?? false,
-              teacherId: verifiedUser.id,
-            },
+              message: description,
+              createdBy: verifiedUser.role,
+              timestamp: new Date().toISOString(),
+            });
           });
-
-          await tx.notification.create({
-            data: {
-              title,
-              message: shortMsg,
-              teacherId: verifiedUser.id,
-              subscriptionId
-            },
-          });
-
-          return announcement;
-        });
-
-        break;
-      }
-
-      case "STUDENT": {
-        result = await prisma.$transaction(async (tx) => {
-          const announcement = await tx.announcement.create({
-            data: {
-              title,
-              description,
-              audience,
-               subscriptionId,
-
-              isDelete: isDelete ?? false,
-              studentId: verifiedUser.id,
-            },
-          });
-
-          
-
-          await tx.notification.create({
-            data: {
-              title,
-              message: shortMsg,
-              studentId: verifiedUser.id,
-              subscriptionId
-            },
-          });
-
-          return announcement;
         });
 
         break;
@@ -169,14 +163,9 @@ const sendAnnouncementsIntoDb = async (
         throw new ApiError(httpStatus.FORBIDDEN, "Role not allowed");
     }
 
-
-    const io = getSocketIO() as any;
-
-    audience.forEach((v) => {
-      const role = v.trim().toUpperCase();
-
-      io.emit(`notification::${role}`, {
-        id: Date.now(),
+    // ✅ audience emit (clean)
+    audience?.forEach((role: string) => {
+      io.emit(`notification::${role.toUpperCase()}`, {
         title,
         message: description,
         createdBy: verifiedUser.role,
@@ -186,8 +175,7 @@ const sendAnnouncementsIntoDb = async (
 
     return {
       success: true,
-      message: "Successfully sent the announcements"
-      
+      message: "Successfully sent the announcements",
     };
   } catch (error) {
     return catchError(error);

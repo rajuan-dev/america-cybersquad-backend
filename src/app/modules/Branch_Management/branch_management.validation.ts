@@ -11,6 +11,7 @@ import { z } from "zod";
     role: z.enum([UserRole.BRANCH_ADMIN]),
     joinDate: z.string(),
     assignBranch: z.string().min(1),
+    subscriptionId: z.string({required_error:"Subscription ID is required"}).min(1),
   }),
 });
 
