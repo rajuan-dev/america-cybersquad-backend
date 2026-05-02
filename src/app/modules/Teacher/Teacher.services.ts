@@ -313,8 +313,8 @@ const findByAllTeachers_Institutional_OwnerIntoDb = async (
     }
 
     const whereCondition = {
-      subscriptionId, // 🔐 restrict by institution owner
-      isDeleted: false, // ✅ recommended
+      subscriptionId, 
+      isDeleted: false,
       ...queryOptions.where,
       ...teacherFilter,
 
@@ -325,7 +325,7 @@ const findByAllTeachers_Institutional_OwnerIntoDb = async (
       }),
     };
 
-    // ✅ Fetch data
+
     const result = await prisma.teacher.findMany({
       where: whereCondition,
       orderBy: queryOptions.orderBy,
