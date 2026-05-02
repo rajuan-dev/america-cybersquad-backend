@@ -270,7 +270,7 @@ const findBySpecificGlobalAdminAllSubjectIntoDb = async (
             schoolType: true,
             city: true,
             country: true,
-            
+
             
            
           },
@@ -286,10 +286,10 @@ const findBySpecificGlobalAdminAllSubjectIntoDb = async (
       },
     });
 
-    // ⚠️ FIX: total should match same model OR remove if not needed
+  
     const total = await prisma.subject.count({
       where: {
-        subscriptionId: subscriptionId, // assuming relation exists
+        subscriptionId: subscriptionId,
         ...queryOptions.where,
       },
     });
