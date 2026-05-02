@@ -46,7 +46,9 @@ const loginUserIntoDb = async (payload: Partial<TUser>) => {
 
         if (!user) {
           throw new ApiError(httpStatus.NOT_FOUND, "User not found", "");
-        }
+        };
+
+        
 
 
         if (payload.role && user.role !== payload.role) {
