@@ -11,7 +11,8 @@ import fs from "fs";
 import path from "path";
 import generateStudentId from '../../../utils/generateId/generateStudentId';
 import { UserRole } from "@prisma/client";
-
+import bcrypt from "bcrypt";
+import config from "../../../config";
 
 
 const createStudentIntoDb = async (
@@ -34,6 +35,15 @@ const createStudentIntoDb = async (
         "Student with this email already exists"
       );
     }
+
+       
+    
+        const hashedPassword = await bcrypt.hash(
+          payload.password,
+          Number(config.bcrypt_salt_rounds)
+        );
+        payload.password = hashedPassword;
+    
 
     // ✅ remove unsafe override possibility
     const { branchAdminId: _ignored, ...safePayload } = payload as CreateStudentDto;

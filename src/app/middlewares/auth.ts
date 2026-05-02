@@ -32,7 +32,12 @@ const auth = (...roles: string[]) => {
 
       const user = await prisma.user.findUnique({
         where: {
-          email: verifiedUser.email,
+         id: verifiedUser.id,
+         isVerified:true, 
+         state: UserStatus.ACTIVE
+        },       select: {
+          id: true,
+
         },
       });
 
@@ -40,11 +45,9 @@ const auth = (...roles: string[]) => {
         throw new ApiError(httpStatus.NOT_FOUND, "This user is not found !");
       }
 
-      const userStatus = user?.status;
+      
 
-      if (userStatus === UserStatus.INACTIVE) {
-        throw new ApiError(httpStatus.FORBIDDEN, "This user is inactive !");
-      }
+     
 
       if (roles.length && !roles.includes(verifiedUser.role)) {
       throw new ApiError(httpStatus.FORBIDDEN, "Forbidden!");
