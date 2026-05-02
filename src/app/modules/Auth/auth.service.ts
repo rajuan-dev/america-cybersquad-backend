@@ -1,4 +1,4 @@
-import { UserStatus } from "@prisma/client";
+import { UserRole, UserStatus } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import httpStatus from "http-status";
 
@@ -19,64 +19,79 @@ import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { TUser } from "../User/user.interface";
 import authConstants from "./auth.constant";
 
-const loginUserIntoDb = async (payload: {
-  email: string;
-  password: string;
-}) => {
+const loginUserIntoDb = async (payload: Partial<TUser>) => {
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    if (!payload.email || !payload.password) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Email and password are required", "");
+    }
 
-      const isUserExist = await tx.user.findFirst({
-        where: {
-          email: payload.email,
-          isVerified: true,
-          status: UserStatus.ACTIVE
-        },
-        select: {
-          id: true,
-          password: true,
-          isVerified: true,
-          email: true,
-          role: true,
-        },
-      });
+    let result;
 
-      if (!isUserExist) {
-        throw new ApiError(httpStatus.NOT_FOUND, "User not found", "");
+    switch (payload?.role) {
+      case UserRole.INSTITUTIONAL_OWNER:
+     {
+        const user = await prisma.user.findFirst({
+          where: {
+            email: payload.email,
+            isVerified: true,
+            status: UserStatus.ACTIVE,
+          },
+          select: {
+            id: true,
+            password: true,
+            email: true,
+            role: true,
+          },
+        });
+
+        if (!user) {
+          throw new ApiError(httpStatus.NOT_FOUND, "User not found", "");
+        }
+
+
+        if (payload.role && user.role !== payload.role) {
+          throw new ApiError(httpStatus.FORBIDDEN, "Invalid role for this user", "");
+        }
+
+        const isPasswordMatched = await bcrypt.compare(
+          payload.password as string,
+          user.password
+        );
+
+        if (!isPasswordMatched) {
+          throw new ApiError(httpStatus.FORBIDDEN, "Password not matched", "");
+        }
+
+        const jwtPayload = {
+          id: user.id,
+          role: user.role,
+          email: user.email,
+        };
+
+        const accessToken = jwtHelpers.generateToken(
+          jwtPayload,
+          config.jwt_access_secret as string,
+          config.expires_in as string
+        );
+
+        const refreshToken = jwtHelpers.generateToken(
+          jwtPayload,
+          config.jwt_refresh_secret as string,
+          config.refresh_expires_in as string
+        );
+
+        result = {
+          accessToken,
+          refreshToken,
+        };
+
+        break;
       }
 
-      const isPasswordMatched = await bcrypt.compare(
-        payload.password,
-        isUserExist.password
-      );
-
-      if (!isPasswordMatched) {
-        throw new ApiError(httpStatus.FORBIDDEN, "Password not matched", "");
+      default: {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid user role", "");
       }
-
-      const jwtPayload = {
-        id: isUserExist.id,
-        role: isUserExist.role,
-        email: isUserExist.email,
-      };
-
-      const accessToken = jwtHelpers.generateToken(
-        jwtPayload,
-        config.jwt_access_secret as string,
-        config.expires_in as string
-      );
-
-      const refreshToken = jwtHelpers.generateToken(
-        jwtPayload,
-        config.jwt_refresh_secret as string,
-        config.refresh_expires_in as string
-      );
-
-      return {
-        accessToken,
-        refreshToken,
-      };
-    });
+    }
 
     return result;
 

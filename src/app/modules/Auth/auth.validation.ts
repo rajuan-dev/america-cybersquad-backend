@@ -1,4 +1,4 @@
-import { UserStatus } from "@prisma/client";
+import { UserRole, UserStatus } from "@prisma/client";
 import { z } from "zod";
 
 const changePasswordValidationSchema = z.object({
@@ -29,6 +29,10 @@ const resetPasswordSchema = z.object({
 const LoginSchema = z.object({
   body: z.object({
     email: z.string({ required_error: "email is required" }).email(),
+    role: z.enum([UserRole.INSTITUTIONAL_OWNER, UserRole.STUDENT,  UserRole.ADMIN, UserRole.BRANCH_ADMIN, UserRole.PARENT], {
+      required_error: "Role is required",
+      invalid_type_error: "Invalid role value",
+    }),
     password: z
       .string({  required_error: "password is required" })
       .min(6, { message: "min 6 character accepted" }),
