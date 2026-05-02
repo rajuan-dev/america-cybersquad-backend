@@ -50,7 +50,7 @@ const sendSupportMessageIntoDb = async (
                 payload.message.length > 20
                   ? payload.message.slice(0, 20) + "..."
                   : payload.message,
-              userId: isExistSubscription.userId,
+              branchAdminId: isExistSubscription.userId,
               subscriptionId: payload.subscriptionId,
             },
           });
@@ -60,8 +60,46 @@ const sendSupportMessageIntoDb = async (
 
         // ✅ EMPTY CASE (no action)
         case "INSTITUTIONAL_OWNER": {
-          supportResult = null;
+
+const isExistSubscription = await tx.subscriptions.findUnique({
+            where: { id: payload.subscriptionId },
+            select: { userId: true },
+          });
+
+          if (!isExistSubscription) {
+            throw new ApiError(
+              httpStatus.NOT_FOUND,
+              "Subscription not found"
+            );
+          }
+
+          supportResult = await tx.support.create({
+            data: {
+              subscriptionId: payload.subscriptionId,
+              name: payload.name,
+              email: payload.email,
+              subject: payload.subject,
+              message: payload.message,
+              isDelete: payload.isDelete ?? false,
+              userId: userId,
+            },
+          });
+
+          await tx.notification.create({
+            data: {
+              title: payload.subject,
+              message:
+                payload.message.length > 20
+                  ? payload.message.slice(0, 20) + "..."
+                  : payload.message,
+              userId: isExistSubscription.userId,
+              subscriptionId: payload.subscriptionId,
+            },
+          });
+
           break;
+          
+         
         }
 
         default:

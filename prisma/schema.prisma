@@ -492,6 +492,7 @@ model Admin {
   @@map("admins")
 }
 
+
 enum UserRole {
   STUDENT
   PARENT
