@@ -746,7 +746,7 @@ const TeacherService = {
    findBySpecificClassListOfTeachersIntoDb,
   findBySpecificStudentListOfTeachersIntoDb,
   findBySpecificStudentAttendanceOfTeachersIntoDb,
-   recordedStudentAttendanceOfTeachersIntoDb
+  recordedStudentAttendanceOfTeachersIntoDb
 
 
 };
