@@ -94,9 +94,9 @@ const createTeacher:RequestHandler = catchAsync(async (req, res) => {
                     } );
 
 
-      const findBySpecificStudentListOfTeachers:RequestHandler = catchAsync(async (req, res) => {
+         const findBySpecificStudentListOfTeachers:RequestHandler = catchAsync(async (req, res) => {
 
-        const result = await TeacherService.findBySpecificStudentListOfTeachersIntoDb(req.user.id, req.params.subscriptionId, req.query);
+           const result = await TeacherService.findBySpecificStudentListOfTeachersIntoDb(req.user.id, req.params.subscriptionId, req.query);
 
           sendResponse(res, {
               statusCode: httpStatus.OK,
@@ -105,6 +105,19 @@ const createTeacher:RequestHandler = catchAsync(async (req, res) => {
               data: result,
           });
           } );
+
+
+          const findBySpecificStudentAttendanceOfTeachers:RequestHandler = catchAsync(async (req, res) => {
+
+           const result = await TeacherService.findBySpecificStudentAttendanceOfTeachersIntoDb(req.user.id, req.params.subscriptionId, req.query);
+          sendResponse(res, {
+              statusCode: httpStatus.OK,
+              success: true,
+              message:"Successfully Get All Students Attendance",
+              data: result,
+          });
+          } );
+
 
 
 
@@ -118,6 +131,7 @@ const TeacherController = {
    deleteTeacher,
    findByAllTeachers_Institutional_Owner,
    findBySpecificClassListOfTeacher,
-   findBySpecificStudentListOfTeachers
+   findBySpecificStudentListOfTeachers,
+   findBySpecificStudentAttendanceOfTeachers
 };
 export default TeacherController;

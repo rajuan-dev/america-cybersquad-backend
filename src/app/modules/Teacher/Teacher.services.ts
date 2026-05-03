@@ -558,6 +558,98 @@ const findBySpecificStudentListOfTeachersIntoDb = async (
     );
   }
 };
+
+const findBySpecificStudentAttendanceOfTeachersIntoDb = async (
+  teacherId: string,
+  subscriptionId: string,
+  query: Record<string, unknown>
+) => {
+  try {
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(teacherFilterableFields)
+      .filter()
+      .sort()
+      .paginate();
+
+    const queryOptions = queryBuilder.build();
+
+    const { classLevel, day } = query;
+    const extraFilter: Record<string, any> = {};
+
+    if (classLevel) extraFilter.classLevel = classLevel;
+    if (day) extraFilter.day = day;
+
+    // ✅ SINGLE QUERY (no ids.map)
+    const result = await prisma.student.findMany({
+      where: {
+        subscriptions: {
+          is: { id: subscriptionId },
+        },
+        classDistributions: {
+          some: {
+            teacherId,
+            ...extraFilter,
+          },
+        },
+        ...queryOptions.where,
+      },
+      orderBy: queryOptions.orderBy,
+      skip: queryOptions.skip,
+      take: queryOptions.take,
+      select: {
+        id: true,
+        name: true,
+        studentId: true,
+        className: true,
+        photo: true,
+        staffs:{
+          select:{
+            name: true,
+            role: true,
+            generateId: true,
+            phoneNumber: true,
+            
+          }
+        },
+        
+      },
+    });
+
+
+    const total = await prisma.student.count({
+      where: {
+        subscriptions: {
+          is: { id: subscriptionId },
+        },
+        classDistributions: {
+          some: {
+            teacherId,
+            ...extraFilter,
+          },
+        },
+        ...queryOptions.where,
+      },
+    });
+
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
+      data: result,
+    };
+  } catch (error) {
+    return catchError(
+      error,
+      "Error fetching student list for specific teacher"
+    );
+  }
+};
 const TeacherService = {
   createTeacherIntoDb,
   findByAllTeachersBranchAdminIntoDb,
@@ -566,7 +658,8 @@ const TeacherService = {
    deleteTeacherFromDb,
    findByAllTeachers_Institutional_OwnerIntoDb,
    findBySpecificClassListOfTeachersIntoDb,
-  findBySpecificStudentListOfTeachersIntoDb
+  findBySpecificStudentListOfTeachersIntoDb,
+  findBySpecificStudentAttendanceOfTeachersIntoDb
 
 };
 
