@@ -49,6 +49,8 @@ router.get(
 );
 
 router.get("/find_by_specific_class_listOf_teacher", auth(UserRole.TEACHER), TeacherController.findBySpecificClassListOfTeacher);
+router.get("/find_by_specific_student_listOf_teacher/:subscriptionId", auth(UserRole.TEACHER), TeacherController.findBySpecificStudentListOfTeachers);  
+
 
 
 

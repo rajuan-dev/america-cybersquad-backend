@@ -94,6 +94,19 @@ const createTeacher:RequestHandler = catchAsync(async (req, res) => {
                     } );
 
 
+      const findBySpecificStudentListOfTeachers:RequestHandler = catchAsync(async (req, res) => {
+
+        const result = await TeacherService.findBySpecificStudentListOfTeachersIntoDb(req.user.id, req.params.subscriptionId, req.query);
+
+          sendResponse(res, {
+              statusCode: httpStatus.OK,
+              success: true,
+              message:"Successfully Get All Students",
+              data: result,
+          });
+          } );
+
+
 
 
 
@@ -104,6 +117,7 @@ const TeacherController = {
    updateTeacher,
    deleteTeacher,
    findByAllTeachers_Institutional_Owner,
-   findBySpecificClassListOfTeacher
+   findBySpecificClassListOfTeacher,
+   findBySpecificStudentListOfTeachers
 };
 export default TeacherController;

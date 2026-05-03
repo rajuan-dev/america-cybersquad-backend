@@ -7,3 +7,5 @@ export const searchableTeacherFields = ["teacherName", "email", "phoneNumber", "
       "assignableSubject",
       "day",
     ];
+
+    export const teacherFilterableFields =["name", "email", "studentId", "className"];
