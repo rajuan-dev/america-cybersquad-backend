@@ -48,6 +48,8 @@ router.get(
   TeacherController.findByAllTeachers_Institutional_Owner
 );
 
+router.get("/find_by_specific_class_listOf_teacher", auth(UserRole.TEACHER), TeacherController.findBySpecificClassListOfTeacher);
+
 
 
 

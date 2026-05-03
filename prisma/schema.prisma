@@ -162,6 +162,7 @@ model Student {
 
   verificationCode Int?    @unique
   isVerified       Boolean @default(true)
+  status           UserStatus      @default(ACTIVE)
 
   branchAdminId  String
   subscriptionId String
@@ -213,6 +214,9 @@ model Teacher {
 
   subscriptionId String
   branchAdminId  String
+
+  isVerified       Boolean         @default(true)
+  status           UserStatus      @default(ACTIVE)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -441,6 +445,8 @@ model Staff {
   email          String        @db.VarChar(100)
   phoneNumber    String        @db.VarChar(100)
   password       String        @db.VarChar(300)
+  isVerified       Boolean         @default(true)
+  status           UserStatus      @default(ACTIVE)
   generateId     String        @unique @db.VarChar(100)
   studentId      String?
   subscriptionId String

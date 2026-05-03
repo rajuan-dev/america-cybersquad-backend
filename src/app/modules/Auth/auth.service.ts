@@ -94,6 +94,8 @@ const loginUserIntoDb = async (payload: Partial<TUser>) => {
        const user = await prisma.teacher.findFirst({
           where: {
             email: payload.email,
+             isVerified: true,
+            status: UserStatus.ACTIVE,
 
            
           },
@@ -157,6 +159,8 @@ const loginUserIntoDb = async (payload: Partial<TUser>) => {
     }
 
     return result;
+
+
 
   } catch (error) {
     catchError(error);
@@ -376,6 +380,9 @@ const findByAllUsersAdminIntoDb = async (query: Record<string, unknown>) => {
           },
         }),
       },
+
+
+      
 
       orderBy: queryOptions.orderBy,
       skip: queryOptions.skip,

@@ -15,15 +15,13 @@ const recordedClassDistributionIntoDb = async (
 
       const existing = await tx.classDistribution.findFirst({
         where: {
-          classLevel,
-          roomNumber,
           subscriptionId,
         },
         select: { id: true },
       });
 
-      if (existing) {
-        throw new ApiError(400, "Class distribution already exists");
+      if (!existing) {
+        throw new ApiError(400, "this subscription does not exist");
       }
 
       const teacher = await tx.teacher.findFirst({
@@ -479,6 +477,8 @@ const classScheduleIntoDb = async (
     return catchError(error);
   }
 };
+
+
 
 const ClassDistributionServices = {
   recordedClassDistributionIntoDb,

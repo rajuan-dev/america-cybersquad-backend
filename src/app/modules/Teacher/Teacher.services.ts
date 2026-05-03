@@ -6,7 +6,7 @@ import prisma from "../../../shared/prisma";
 import { Teacher } from "./Teacher.interface";
 import bcrypt from "bcrypt";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
-import { searchableTeacherFields } from "./Teacher.constant";
+import { searchableTeacherFields, teacherSearchableFields } from "./Teacher.constant";
 import fs from "fs";
 import path from "path";
 import generateTeacherId from "../../../utils/generateId/generateTeacherId";
@@ -384,13 +384,95 @@ const findByAllTeachers_Institutional_OwnerIntoDb = async (
   }
 };
 
+const findBySpecificClassListOfTeachersIntoDb = async (
+  teacherId: string,
+  query: Record<string, unknown>
+) => {
+  try {
+   
+
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(teacherSearchableFields)
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const queryOptions = queryBuilder.build();
+
+    // Optional extra filters
+    const { classLevel, day } = query;
+
+    const extraFilter: Record<string, any> = {};
+
+    if (classLevel) {
+      extraFilter.classLevel = classLevel;
+    }
+
+    if (day) {
+      extraFilter.day = day;
+    }
+
+    // Final where condition
+    const whereCondition = {
+      teacherId,
+      ...queryOptions.where,
+      ...extraFilter,
+    };
+
+    const result = await prisma.classDistribution.findMany({
+      where: whereCondition,
+      orderBy: queryOptions.orderBy,
+      skip: queryOptions.skip,
+      take: queryOptions.take,
+      select: {
+        id: true,
+        classLevel: true,
+        capacity: true,
+        roomNumber: true,
+        assignableSubject: true,
+        day: true,
+        time: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    // ✅ Total count
+    const total = await prisma.classDistribution.count({
+      where: whereCondition,
+    });
+
+    const page = Number(query?.page) || 1;
+    const limit = Number(query?.limit) || 10;
+    const totalPage = Math.ceil(total / limit);
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage,
+      },
+      data: result,
+    };
+  } catch (error) {
+    return catchError(
+      error,
+      "Error fetching class list for specific teacher"
+    );
+  }
+};
+
 const TeacherService = {
   createTeacherIntoDb,
   findByAllTeachersBranchAdminIntoDb,
   findBySingleTeacherIntoDb ,
   updateTeacherIntoDb,
    deleteTeacherFromDb,
-   findByAllTeachers_Institutional_OwnerIntoDb
+   findByAllTeachers_Institutional_OwnerIntoDb,
+   findBySpecificClassListOfTeachersIntoDb
+   
 };
 
 export default TeacherService;
