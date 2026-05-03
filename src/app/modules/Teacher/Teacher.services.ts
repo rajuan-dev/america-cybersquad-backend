@@ -3,7 +3,7 @@ import config from "../../../config";
 import ApiError from "../../../errors/ApiErrors";
 import catchError from "../../../errors/catchError";
 import prisma from "../../../shared/prisma";
-import { Teacher } from "./Teacher.interface";
+import { RecordAttendancePayload, Teacher } from "./Teacher.interface";
 import bcrypt from "bcrypt";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { searchableTeacherFields, teacherFilterableFields, teacherSearchableFields } from "./Teacher.constant";
@@ -650,6 +650,92 @@ const findBySpecificStudentAttendanceOfTeachersIntoDb = async (
     );
   }
 };
+
+
+const recordedStudentAttendanceOfTeachersIntoDb = async (
+  teacherId: string,
+  payload: RecordAttendancePayload
+) => {
+  try {
+    const { attendanceDate, subscriptionId, students } = payload;
+
+    const date = new Date(attendanceDate);
+    date.setHours(0, 0, 0, 0);
+    const existingStudents = await prisma.student.findMany({
+      where: {
+        studentId: { in: students.map((s) => s.studentId) },
+        subscriptionId: subscriptionId, // 🔥 simplify
+      },
+      select: {
+        id: true,
+        studentId: true,
+      },
+    });
+
+    const studentMap = new Map(
+      existingStudents.map((s) => [s.studentId, s.id])
+    );
+
+    
+    const existingAttendance = await prisma.attendanceSheet.findMany({
+      where: {
+        teacherId,
+        AttendanceDate: date,
+        studentId: {
+          in: Array.from(studentMap.values()),
+        },
+      },
+      select: {
+        studentId: true,
+      },
+    });
+
+    const existingStudentIds = new Set(
+      existingAttendance.map((a) => a.studentId)
+    );
+
+  
+    const newStudents = students.filter((s) => {
+      const dbId = studentMap.get(s.studentId);
+      return dbId && !existingStudentIds.has(dbId);
+    });
+
+    if (newStudents.length === 0) {
+      return {
+        success: false,
+        message: "Attendance already recorded for all students today",
+      };
+    }
+
+    const data = newStudents.map((s) => ({
+      studentId: studentMap.get(s.studentId)!, 
+      teacherId,
+      subscriptionId,
+      AttendanceDate: date,
+      attendanceStatus: s.attendanceStatus,
+    }));
+
+    const result = await prisma.attendanceSheet.createMany({
+      data,
+      skipDuplicates: true,
+    });
+
+    return {
+      success: true,
+      message: "Attendance recorded successfully",
+       insertedCount: result.count,
+      skipped: existingStudentIds.size,
+    };
+  } catch (error) {
+    return catchError(
+      error,
+      "Error recording student attendance for specific teacher"
+    );
+  }
+};
+
+
+
 const TeacherService = {
   createTeacherIntoDb,
   findByAllTeachersBranchAdminIntoDb,
@@ -659,7 +745,9 @@ const TeacherService = {
    findByAllTeachers_Institutional_OwnerIntoDb,
    findBySpecificClassListOfTeachersIntoDb,
   findBySpecificStudentListOfTeachersIntoDb,
-  findBySpecificStudentAttendanceOfTeachersIntoDb
+  findBySpecificStudentAttendanceOfTeachersIntoDb,
+   recordedStudentAttendanceOfTeachersIntoDb
+
 
 };
 

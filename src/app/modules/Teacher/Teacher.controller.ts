@@ -118,6 +118,17 @@ const createTeacher:RequestHandler = catchAsync(async (req, res) => {
           });
           } );
 
+          const recordedStudentAttendanceOfTeachers:RequestHandler = catchAsync(async (req, res) => {
+
+           const result = await TeacherService.recordedStudentAttendanceOfTeachersIntoDb(req.user.id, req.body);  
+          sendResponse(res, {
+              statusCode: httpStatus.OK,
+              success: true,
+              message:"Successfully Recorded Student Attendance",
+              data: result,
+          });
+          } );
+
 
 
 
@@ -132,6 +143,7 @@ const TeacherController = {
    findByAllTeachers_Institutional_Owner,
    findBySpecificClassListOfTeacher,
    findBySpecificStudentListOfTeachers,
-   findBySpecificStudentAttendanceOfTeachers
+   findBySpecificStudentAttendanceOfTeachers,
+   recordedStudentAttendanceOfTeachers
 };
 export default TeacherController;

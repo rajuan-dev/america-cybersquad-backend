@@ -9,3 +9,9 @@ export const searchableTeacherFields = ["teacherName", "email", "phoneNumber", "
     ];
 
     export const teacherFilterableFields =["name", "email", "studentId", "className"];
+
+
+    export const attendanceStatus={
+      present:"PRESENT", absent:"ABSENT"
+    } as const;
+    

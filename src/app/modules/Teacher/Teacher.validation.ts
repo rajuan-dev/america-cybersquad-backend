@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { attendanceStatus } from "./Teacher.constant";
 
  const TeacherSchema = z.object({
    body: z.object({
@@ -62,11 +63,53 @@ import { z } from "zod";
 
    })
 });
+ const attendanceStatusEnum = z.enum([attendanceStatus.present, attendanceStatus.absent], {
+  errorMap: () => ({ message: `Attendance status must be either '${attendanceStatus.present}' or '${attendanceStatus.absent}'` }),
+}).default(attendanceStatus.absent); 
+
+
+ export const studentAttendanceSchema = z.object({
+  studentId: z
+    .string({
+      required_error: "studentId is required",
+    })
+    .min(1, "studentId cannot be empty"),
+
+  attendanceStatus: attendanceStatusEnum,
+});
+
+ const recordAttendanceSchema = z.object({
+  body: z.object({
+    attendanceDate: z
+      .string({
+        required_error: "attendanceDate is required",
+      })
+      .refine((date) => !isNaN(Date.parse(date)), {
+        message: "Invalid date format",
+      }),
+
+    
+
+    subscriptionId: z
+      .string({
+        required_error: "subscriptionId is required",
+      })
+     ,
+
+    students: z
+      .array(studentAttendanceSchema, {
+        required_error: "students array is required",
+      })
+      .min(1, "At least 1 student required")
+      .max(100, "Maximum 100 students allowed"),
+  }),
+});
 
 
 const teacherValidation = {
   TeacherSchema,
-   TeacherUpdateSchema
+   TeacherUpdateSchema,
+   recordAttendanceSchema
 };
 
 export default teacherValidation;

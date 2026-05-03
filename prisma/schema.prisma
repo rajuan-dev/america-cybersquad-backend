@@ -124,13 +124,13 @@ model BranchAdmin {
   verificationCode Int?           @unique
   role             String
   joinDate         DateTime
-  assignBranch     String        
+  assignBranch     String
   userId           String
   isDeleted        Boolean        @default(false)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   subscriptionId   String?
-  subscriptions    Subscriptions?   @relation(fields: [subscriptionId], references: [id])
+  subscriptions    Subscriptions? @relation(fields: [subscriptionId], references: [id])
   announcements    Announcement[]
   user             User           @relation(fields: [userId], references: [id])
   notification     Notification[]
@@ -160,9 +160,9 @@ model Student {
   guardianPhone String
   password      String
 
-  verificationCode Int?    @unique
-  isVerified       Boolean @default(true)
-  status           UserStatus      @default(ACTIVE)
+  verificationCode Int?       @unique
+  isVerified       Boolean    @default(true)
+  status           UserStatus @default(ACTIVE)
 
   branchAdminId  String
   subscriptionId String
@@ -179,11 +179,12 @@ model Student {
   classDistributions ClassDistribution[]
 
   // relations
-  notification  Notification[]
-  branchAdmin   BranchAdmin    @relation(fields: [branchAdminId], references: [id])
-  subscriptions Subscriptions  @relation(fields: [subscriptionId], references: [id])
-  studentFees   StudentFees[]
-  staffs         Staff[]
+  notification     Notification[]
+  branchAdmin      BranchAdmin       @relation(fields: [branchAdminId], references: [id])
+  subscriptions    Subscriptions     @relation(fields: [subscriptionId], references: [id])
+  studentFees      StudentFees[]
+  staffs           Staff[]
+  attendanceSheets AttendanceSheet[]
 
   @@index([name])
   @@index([email])
@@ -216,8 +217,8 @@ model Teacher {
   subscriptionId String
   branchAdminId  String
 
-  isVerified       Boolean         @default(true)
-  status           UserStatus      @default(ACTIVE)
+  isVerified Boolean    @default(true)
+  status     UserStatus @default(ACTIVE)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -229,9 +230,9 @@ model Teacher {
   notification  Notification[]
 
   classDistributions ClassDistribution[]
-
-  branchAdmin   BranchAdmin   @relation(fields: [branchAdminId], references: [id])
-  subscriptions Subscriptions @relation(fields: [subscriptionId], references: [id])
+  attendanceSheets   AttendanceSheet[]
+  branchAdmin        BranchAdmin         @relation(fields: [branchAdminId], references: [id])
+  subscriptions      Subscriptions       @relation(fields: [subscriptionId], references: [id])
 
   @@map("teachers")
 }
@@ -274,8 +275,8 @@ model Subscriptions {
   price     Float   @default(0.00)
   isDeleted Boolean @default(false)
 
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   feesManagements FeesManagement[]
   announcements   Announcement[]
   notifications   Notification[]
@@ -284,11 +285,12 @@ model Subscriptions {
   teacher         Teacher[]
   subjects        Subject[]
   supports        Support[]
-  branchAdmins     BranchAdmin[]
+  branchAdmins    BranchAdmin[]
 
   subscriptiondetails SubscriptionDetails[]
 
   classDistributions ClassDistribution[]
+  attendanceSheets   AttendanceSheet[]
 
   user User @relation(fields: [userId], references: [id])
 
@@ -299,35 +301,36 @@ enum PaymentMethod {
   ONLINE
   MANUAL
 }
+
 enum PaymentStatus {
   PAID
   PARTIAL
   UNPAID
 }
+
 model StudentFees {
-  id               String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  paidAmount       Float    @default(0)
-  unpaidAmount     Float
+  paidAmount   Float @default(0)
+  unpaidAmount Float
 
-  paymentMethod    PaymentMethod @default(MANUAL) // ✅ renamed
-  paymentStatus    PaymentStatus @default(UNPAID) // ✅ NEW
+  paymentMethod PaymentMethod @default(MANUAL) // ✅ renamed
+  paymentStatus PaymentStatus @default(UNPAID) // ✅ NEW
 
-  studentId        String
-  userId           String
-  student          Student @relation(fields: [userId], references: [id])
+  studentId String
+  userId    String
+  student   Student @relation(fields: [userId], references: [id])
 
   feesManagementId String
-  feesManagement   FeesManagement @relation(fields: [feesManagementId], references: [id])
+  feesManagement   FeesManagement   @relation(fields: [feesManagementId], references: [id])
   paymentHistory   PaymentHistory[]
-  isDelete         Boolean  @default(false)
+  isDelete         Boolean          @default(false)
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // ✅ Prevent duplicate fee per student per fees config
   @@unique([studentId, feesManagementId])
-
   @@index([studentId])
   @@index([feesManagementId])
   @@map("student_fees")
@@ -337,14 +340,14 @@ model FeesManagement {
   id             String        @id @default(uuid())
   totalFees      Float         @default(5000)
   classLevel     String
-  subscriptionId String        
+  subscriptionId String
   subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
 
-  isDelete       Boolean       @default(false)
-  studentFees    StudentFees[]
+  isDelete    Boolean       @default(false)
+  studentFees StudentFees[]
 
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([classLevel])
   @@index([subscriptionId])
@@ -352,21 +355,17 @@ model FeesManagement {
 }
 
 model PaymentHistory {
-  id             String   @id @default(uuid())
-  amount         Float
-  studentFeesId  String
-  studentFees    StudentFees @relation(fields: [studentFeesId], references: [id])
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime      @updatedAt
+  id            String      @id @default(uuid())
+  amount        Float
+  studentFeesId String
+  studentFees   StudentFees @relation(fields: [studentFeesId], references: [id])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
   @@index([amount])
-   @@index([studentFeesId])
-   @@map("paymentHistory")
+  @@index([studentFeesId])
+  @@map("paymentHistory")
 }
-
-
-
-
-
 
 model Announcement {
   id             String        @id @default(uuid())
@@ -446,13 +445,13 @@ model Staff {
   email          String        @db.VarChar(100)
   phoneNumber    String        @db.VarChar(100)
   password       String        @db.VarChar(300)
-  isVerified       Boolean         @default(true)
-  status           UserStatus      @default(ACTIVE)
+  isVerified     Boolean       @default(true)
+  status         UserStatus    @default(ACTIVE)
   generateId     String        @unique @db.VarChar(100)
   studentId      String?
   subscriptionId String
-  sId             String?        @unique @db.VarChar(100)
-  students        Student?      @relation(fields: [sId], references: [id])
+  sId            String?       @unique @db.VarChar(100)
+  students       Student?      @relation(fields: [sId], references: [id])
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   photo          String?
@@ -489,6 +488,38 @@ model Subject {
   @@map("subjects")
 }
 
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+}
+
+model AttendanceSheet {
+  id String @id @default(uuid())
+
+  AttendanceDate DateTime
+
+  subscriptionId String
+  teacherId      String
+  studentId      String
+
+  attendanceStatus AttendanceStatus @default(ABSENT)
+
+  isDelete Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions Subscriptions @relation(fields: [subscriptionId], references: [id])
+  teachers      Teacher       @relation(fields: [teacherId], references: [id])
+  students      Student       @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, AttendanceDate, teacherId]) 
+  @@index([teacherId])
+  @@index([studentId])
+  @@index([AttendanceDate])
+  @@map("attendance_sheets")
+}
+
 model Admin {
   id          String   @id @default(uuid())
   fullName    String?
@@ -500,7 +531,6 @@ model Admin {
 
   @@map("admins")
 }
-
 
 enum UserRole {
   STUDENT

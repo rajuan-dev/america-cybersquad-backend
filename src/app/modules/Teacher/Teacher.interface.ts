@@ -12,3 +12,17 @@ export interface Teacher {
   subscriptionId: string;
  
 }
+
+
+export type AttendanceStatus = "PRESENT" | "ABSENT";
+export interface StudentAttendance {
+  studentId: string;
+  attendanceStatus: AttendanceStatus;
+}
+export interface RecordAttendancePayload {
+  attendanceDate: string; // ISO string থেকে Date বানাবো
+  teacherId: string;
+  subscriptionId: string;
+
+  students: StudentAttendance[];
+}
