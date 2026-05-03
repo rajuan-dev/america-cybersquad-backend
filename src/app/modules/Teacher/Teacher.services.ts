@@ -566,7 +566,7 @@ const TeacherService = {
    deleteTeacherFromDb,
    findByAllTeachers_Institutional_OwnerIntoDb,
    findBySpecificClassListOfTeachersIntoDb,
-    findBySpecificStudentListOfTeachersIntoDb
+  findBySpecificStudentListOfTeachersIntoDb
 
 };
 

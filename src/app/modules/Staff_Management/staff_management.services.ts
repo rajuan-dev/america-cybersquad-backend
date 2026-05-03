@@ -77,7 +77,8 @@ const createStaffManagementIntoDb = async (
 
         const isExistStudent = await prisma.student.findFirst({
           where: { studentId: payload.studentId },
-        });
+          select: { id: true },
+        }, );
 
         if (!isExistStudent) {
           throw new ApiError(
@@ -93,6 +94,7 @@ const createStaffManagementIntoDb = async (
             password: hashedPassword,
             name: payload.name,
             role: payload.role,
+            sId: isExistStudent.id,
             phoneNumber: payload.phoneNumber,
             subscriptionId: payload.subscriptionId,
             studentId: payload.studentId,

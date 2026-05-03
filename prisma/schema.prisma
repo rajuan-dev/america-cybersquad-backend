@@ -183,6 +183,7 @@ model Student {
   branchAdmin   BranchAdmin    @relation(fields: [branchAdminId], references: [id])
   subscriptions Subscriptions  @relation(fields: [subscriptionId], references: [id])
   studentFees   StudentFees[]
+  staffs         Staff[]
 
   @@index([name])
   @@index([email])
@@ -450,6 +451,8 @@ model Staff {
   generateId     String        @unique @db.VarChar(100)
   studentId      String?
   subscriptionId String
+  sId             String?        @unique @db.VarChar(100)
+  students        Student?      @relation(fields: [sId], references: [id])
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   photo          String?
