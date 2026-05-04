@@ -105,11 +105,40 @@ import { attendanceStatus } from "./Teacher.constant";
   }),
 });
 
+ const updateRecordAttendanceSchema = z.object({
+  body: z.object({
+    attendanceDate: z
+      .string({
+        required_error: "attendanceDate is required",
+      })
+      .refine((date) => !isNaN(Date.parse(date)), {
+        message: "Invalid date format",
+      }),
+
+    
+
+    subscriptionId: z
+      .string({
+        required_error: "subscriptionId is required",
+      })
+     ,
+
+    students: z
+      .array(studentAttendanceSchema, {
+        required_error: "students array is required",
+      })
+      .min(1, "At least 1 student required")
+      .max(100, "Maximum 100 students allowed"),
+  }),
+});
+
 
 const teacherValidation = {
   TeacherSchema,
    TeacherUpdateSchema,
-   recordAttendanceSchema
+   recordAttendanceSchema,
+   updateRecordAttendanceSchema
 };
+
 
 export default teacherValidation;

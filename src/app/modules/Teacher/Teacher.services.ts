@@ -736,6 +736,82 @@ const recordedStudentAttendanceOfTeachersIntoDb = async (
 
 
 
+const updateStudentAttendanceOfTeachersIntoDb = async (
+  teacherId: string,
+  payload: RecordAttendancePayload
+) => {
+  try {
+    const { attendanceDate, subscriptionId, students } = payload;
+
+   
+    const date = new Date(attendanceDate);
+    date.setHours(0, 0, 0, 0);
+
+    const existingStudents = await prisma.student.findMany({
+      where: {
+        studentId: { in: students.map((s) => s.studentId) },
+        subscriptionId,
+      },
+      select: {
+        id: true,        
+        studentId: true, 
+      },
+    });
+
+    const studentMap = new Map(
+      existingStudents.map((s) => [s.studentId, s.id])
+    );
+    const invalidStudents = students.filter(
+      (s) => !studentMap.has(s.studentId)
+    );
+
+    if (invalidStudents.length > 0) {
+      return {
+        success: false,
+        message: "Invalid studentIds found",
+        invalidStudents,
+      };
+    }
+    const operations = students.map((s) => {
+      const dbId = studentMap.get(s.studentId)!;
+
+      return prisma.attendanceSheet.upsert({
+        where: {
+          studentId_AttendanceDate_teacherId: {
+            studentId: dbId,
+            AttendanceDate: date,
+            teacherId,
+          },
+        },
+        update: {
+          attendanceStatus: s.attendanceStatus,
+        },
+        create: {
+          teacherId,
+          studentId: dbId,
+          subscriptionId,
+          AttendanceDate: date,
+          attendanceStatus: s.attendanceStatus,
+        },
+      });
+    });
+    const result = await prisma.$transaction(operations);
+
+    return {
+      success: true,
+      message: "Attendance updated successfully",
+      totalProcessed: result.length,
+    };
+  } catch (error) {
+    return catchError(
+      error,
+      "Error updating student attendance for specific teacher"
+    );
+  }
+};
+
+
+
 const TeacherService = {
   createTeacherIntoDb,
   findByAllTeachersBranchAdminIntoDb,
@@ -746,7 +822,8 @@ const TeacherService = {
    findBySpecificClassListOfTeachersIntoDb,
   findBySpecificStudentListOfTeachersIntoDb,
   findBySpecificStudentAttendanceOfTeachersIntoDb,
-  recordedStudentAttendanceOfTeachersIntoDb
+  recordedStudentAttendanceOfTeachersIntoDb,
+  updateStudentAttendanceOfTeachersIntoDb
 
 
 };

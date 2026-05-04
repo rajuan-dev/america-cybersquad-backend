@@ -129,6 +129,18 @@ const createTeacher:RequestHandler = catchAsync(async (req, res) => {
           });
           } );
 
+          const  updateStudentAttendanceOfTeachers:RequestHandler = catchAsync(async (req, res) => {
+
+           const result = await TeacherService.updateStudentAttendanceOfTeachersIntoDb(req.user.id, req.body);  
+          sendResponse(res, {
+              statusCode: httpStatus.OK,
+              success: true,
+              message:"Successfully Update Student Attendance",
+              data: result,
+          });
+          } );
+
+
 
 
 
@@ -144,6 +156,8 @@ const TeacherController = {
    findBySpecificClassListOfTeacher,
    findBySpecificStudentListOfTeachers,
    findBySpecificStudentAttendanceOfTeachers,
-   recordedStudentAttendanceOfTeachers
+   recordedStudentAttendanceOfTeachers,
+    updateStudentAttendanceOfTeachers
+
 };
 export default TeacherController;
