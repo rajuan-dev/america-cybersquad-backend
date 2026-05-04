@@ -53,7 +53,7 @@ router.get("/find_by_specific_student_listOf_teacher/:subscriptionId", auth(User
 router.get("/find_by_specific_student_attendance_of_teacher/:subscriptionId", auth(UserRole.TEACHER), TeacherController.findBySpecificStudentAttendanceOfTeachers);  
 router.post("/recorded_student_attendance_of_teacher", auth(UserRole.TEACHER), validateRequest(teacherValidation.recordAttendanceSchema), TeacherController.recordedStudentAttendanceOfTeachers); 
 router.patch("/update_student_attendance_of_teacher", auth(UserRole.TEACHER), validateRequest(teacherValidation.updateRecordAttendanceSchema), TeacherController.updateStudentAttendanceOfTeachers);
-
+router.get("/teacher_attendance_data/:subscriptionId", auth(UserRole.TEACHER), TeacherController.teacherAttendanceData);
 
 
 

@@ -10,7 +10,7 @@ import { searchableTeacherFields, teacherFilterableFields, teacherSearchableFiel
 import fs from "fs";
 import path from "path";
 import generateTeacherId from "../../../utils/generateId/generateTeacherId";
-import { UserRole } from "@prisma/client";
+import { AttendanceStatus, UserRole } from "@prisma/client";
 import { time } from "console";
 
 
@@ -810,6 +810,54 @@ const updateStudentAttendanceOfTeachersIntoDb = async (
   }
 };
 
+const teacherAttendanceDataIntoDb = async (
+  teacherId: string,
+  subscriptionId: string,
+  query: Record<string, unknown>
+) => {
+  try {
+    const { classLevel, day } = query;
+
+    const extraFilter: Record<string, any> = {};
+    if (classLevel) extraFilter.classLevel = classLevel;
+    if (day) extraFilter.day = day;
+
+    // ✅ PRESENT count
+    const totalPresent = await prisma.attendanceSheet.count({
+      where: {
+        teacherId,
+        subscriptionId,
+        attendanceStatus: AttendanceStatus.PRESENT,
+        ...extraFilter,
+      },
+    });
+
+    // ✅ ABSENT count
+    const totalAbsent = await prisma.attendanceSheet.count({
+      where: {
+        teacherId,
+        subscriptionId,
+        attendanceStatus: AttendanceStatus.ABSENT,
+        ...extraFilter,
+      },
+    });
+
+    return {
+      success: true,
+      data: {
+        totalPresent,
+        totalAbsent,
+      },
+    };
+  } catch (error) {
+    return catchError(
+      error,
+      "Error fetching attendance summary"
+    );
+  }
+};
+
+
 
 
 const TeacherService = {
@@ -823,7 +871,8 @@ const TeacherService = {
   findBySpecificStudentListOfTeachersIntoDb,
   findBySpecificStudentAttendanceOfTeachersIntoDb,
   recordedStudentAttendanceOfTeachersIntoDb,
-  updateStudentAttendanceOfTeachersIntoDb
+  updateStudentAttendanceOfTeachersIntoDb,
+   teacherAttendanceDataIntoDb 
 
 
 };
