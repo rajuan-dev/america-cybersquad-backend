@@ -1,15 +1,19 @@
 import { Server } from "http";
 import app from "./app";
+
 import config from "./config";
 import { connectSocket } from "./socket/connectSocket";
+import { connectRedis, disconnectRedis } from "./config/redis";
+import { logger } from "./config/logger";
 
 let server: Server;
 
 async function main() {
   const port = Number(config.port) || 5000;
-
+   await connectRedis();
   server = app.listen(port, () => {
     console.log(`🚀 Server running on http://localhost:${port}`);
+    console.log(`✅ Redis connected successfully : ${config.redis.url}`);
 
    
     connectSocket(server);
@@ -27,7 +31,9 @@ function shutdown(signal: string) {
   console.log(`👋 ${signal} received. Shutting down server...`);
 
   if (server) {
-    server.close(() => {
+    server.close(async () => {
+      await disconnectRedis();
+      logger.info("Process terminated");
       process.exit(0);
     });
   } else {

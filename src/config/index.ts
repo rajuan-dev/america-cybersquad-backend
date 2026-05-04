@@ -36,6 +36,9 @@ export default {
         ? "https://api.paypal.com"
         : "https://api.sandbox.paypal.com",
   },
+  
+  
+
 
   jwt_access_secret: process.env.JWT_ACCESS_SECRET,
   expires_in: process.env.EXPIRES_IN,
@@ -84,5 +87,11 @@ export default {
     aws_bucket_secret_key: process.env.AWS_BUCKET_SECRET_KEY,
     aws_bucket_region: process.env.AWS_BUCKET_REGION,
     aws_bucket_name: process.env.AWS_BUCKET_NAME,
+  },
+  redis: {
+    url: process.env.REDIS_URL,
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT ? Number(process.env.REDIS_PORT) : 6379,
+    password: process.env.REDIS_PASSWORD,
   },
 };

@@ -4,6 +4,7 @@ import TeacherService from "./Teacher.services";
 import httpStatus from "http-status";
 import sendResponse from "../../../shared/sendResponse";
 import { RequestHandler } from "express-serve-static-core";
+import { getRedisClient } from "../../../config/redis";
 
 
 
@@ -143,6 +144,7 @@ const createTeacher:RequestHandler = catchAsync(async (req, res) => {
 
           const teacherAttendanceData:RequestHandler = catchAsync(async (req, res) => {
 
+           
            const result = await TeacherService.teacherAttendanceDataIntoDb(req.user.id, req.params.subscriptionId, req.query);
           sendResponse(res, {
               statusCode: httpStatus.OK,

@@ -11,7 +11,8 @@ import fs from "fs";
 import path from "path";
 import generateTeacherId from "../../../utils/generateId/generateTeacherId";
 import { AttendanceStatus, UserRole } from "@prisma/client";
-import { time } from "console";
+
+import { getCache,  setCache } from "../../../config/redis";
 
 
 
@@ -434,6 +435,7 @@ const findBySpecificClassListOfTeachersIntoDb = async (
         assignableSubject: true,
         day: true,
         time: true,
+        isOnline: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -818,11 +820,23 @@ const teacherAttendanceDataIntoDb = async (
   try {
     const { classLevel, day } = query;
 
+
+    const cacheKey = `attendance:${teacherId}:${subscriptionId}:${classLevel || "all"}:${day || "all"}`;
+    
+
+    const cachedData = await getCache(cacheKey);
+    if (cachedData) {
+      return {
+        success: true,
+        data: cachedData,
+        source: "cache", 
+      };
+    }
+
     const extraFilter: Record<string, any> = {};
     if (classLevel) extraFilter.classLevel = classLevel;
     if (day) extraFilter.day = day;
 
-    // ✅ PRESENT count
     const totalPresent = await prisma.attendanceSheet.count({
       where: {
         teacherId,
@@ -832,7 +846,6 @@ const teacherAttendanceDataIntoDb = async (
       },
     });
 
-    // ✅ ABSENT count
     const totalAbsent = await prisma.attendanceSheet.count({
       where: {
         teacherId,
@@ -842,12 +855,18 @@ const teacherAttendanceDataIntoDb = async (
       },
     });
 
+    const resultData = {
+      totalPresent,
+      totalAbsent,
+    };
+
+    // ✅ Save to Redis (TTL 10 min)
+    await setCache(cacheKey, resultData, 600);
+
     return {
       success: true,
-      data: {
-        totalPresent,
-        totalAbsent,
-      },
+      data: resultData,
+      source: "db", 
     };
   } catch (error) {
     return catchError(
@@ -856,6 +875,8 @@ const teacherAttendanceDataIntoDb = async (
     );
   }
 };
+
+
 
 
 
