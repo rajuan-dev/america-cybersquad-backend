@@ -900,13 +900,24 @@ const onlineClassRecordedOfTeachersIntoDb = async (
     }
 
     const classData = await prisma.classDistribution.findUnique({
-      where: { id: classDistributionId },
-      include: {
+      where: { id: classDistributionId,isOnline:false },
+      
+      select: {
+         isOnline: true,
         students: {
           select: { id: true },
         },
-      },
+      }
     });
+
+
+
+    if(classData?.isOnline){
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Online class already recorded for this class distribution"
+      );
+    }
 
     if (!classData) {
       throw new ApiError(
@@ -976,7 +987,7 @@ const onlineClassRecordedOfTeachersIntoDb = async (
           notificationPayload
         );
       });
-    }
+    };
 
     return {
       success: true,

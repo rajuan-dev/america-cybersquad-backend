@@ -9,6 +9,7 @@ import cors from "cors";
 import cron from "node-cron";
 import autoDeleteUnverifiedUser from "./utils/autoDeleteUnverifiedUser";
 import catchError from "./errors/catchError";
+import autoChangeStatusOnlineClass from "./utils/autoChangeStatusOnlineClass";
 
 declare global {
   namespace Express {
@@ -76,6 +77,16 @@ cron.schedule("*/5 * * * *", async () => {
     await autoDeleteUnverifiedUser();
   } catch (error: unknown) {
     catchError(error, "[Cron] Error deleting unverified users:");
+  }
+});
+
+// autoChangeStatusOnlineClass
+
+cron.schedule("*/10 * * * *", async () => {
+  try {
+    await autoChangeStatusOnlineClass();
+  } catch (error: unknown) {
+    catchError(error, "[Cron] Error auto-changing online class status:");
   }
 });
 
