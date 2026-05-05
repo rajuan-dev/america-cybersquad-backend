@@ -3,10 +3,8 @@ import prisma from "../shared/prisma";
 
 const autoChangeStatusOnlineClass = async () => {
   try {
-    const currentTime = new Date();
-    const timeThreshold = new Date(
-      currentTime.getTime() - 10 * 60 * 1000
-    );
+   const ONE_DAY = 18 * 60 * 60 * 1000;
+const timeThreshold = new Date(Date.now() - ONE_DAY);
 
     const onlineClasses = await prisma.classDistribution.findMany({
       where: {
