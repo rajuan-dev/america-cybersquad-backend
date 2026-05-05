@@ -167,6 +167,32 @@ const createTeacher:RequestHandler = catchAsync(async (req, res) => {
                 } );
 
 
+        const storeClassRecordingLinkOfTeachers:RequestHandler = catchAsync(async (req, res) => {
+
+              const result = await TeacherService.storeClassRecordingLinkOfTeachersIntoDb(req.body);    
+                sendResponse(res, {
+                    statusCode: httpStatus.OK,
+                    success: true,
+                    message:"Successfully Store Class Recording Link Of Teacher",
+                    data: result,
+                });
+                } );
+
+
+                const  findBySpecificStudentClassRecordingOfTeachers:RequestHandler = catchAsync(async (req, res) => {
+
+                  const result = await TeacherService.findBySpecificStudentClassRecordingOfTeachersIntoDb(req.user.id, req.params.subscriptionId, req.query);
+                    sendResponse(res, { 
+                        statusCode: httpStatus.OK,
+                        success: true,
+                        message:"Successfully Get Class Recording Link Of Teacher",
+                        data: result,
+                    });
+                    } );
+
+
+
+
 
 
 
@@ -186,7 +212,9 @@ const TeacherController = {
    recordedStudentAttendanceOfTeachers,
     updateStudentAttendanceOfTeachers,
     teacherAttendanceData,
-    onlineClassRecordedOfTeachers
+    onlineClassRecordedOfTeachers,
+    storeClassRecordingLinkOfTeachers,
+    findBySpecificStudentClassRecordingOfTeachers
 
 };
 export default TeacherController;

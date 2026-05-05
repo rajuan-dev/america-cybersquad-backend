@@ -147,6 +147,20 @@ const onlineClassRecordedOfTeachersSchema=z.object({
   })
 });
 
+const storeClassRecordingLinkOfTeachersSchema=z.object({
+  body: z.object({
+    subscriptionId: z.string({
+      required_error: "subscriptionId is required",
+    }),
+    classDistributionId: z.string({
+      required_error: "classDistributionId is required",
+    }),
+    recordingUrl: z.string({
+      required_error: "recordingUrl is required",
+    }).url("Invalid URL format"),
+  })
+});
+
 
 
 const teacherValidation = {
@@ -154,7 +168,8 @@ const teacherValidation = {
    TeacherUpdateSchema,
    recordAttendanceSchema,
    updateRecordAttendanceSchema,
-   onlineClassRecordedOfTeachersSchema
+   onlineClassRecordedOfTeachersSchema,
+   storeClassRecordingLinkOfTeachersSchema
 };
 
 

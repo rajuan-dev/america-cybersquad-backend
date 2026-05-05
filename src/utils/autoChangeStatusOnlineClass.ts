@@ -3,40 +3,30 @@ import prisma from "../shared/prisma";
 
 const autoChangeStatusOnlineClass = async () => {
   try {
-   const ONE_DAY = 18 * 60 * 60 * 1000;
-const timeThreshold = new Date(Date.now() - ONE_DAY);
+    
+    const EXPIRY_TIME = 36 * 60 * 60 * 1000;
+    const timeThreshold = new Date(Date.now() - EXPIRY_TIME);
 
-    const onlineClasses = await prisma.classDistribution.findMany({
+    const result = await prisma.classDistribution.updateMany({
       where: {
         isOnline: true,
         createdAt: {
-          lt: timeThreshold, 
-        },
-      },
-      select: {
-        id: true,
-      },
-    });
-    
-
-    await prisma.classDistribution.updateMany({
-      where: {
-        id: {
-          in: onlineClasses.map((c) => c.id),
+          lt: timeThreshold,
         },
       },
       data: {
         isOnline: false,
-       
       },
     });
 
-
-
+    console.log({
+      updatedCount: result.count,
+      message: "Online classes auto-stopped successfully after expiry time",
+    })
 
     return {
-      updatedCount: onlineClasses.length,
-      message: "Online class auto-stopped after 10 minutes",
+      updatedCount: result.count,
+      message: "Online classes auto-stopped successfully after expiry time",
     };
   } catch (error) {
     return catchError(error);

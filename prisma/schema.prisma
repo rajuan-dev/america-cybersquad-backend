@@ -254,10 +254,11 @@ model ClassDistribution {
   teacher   Teacher @relation(fields: [teacherId], references: [id])
 
   // ✅ MANY students
-  students       Student[]
-  onlineClasses  OnlineClass[]
-  subscriptionId String
-  subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
+  students        Student[]
+  onlineClasses   OnlineClass[]
+  classRecordings ClassRecording[]
+  subscriptionId  String
+  subscriptions   Subscriptions    @relation(fields: [subscriptionId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -292,6 +293,7 @@ model Subscriptions {
   classDistributions ClassDistribution[]
   attendanceSheets   AttendanceSheet[]
   OnlineClasses      OnlineClass[]
+  classRecordings    ClassRecording[]
 
   user User @relation(fields: [userId], references: [id])
 
@@ -504,6 +506,23 @@ model OnlineClass {
   @@index([subscriptionId])
   @@index([link])
   @@map("online_classes")
+}
+
+model ClassRecording {
+  id                  String            @id @default(uuid())
+  classDistributionId String            @db.VarChar(255)
+  classDistribution   ClassDistribution @relation(fields: [classDistributionId], references: [id])
+  subscriptionId      String            @db.VarChar(255)
+  subscriptions       Subscriptions     @relation(fields: [subscriptionId], references: [id])
+  recordingUrl        String
+  isDelete            Boolean           @default(false)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([classDistributionId])
+  @@index([subscriptionId])
+  @@index([recordingUrl])
+  @@map("class_recordings")
 }
 
 enum AttendanceStatus {

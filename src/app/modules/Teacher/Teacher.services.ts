@@ -3,7 +3,7 @@ import config from "../../../config";
 import ApiError from "../../../errors/ApiErrors";
 import catchError from "../../../errors/catchError";
 import prisma from "../../../shared/prisma";
-import { ClassRecordedOfTeachers, RecordAttendancePayload, Teacher } from "./Teacher.interface";
+import { ClassRecordedOfTeachers, RecordAttendancePayload, StoreClassRecording, Teacher } from "./Teacher.interface";
 import bcrypt from "bcrypt";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { searchableTeacherFields, teacherFilterableFields, teacherSearchableFields } from "./Teacher.constant";
@@ -999,6 +999,227 @@ const onlineClassRecordedOfTeachersIntoDb = async (
 };
 
 
+const storeClassRecordingLinkOfTeachersIntoDb = async (
+  payload: Partial<StoreClassRecording>
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const { subscriptionId, classDistributionId, recordingUrl } = payload;
+
+    // =========================
+    // 1️⃣ VALIDATION
+    // =========================
+    if (!subscriptionId || !classDistributionId || !recordingUrl) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "subscriptionId, classDistributionId and recordingUrl are required"
+      );
+    }
+
+    // =========================
+    // 2️⃣ CHECK SUBSCRIPTION
+    // =========================
+    const isExistSubscription = await prisma.subscriptions.findUnique({
+      where: { id: subscriptionId },
+      select: { id: true },
+    });
+
+    if (!isExistSubscription) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Subscription not found");
+    }
+
+    // =========================
+    // 3️⃣ GET CLASS DATA
+    // =========================
+    const classData = await prisma.classDistribution.findUnique({
+      where: { id: classDistributionId },
+      select: {
+        id: true,
+        isOnline: true,
+        students: {
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!classData) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        "Class distribution not found"
+      );
+    }
+
+    // =========================
+    // 4️⃣ BUSINESS VALIDATION
+    // =========================
+    if (!classData.isOnline) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Class is not online"
+      );
+    }
+
+    // =========================
+    // 5️⃣ TRANSACTION (DB WRITE)
+    // =========================
+    await prisma.$transaction(async (tx) => {
+      // Save recording
+      await tx.classRecording.create({
+        data: {
+          subscriptionId,
+          classDistributionId,
+          recordingUrl,
+        },
+      });
+
+      // Create notifications (ONLY schema-valid fields)
+      if (classData.students?.length) {
+        await tx.notification.createMany({
+          data: classData.students.map((student) => ({
+            title: "🎥 New Class Recording Available",
+            message: `Your class recording is now available: ${recordingUrl}`,
+            studentId: student.id,
+            subscriptionId
+          })),
+        });
+      }
+    });
+
+   
+    const io = getSocketIO() as any;
+
+    const notificationPayload = {
+      id: Date.now(),
+      title: "🎥 New Class Recording Available",
+      message: `Your class recording is now available`,
+      recordingUrl,
+      timestamp: new Date().toISOString(),
+      classDistributionId,
+    };
+
+    // Class room emit
+    io.to(`class::${classDistributionId}`).emit(
+      "notification",
+      notificationPayload
+    );
+
+    // Individual student emit
+    if (classData.students?.length) {
+      classData.students.forEach((student) => {
+        io.to(`user::${student.id}`).emit(
+          "notification",
+          notificationPayload
+        );
+      });
+    }
+
+
+    return {
+      success: true,
+      message: "Class recording stored & notifications sent successfully",
+    };
+  } catch (error) {
+    return catchError(error, "Error storing class recording link");
+  }
+};
+
+const findBySpecificStudentClassRecordingOfTeachersIntoDb = async (
+  teacherId: string,
+  subscriptionId: string,
+  query: Record<string, unknown>
+) => {
+  try {
+    const { classLevel, day } = query;
+
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(teacherFilterableFields)
+      .filter()
+      .sort()
+      .paginate();
+
+    const { where, orderBy, skip, take } = queryBuilder.build();
+
+    const extraFilters: Record<string, any> = {};
+    if (classLevel) extraFilters.classLevel = classLevel;
+    if (day) extraFilters.day = day;
+
+    const whereCondition = {
+      ...where,
+      subscriptionId,
+      classDistribution: {
+        teacherId,
+        ...(Object.keys(extraFilters).length ? extraFilters : {}),
+      },
+    };
+
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+
+    
+    const cacheKey = `class-recordings:${teacherId}:${subscriptionId}:${JSON.stringify(
+      query
+    )}`;
+
+  
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData) {
+      return {
+        success: true,
+        message: "Class recordings fetched successfully (cached)",
+        meta: cachedData.meta,
+        data: cachedData.data,
+      };
+    }
+
+   
+    const result = await prisma.classRecording.findMany({
+      where: whereCondition,
+      orderBy,
+      skip,
+      take,
+      select: {
+        id: true,
+        recordingUrl: true,
+        createdAt: true,
+        updatedAt: true,
+
+        classDistribution: {
+          select: {
+            id: true,
+            classLevel: true,
+assignableSubject: true,
+            day: true,
+            time: true,
+
+          },
+        },
+      },
+    });
+
+    const total = await prisma.classRecording.count({
+      where: whereCondition,
+    });
+
+    const response = {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
+      data: result,
+    };
+
+    // 3️⃣ SET CACHE (TTL: 5 minutes)
+    await setCache(cacheKey, response, 300);
+
+    return {
+      ...response,
+    };
+  } catch (error) {
+    return catchError(error, "Error fetching class recordings");
+  }
+};
 
 
 
@@ -1015,7 +1236,9 @@ const TeacherService = {
   recordedStudentAttendanceOfTeachersIntoDb,
   updateStudentAttendanceOfTeachersIntoDb,
    teacherAttendanceDataIntoDb ,
-   onlineClassRecordedOfTeachersIntoDb
+   onlineClassRecordedOfTeachersIntoDb,
+   storeClassRecordingLinkOfTeachersIntoDb,
+   findBySpecificStudentClassRecordingOfTeachersIntoDb 
 
 
 };

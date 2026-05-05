@@ -32,6 +32,15 @@ export interface ClassRecordedOfTeachers{
  subscriptionId: string;
  classDistributionId: string;
  link: string;
- 
+
 
 }
+
+export interface StoreClassRecording {
+ subscriptionId: string;
+ classDistributionId: string;
+ recordingUrl: string;
+
+
+} 
+
