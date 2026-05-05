@@ -879,7 +879,7 @@ const teacherAttendanceDataIntoDb = async (
 
 const onlineClassRecordedOfTeachersIntoDb = async (
   payload: Partial<ClassRecordedOfTeachers>
-) :Promise<{ success: boolean; message: string }> => {
+): Promise<{ success: boolean; message: string }> => {
   try {
     const { subscriptionId, classDistributionId, link } = payload;
 
@@ -889,6 +889,7 @@ const onlineClassRecordedOfTeachersIntoDb = async (
         "subscriptionId, classDistributionId and link are required"
       );
     }
+
     const isExistSubscription = await prisma.subscriptions.findUnique({
       where: { id: subscriptionId },
       select: { id: true },
@@ -902,9 +903,7 @@ const onlineClassRecordedOfTeachersIntoDb = async (
       where: { id: classDistributionId },
       include: {
         students: {
-          select: {
-            id: true,
-          },
+          select: { id: true },
         },
       },
     });
@@ -916,22 +915,43 @@ const onlineClassRecordedOfTeachersIntoDb = async (
       );
     }
 
-    // ✅ Create online class record
-    const onlineClassRecord = await prisma.onlineClass.create({
-      data: {
-        subscriptionId,
-        classDistributionId,
-        link,
-      },
+    // ✅ TRANSACTION START
+    await prisma.$transaction(async (tx) => {
+      // 1️⃣ Create online class
+      const onlineClassRecord = await tx.onlineClass.create({
+        data: {
+          subscriptionId,
+          classDistributionId,
+          link,
+        },
+      });
+
+      if (!onlineClassRecord) {
+        throw new ApiError(
+          httpStatus.INTERNAL_SERVER_ERROR,
+          "Failed to record online class"
+        );
+      }
+
+  
+      await tx.classDistribution.update({
+        where: { id: classDistributionId },
+        data: { isOnline: true },
+      });
+
+      // 3️⃣ Create notifications in bulk (BEST PRACTICE)
+      if (classData.students?.length) {
+        await tx.notification.createMany({
+          data: classData.students.map((student) => ({
+            title: "📢 Live Class Started",
+            message: `Join your class now: ${link}`,
+            studentId : student.id,
+            subscriptionId,
+          })),
+        });
+      }
     });
-
-    if (!onlineClassRecord) {
-      throw new ApiError(
-        httpStatus.INTERNAL_SERVER_ERROR,
-        "Failed to record online class"
-      );
-    }
-
+    
     const io = getSocketIO() as any;
 
     const notificationPayload = {
@@ -943,13 +963,12 @@ const onlineClassRecordedOfTeachersIntoDb = async (
       classDistributionId,
     };
 
-    
+
     io.to(`class::${classDistributionId}`).emit(
       "notification",
       notificationPayload
     );
 
-    // ✅ OPTIONAL fallback (if rooms not used)
     if (classData.students?.length) {
       classData.students.forEach((student) => {
         io.to(`user::${student.id}`).emit(
@@ -962,13 +981,11 @@ const onlineClassRecordedOfTeachersIntoDb = async (
     return {
       success: true,
       message: "Online class created & notification sent",
-      
     };
   } catch (error) {
     return catchError(error, "Error recording online class");
   }
 };
-
 
 
 
