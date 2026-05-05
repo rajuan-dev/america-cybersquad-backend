@@ -133,11 +133,28 @@ import { attendanceStatus } from "./Teacher.constant";
 });
 
 
+const onlineClassRecordedOfTeachersSchema=z.object({
+  body: z.object({
+    subscriptionId: z.string({
+      required_error: "subscriptionId is required",
+    }),
+    classDistributionId: z.string({
+      required_error: "classDistributionId is required",
+    }),
+    link: z.string({
+      required_error: "link is required",
+    }).url("Invalid URL format"),
+  })
+});
+
+
+
 const teacherValidation = {
   TeacherSchema,
    TeacherUpdateSchema,
    recordAttendanceSchema,
-   updateRecordAttendanceSchema
+   updateRecordAttendanceSchema,
+   onlineClassRecordedOfTeachersSchema
 };
 
 

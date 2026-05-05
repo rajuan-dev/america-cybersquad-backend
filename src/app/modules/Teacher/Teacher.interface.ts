@@ -26,3 +26,12 @@ export interface RecordAttendancePayload {
 
   students: StudentAttendance[];
 }
+
+
+export interface ClassRecordedOfTeachers{
+ subscriptionId: string;
+ classDistributionId: string;
+ link: string;
+ 
+
+}

@@ -155,6 +155,19 @@ const createTeacher:RequestHandler = catchAsync(async (req, res) => {
           } );
 
 
+          const onlineClassRecordedOfTeachers:RequestHandler = catchAsync(async (req, res) => {
+
+              const result = await TeacherService.onlineClassRecordedOfTeachersIntoDb(req.body);
+                sendResponse(res, {
+                    statusCode: httpStatus.OK,
+                    success: true,
+                    message:"Successfully Recorded Online Class Of Teacher",
+                    data: result,
+                });
+                } );
+
+
+
 
 
 
@@ -172,7 +185,8 @@ const TeacherController = {
    findBySpecificStudentAttendanceOfTeachers,
    recordedStudentAttendanceOfTeachers,
     updateStudentAttendanceOfTeachers,
-    teacherAttendanceData
+    teacherAttendanceData,
+    onlineClassRecordedOfTeachers
 
 };
 export default TeacherController;

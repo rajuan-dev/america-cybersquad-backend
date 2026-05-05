@@ -3,7 +3,7 @@ import config from "../../../config";
 import ApiError from "../../../errors/ApiErrors";
 import catchError from "../../../errors/catchError";
 import prisma from "../../../shared/prisma";
-import { RecordAttendancePayload, Teacher } from "./Teacher.interface";
+import { ClassRecordedOfTeachers, RecordAttendancePayload, Teacher } from "./Teacher.interface";
 import bcrypt from "bcrypt";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { searchableTeacherFields, teacherFilterableFields, teacherSearchableFields } from "./Teacher.constant";
@@ -822,7 +822,7 @@ const teacherAttendanceDataIntoDb = async (
 
 
     const cacheKey = `attendance:${teacherId}:${subscriptionId}:${classLevel || "all"}:${day || "all"}`;
-    
+
 
     const cachedData = await getCache(cacheKey);
     if (cachedData) {
@@ -876,6 +876,21 @@ const teacherAttendanceDataIntoDb = async (
   }
 };
 
+const onlineClassRecordedOfTeachersIntoDb = async (payload:Partial<ClassRecordedOfTeachers>) => {
+  
+  try{
+
+     return payload;
+
+  }
+  catch(error){
+    return catchError(
+      error,
+      "Error fetching attendance summary"
+    );
+  }
+}
+
 
 
 
@@ -893,7 +908,8 @@ const TeacherService = {
   findBySpecificStudentAttendanceOfTeachersIntoDb,
   recordedStudentAttendanceOfTeachersIntoDb,
   updateStudentAttendanceOfTeachersIntoDb,
-   teacherAttendanceDataIntoDb 
+   teacherAttendanceDataIntoDb ,
+   onlineClassRecordedOfTeachersIntoDb
 
 
 };

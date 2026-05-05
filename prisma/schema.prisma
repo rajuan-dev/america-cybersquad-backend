@@ -254,8 +254,8 @@ model ClassDistribution {
   teacher   Teacher @relation(fields: [teacherId], references: [id])
 
   // ✅ MANY students
-  students Student[]
-
+  students       Student[]
+  onlineClasses  OnlineClass[]
   subscriptionId String
   subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
 
@@ -291,6 +291,7 @@ model Subscriptions {
 
   classDistributions ClassDistribution[]
   attendanceSheets   AttendanceSheet[]
+  OnlineClasses      OnlineClass[]
 
   user User @relation(fields: [userId], references: [id])
 
@@ -488,6 +489,23 @@ model Subject {
   @@map("subjects")
 }
 
+model OnlineClass {
+  id                  String            @id @default(uuid())
+  classDistributionId String            @db.VarChar(255)
+  classDistribution   ClassDistribution @relation(fields: [classDistributionId], references: [id])
+  subscriptionId      String            @db.VarChar(255)
+  subscriptions       Subscriptions     @relation(fields: [subscriptionId], references: [id])
+  link                String            @db.VarChar(255)
+  isDelete            Boolean           @default(false)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([classDistributionId])
+  @@index([subscriptionId])
+  @@index([link])
+  @@map("online_classes")
+}
+
 enum AttendanceStatus {
   PRESENT
   ABSENT
@@ -513,7 +531,7 @@ model AttendanceSheet {
   teachers      Teacher       @relation(fields: [teacherId], references: [id])
   students      Student       @relation(fields: [studentId], references: [id])
 
-  @@unique([studentId, AttendanceDate, teacherId]) 
+  @@unique([studentId, AttendanceDate, teacherId])
   @@index([teacherId])
   @@index([studentId])
   @@index([AttendanceDate])
