@@ -61,7 +61,7 @@ const sendSupportMessageIntoDb = async (
         // ✅ EMPTY CASE (no action)
         case "INSTITUTIONAL_OWNER": {
 
-const isExistSubscription = await tx.subscriptions.findUnique({
+     const isExistSubscription = await tx.subscriptions.findUnique({
             where: { id: payload.subscriptionId },
             select: { userId: true },
           });

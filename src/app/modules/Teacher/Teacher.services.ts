@@ -13,6 +13,7 @@ import generateTeacherId from "../../../utils/generateId/generateTeacherId";
 import { AttendanceStatus, UserRole } from "@prisma/client";
 
 import { getCache,  setCache } from "../../../config/redis";
+import { getSocketIO } from "../../../socket/connectSocket";
 
 
 
@@ -876,20 +877,97 @@ const teacherAttendanceDataIntoDb = async (
   }
 };
 
-const onlineClassRecordedOfTeachersIntoDb = async (payload:Partial<ClassRecordedOfTeachers>) => {
-  
-  try{
+const onlineClassRecordedOfTeachersIntoDb = async (
+  payload: Partial<ClassRecordedOfTeachers>
+) :Promise<{ success: boolean; message: string }> => {
+  try {
+    const { subscriptionId, classDistributionId, link } = payload;
 
-     return payload;
+    if (!subscriptionId || !classDistributionId || !link) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "subscriptionId, classDistributionId and link are required"
+      );
+    }
+    const isExistSubscription = await prisma.subscriptions.findUnique({
+      where: { id: subscriptionId },
+      select: { id: true },
+    });
 
-  }
-  catch(error){
-    return catchError(
-      error,
-      "Error fetching attendance summary"
+    if (!isExistSubscription) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Subscription not found");
+    }
+
+    const classData = await prisma.classDistribution.findUnique({
+      where: { id: classDistributionId },
+      include: {
+        students: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    if (!classData) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        "Class distribution not found"
+      );
+    }
+
+    // ✅ Create online class record
+    const onlineClassRecord = await prisma.onlineClass.create({
+      data: {
+        subscriptionId,
+        classDistributionId,
+        link,
+      },
+    });
+
+    if (!onlineClassRecord) {
+      throw new ApiError(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        "Failed to record online class"
+      );
+    }
+
+    const io = getSocketIO() as any;
+
+    const notificationPayload = {
+      id: Date.now(),
+      title: "📢 Live Class Started",
+      message: `Join your class now: ${link}`,
+      createdBy: UserRole.TEACHER,
+      timestamp: new Date().toISOString(),
+      classDistributionId,
+    };
+
+    
+    io.to(`class::${classDistributionId}`).emit(
+      "notification",
+      notificationPayload
     );
+
+    // ✅ OPTIONAL fallback (if rooms not used)
+    if (classData.students?.length) {
+      classData.students.forEach((student) => {
+        io.to(`user::${student.id}`).emit(
+          "notification",
+          notificationPayload
+        );
+      });
+    }
+
+    return {
+      success: true,
+      message: "Online class created & notification sent",
+      
+    };
+  } catch (error) {
+    return catchError(error, "Error recording online class");
   }
-}
+};
 
 
 
