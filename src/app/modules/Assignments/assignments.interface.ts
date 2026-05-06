@@ -4,6 +4,6 @@ classLevel:String;
 assignmentType: "HomeWork"  | "Practice" | "Project" | "Quiz";
 assignmentDueDate: Date;
 description: String;
-attachmentFiles: string;
+attachmentFiles: String;
 isDelete?: boolean;
 }

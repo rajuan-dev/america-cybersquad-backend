@@ -257,6 +257,8 @@ model ClassDistribution {
   students        Student[]
   onlineClasses   OnlineClass[]
   classRecordings ClassRecording[]
+  classAssignments ClassAssignment[]
+   
   subscriptionId  String
   subscriptions   Subscriptions    @relation(fields: [subscriptionId], references: [id])
 
@@ -294,6 +296,7 @@ model Subscriptions {
   attendanceSheets   AttendanceSheet[]
   OnlineClasses      OnlineClass[]
   classRecordings    ClassRecording[]
+   classAssignments ClassAssignment[]
 
   user User @relation(fields: [userId], references: [id])
 
@@ -523,6 +526,39 @@ model ClassRecording {
   @@index([subscriptionId])
   @@index([recordingUrl])
   @@map("class_recordings")
+}
+
+enum AssignmentType {
+HomeWork
+Practice
+Project
+Quiz
+}
+
+model ClassAssignment {
+  id                  String            @id @default(uuid())
+  assignmentTitle     String            @db.VarChar(255)
+  assignmentType      AssignmentType 
+  assignmentDueDate   DateTime
+  description         String             
+  attachmentFiles     String[]
+  assessmentAvailable Boolean @default(false)
+  classDistributionId String            @db.VarChar(255)
+  classDistributions   ClassDistribution @relation(fields: [classDistributionId], references: [id])
+
+  subscriptionId      String            @db.VarChar(255)
+  subscriptions       Subscriptions     @relation(fields: [subscriptionId], references: [id])
+
+  isDelete            Boolean           @default(false)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+ @@index([classDistributionId])
+ @@index([subscriptionId])
+ @@index([assignmentType])
+ @@index([assessmentAvailable])
+
+  @@map("class_assignments")
 }
 
 enum AttendanceStatus {
