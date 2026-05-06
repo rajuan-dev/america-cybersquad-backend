@@ -409,6 +409,7 @@ model Notification {
   updatedAt      DateTime      @updatedAt
   subscriptionId String
   supportId      String?
+ 
   branchAdmin    BranchAdmin?  @relation(fields: [branchAdminId], references: [id])
   student        Student?      @relation(fields: [studentId], references: [id])
   subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
