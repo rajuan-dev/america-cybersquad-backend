@@ -96,7 +96,9 @@ export const getCache = async (key: string) => {
         return null;
       }
     }
-  } catch {}
+  } catch {
+    
+  }
 
   return null;
 };

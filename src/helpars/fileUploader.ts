@@ -111,6 +111,9 @@ const uploadMessageImages = upload.array("messageImages", 40);
 const newsImage = upload.array("image", 40);
 const advertiseVideo = upload.single("advertiseVideo");
 const invertorRelationImage = upload.single("invertorRelationImage");
+const attachmentFiles = upload.fields([
+  { name: "attachments", maxCount: 10 },
+]);
 
 // dayTripImage and vehicle image
 const image = upload.array("image", 40);
@@ -257,4 +260,5 @@ export const uploadFile = {
  toRelativePath,
   // dayTripImage and vehicle image
   image,
+  attachmentFiles
 };

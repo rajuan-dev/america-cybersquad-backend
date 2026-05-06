@@ -72,13 +72,17 @@ const branchAdminAuth = (...roles: string[]) => {
           });
 
         }break; 
+
+        
         case UserRole.TEACHER: {
 
-          user=await prisma.staff.findUnique({
-            where:{id:verifiedUser.id},
+          user=await prisma.teacher.findUnique({
+            where:{id:verifiedUser.id, isVerified:true, status:UserStatus.ACTIVE},
             select:{id:true}
           }); 
-        }break;
+        break;
+        }
+        
         
         default: {
           throw new ApiError(httpStatus.FORBIDDEN, "Invalid role!");

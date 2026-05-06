@@ -1221,6 +1221,54 @@ assignableSubject: true,
   }
 };
 
+const deleteClassRecordingLinkOfTeachersIntoDb = async (
+  recordingId: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+   
+    const recording = await prisma.classRecording.findUnique({
+      where: { id: recordingId },
+      include: {
+        classDistribution: {
+          select: {
+            id: true
+          },
+        },
+      },
+    });
+
+
+
+    if (!recording) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Class recording not found");
+    }
+
+    const classDistributionId = recording.classDistributionId;
+
+    // =========================
+    // 2️⃣ SINGLE TRANSACTION (FIXED)
+    // =========================
+    await prisma.$transaction(async (tx) => {
+      await tx.classDistribution.update({
+        where: { id: classDistributionId },
+        data: { isOnline: false },
+      });
+
+      await tx.classRecording.delete({
+        where: { id: recordingId },
+      });
+
+    });
+
+    return {
+      success: true,
+      message: "Class recording deleted successfully",
+    };
+  } catch (error) {
+    return catchError(error, "Error deleting class recording");
+  }
+};
+
 
 
 const TeacherService = {
@@ -1238,9 +1286,9 @@ const TeacherService = {
    teacherAttendanceDataIntoDb ,
    onlineClassRecordedOfTeachersIntoDb,
    storeClassRecordingLinkOfTeachersIntoDb,
-   findBySpecificStudentClassRecordingOfTeachersIntoDb 
-
-
+   findBySpecificStudentClassRecordingOfTeachersIntoDb ,
+   deleteClassRecordingLinkOfTeachersIntoDb
 };
+
 
 export default TeacherService;

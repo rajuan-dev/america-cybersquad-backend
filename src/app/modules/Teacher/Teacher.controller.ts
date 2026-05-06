@@ -190,6 +190,19 @@ const createTeacher:RequestHandler = catchAsync(async (req, res) => {
                     });
                     } );
 
+        
+                
+                    const deleteClassRecordingLinkOfTeachers:RequestHandler=catchAsync(async(req , res)=>{
+
+                         const result=await TeacherService.deleteClassRecordingLinkOfTeachersIntoDb(req.params.recordingId);
+                             sendResponse(res, { 
+                        statusCode: httpStatus.OK,
+                        success: true,
+                        message:result.message,
+                        data: result,
+                    });
+                    })
+
 
 
 
@@ -214,7 +227,8 @@ const TeacherController = {
     teacherAttendanceData,
     onlineClassRecordedOfTeachers,
     storeClassRecordingLinkOfTeachers,
-    findBySpecificStudentClassRecordingOfTeachers
+    findBySpecificStudentClassRecordingOfTeachers,
+    deleteClassRecordingLinkOfTeachers
 
 };
 export default TeacherController;

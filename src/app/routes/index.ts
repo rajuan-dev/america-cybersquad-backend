@@ -14,6 +14,7 @@ import StaffManagementRouter from "../modules/Staff_Management/staff_management.
 import SubjectRouter from "../modules/subjects/subjects.route";
 import ClassDistributionRouter from "../modules/ClassDistribution/class_distribution.route";
 import FeesManagementRouter from "../modules/FeesManagement/fees_management.route";
+import AssignmentRouter from "../modules/Assignments/assignments.route";
 
 
 const router = express.Router();
@@ -75,6 +76,10 @@ const moduleRoutes = [
    {
     path:"/fees",
     route:FeesManagementRouter
+   },
+   {
+    path:"/assignments",
+    route: AssignmentRouter
    }
 
   
