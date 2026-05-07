@@ -84,22 +84,15 @@ cron.schedule("*/10 * * * *", async () => {
   try {
    const result= await autoChangeStatusOnlineClass();
    console.log(`${result.message}-${result.updatedCount}`);
-
   } catch (error: unknown) {
     catchError(error, "[Cron] Error auto-changing online class status:");
   }
 });
 
 cron.schedule("0 0 * * *", async()=>{
-
-
   try{
-
     const result=await autoDeleteNotification();
     console.log(`result.message-${result.deletedCount}`);
-    
-   
-
   }
   catch(error:unknown){
   catchError(error, "[Cron] Error auto delete notification");
