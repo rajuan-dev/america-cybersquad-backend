@@ -8,6 +8,7 @@ import { UserRole } from "@prisma/client";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { getCache, setCache } from "../../../config/redis";
 import { searchableAssignment } from "./assignments.constant";
+import { deleteFileIfExists } from "../../../utils/deleteFiles/deleteFileIfExists";
 
 
 const createAssignmentsIntoDb = async (
@@ -177,7 +178,7 @@ const findBySpecificTeacherAssignmentIntoDb = async (
       }
     };
 
-    
+
 
     // ✅ Main Query
     const result = await prisma.classAssignment.findMany({
@@ -236,7 +237,7 @@ const findBySpecificTeacherAssignmentIntoDb = async (
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
 
-    // ✅ Final Response
+    
     const responseData = {
       meta: {
         page,
@@ -250,7 +251,7 @@ const findBySpecificTeacherAssignmentIntoDb = async (
       data: result,
     };
 
-    // ✅ Store Cache (10 Minutes)
+    
     await setCache(cacheKey, responseData, 600);
 
     return responseData;
@@ -262,9 +263,102 @@ const findBySpecificTeacherAssignmentIntoDb = async (
   }
 };
 
+const findBySpecificAssignmentIntoDb=async(id:string)=>{
+
+   try{
+
+     return await prisma.classAssignment.findUnique({where:{id},
+     select:{
+         id: true,
+        assignmentTitle: true,
+        assignmentType: true,
+        assignmentDueDate: true,
+        description: true,
+        attachmentFiles: true,
+        createdAt: true,
+        updatedAt: true,
+    }});
+
+
+   }
+   catch(error){
+    return catchError(
+      error,
+      "Error fetching teacher assignments"
+    );
+   }
+
+  
+};
+
+
+
+const updateClassTeacherAssignmentIntoDb = async (
+  id: string,
+  payload: Partial<TAssignments>
+):Promise<{status: boolean, message:string}> => {
+  try {
+    const existing = await prisma.classAssignment.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        attachmentFiles: true,
+      },
+    });
+
+    if (!existing) {
+      throw new Error("Assignment not found");
+    }
+
+
+    const updateData: Partial<TAssignments> = {};
+
+    const fieldMap: (keyof TAssignments)[] = [
+      "assignmentTitle",
+      "assignmentType",
+      "assignmentDueDate",
+      "description"
+     
+    ];
+
+    fieldMap.forEach((field) => {
+      const value = payload[field];
+
+      if (value !== undefined) {
+        if (typeof value === "string") {
+          updateData[field] = value.trim() as any;
+        } else {
+          updateData[field] = value as any;
+        }
+      }
+    });
+    if (payload.attachmentFiles?.length) {
+      updateData.attachmentFiles = payload.attachmentFiles;
+
+      existing.attachmentFiles?.forEach(deleteFileIfExists);
+    }
+
+
+   await prisma.classAssignment.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return {
+      status: true,
+      message: "Assignment updated successfully",
+      
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
 const AssignmentsServices={
     createAssignmentsIntoDb,
-    findBySpecificTeacherAssignmentIntoDb
+    findBySpecificTeacherAssignmentIntoDb,
+    findBySpecificAssignmentIntoDb,
+    updateClassTeacherAssignmentIntoDb
 };
 
 export default AssignmentsServices;

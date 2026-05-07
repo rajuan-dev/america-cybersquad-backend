@@ -15,6 +15,8 @@ router.post(
   "/create_assignment",
   branchAdminAuth(UserRole.TEACHER),
 
+  
+
   uploadFile.attachmentFiles,
 
   (req: Request, _res: Response, next: NextFunction) => {
@@ -44,6 +46,30 @@ router.post(
 );
 
 router.get("/find_by_specific_teacher_assignment/:classDistributionId", auth(UserRole.TEACHER), AssignmentsController.findBySpecificTeacherAssignment);
+router.get("/find_by_specific_assignment/:id", auth(UserRole.TEACHER), AssignmentsController.findBySpecificAssignment);
+router.patch("/update_teacher_assignment/:id", auth(UserRole.TEACHER),uploadFile.attachmentFiles,
+
+  (req: Request, _res: Response, next: NextFunction) => {
+    try {
+    
+      if (req.body.data && typeof req.body.data === "string") {
+        req.body = JSON.parse(req.body.data);
+      }
+
+      
+      if (req.files && (req.files as any).attachments) {
+        const files = (req.files as any).attachments;
+
+        req.body.attachmentFiles = files.map((file: Express.Multer.File) =>
+          uploadFile.toRelativePath(file.path)
+        );
+      }
+
+      next();
+    } catch (error: any) {
+      next(new ApiError(httpStatus.BAD_REQUEST, "Invalid JSON data"));
+    }
+  }, validateRequest(AssignmentValidation.updateAssignmentSchema), AssignmentsController.updateClassTeacherAssignment);
 
 
 const AssignmentRouter=router;

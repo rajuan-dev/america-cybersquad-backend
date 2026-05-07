@@ -29,10 +29,35 @@ const findBySpecificTeacherAssignment:RequestHandler=catchAsync(async(req , res)
   });
 });
 
+const findBySpecificAssignment:RequestHandler=catchAsync(async(req , res)=>{
+
+   const result=await AssignmentsServices.findBySpecificAssignmentIntoDb(req.params.id);
+   sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully  Find By Specific Assignment",
+    data: result,
+  });
+});
+
+const  updateClassTeacherAssignment:RequestHandler=catchAsync(async(req , res)=>{
+
+
+    const result=await AssignmentsServices.updateClassTeacherAssignmentIntoDb(req.params.id, req.body);
+     sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: result.message,
+    data: result,
+  });
+})
+
 
 const AssignmentsController={
     createAssignments,
-    findBySpecificTeacherAssignment
+    findBySpecificTeacherAssignment,
+    findBySpecificAssignment,
+    updateClassTeacherAssignment
 };
 
 export default AssignmentsController;

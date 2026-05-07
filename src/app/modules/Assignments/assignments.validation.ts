@@ -31,8 +31,35 @@ const assignmentSchema = z.object({
    })
 });
 
+
+const updateAssignmentSchema = z.object({
+
+    
+   body: z.object({
+  
+    assignmentTitle: z.string({required_error:"assignmentTitle is required"}).optional(),
+    assignmentType: z.enum([AssignmentType.HomeWork, AssignmentType.Practice, AssignmentType.Project, AssignmentType.Project]).optional(),
+    
+    assignmentDueDate: z.coerce.date({
+    required_error: "Assignment due date is required",
+    invalid_type_error: "Invalid date format",
+  }).optional(),
+  
+  description: z
+    .string({
+      required_error: "Description is required",
+    })
+    .min(1, "Description cannot be empty").optional(),
+
+  attachmentFiles: z.array(z.string({required_error:"attachments is required"})).optional(),
+
+  isDelete: z.boolean().optional().default(false),
+   })
+});
+
 const AssignmentValidation={
-    assignmentSchema
+    assignmentSchema,
+    updateAssignmentSchema
 };
 
 export default AssignmentValidation
