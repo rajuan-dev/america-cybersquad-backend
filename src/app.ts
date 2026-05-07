@@ -56,7 +56,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(express.static("public"));
 
-// Route handler for the root endpoint
 app.get("/", (req: Request, res: Response) => {
   res.send({
     status:true,
@@ -70,9 +69,7 @@ app.use("/api/v1", router);
 
 app.use(GlobalErrorHandler);
 
-// autoDeleteUnverifiedUser
 
-// Delete unverified users every 5 minutes
 cron.schedule("*/5 * * * *", async () => {
   try {
     await autoDeleteUnverifiedUser();
@@ -81,11 +78,13 @@ cron.schedule("*/5 * * * *", async () => {
   }
 });
 
-// autoChangeStatusOnlineClass
+
 
 cron.schedule("*/10 * * * *", async () => {
   try {
-    await autoChangeStatusOnlineClass();
+   const result= await autoChangeStatusOnlineClass();
+   console.log(`${result.message}-${result.updatedCount}`);
+
   } catch (error: unknown) {
     catchError(error, "[Cron] Error auto-changing online class status:");
   }

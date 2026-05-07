@@ -22,10 +22,7 @@ const autoChangeStatusOnlineClass = async () => {
       },
     });
 
-    console.log({
-      updatedCount: result.count,
-      message: "Online classes auto-stopped successfully after expiry time",
-    })
+    
 
     return {
       updatedCount: result.count,
