@@ -71,6 +71,9 @@ router.patch("/update_teacher_assignment/:id", auth(UserRole.TEACHER),uploadFile
     }
   }, validateRequest(AssignmentValidation.updateAssignmentSchema), AssignmentsController.updateClassTeacherAssignment);
 
+  router.delete("/delete_class_assignment/:id", auth(UserRole.TEACHER), AssignmentsController.deleteClassAssignment);
+  
+
 
 const AssignmentRouter=router;
 export default AssignmentRouter;

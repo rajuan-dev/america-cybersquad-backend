@@ -6,9 +6,10 @@ import { TAssignments } from "./assignments.interface";
 import { getSocketIO } from "../../../socket/connectSocket";
 import { UserRole } from "@prisma/client";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
-import { getCache, setCache } from "../../../config/redis";
+import { deleteByPattern, deleteCache, getCache, setCache } from "../../../config/redis";
 import { searchableAssignment } from "./assignments.constant";
 import { deleteFileIfExists } from "../../../utils/deleteFiles/deleteFileIfExists";
+import { AppErrorCodes } from "firebase-admin/app";
 
 
 const createAssignmentsIntoDb = async (
@@ -307,7 +308,7 @@ const updateClassTeacherAssignmentIntoDb = async (
     });
 
     if (!existing) {
-      throw new Error("Assignment not found");
+      throw new ApiError(httpStatus.NOT_FOUND, "Assignment not found", "");
     }
 
 
@@ -354,11 +355,53 @@ const updateClassTeacherAssignmentIntoDb = async (
   }
 };
 
+const deleteClassAssignmentIntoDb = async (
+  id: string
+): Promise<{ status: boolean; message: string }> => {
+  try {
+
+    const existing = await prisma.classAssignment.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        attachmentFiles: true,
+      },
+    });
+
+    if (!existing) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Assignment not found", "");
+    }
+
+    if (existing.attachmentFiles?.length) {
+      existing.attachmentFiles.forEach(deleteFileIfExists);
+    }
+
+    await prisma.classAssignment.delete({
+      where: { id },
+    });
+
+    await deleteCache(`class-assignment:${id}`);
+
+
+    await deleteByPattern(`class-assignment:*`);
+
+    return {
+      status: true,
+      message: "Assignment deleted successfully",
+    };
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
+
+
 const AssignmentsServices={
     createAssignmentsIntoDb,
     findBySpecificTeacherAssignmentIntoDb,
     findBySpecificAssignmentIntoDb,
-    updateClassTeacherAssignmentIntoDb
+    updateClassTeacherAssignmentIntoDb,
+    deleteClassAssignmentIntoDb
 };
 
 export default AssignmentsServices;

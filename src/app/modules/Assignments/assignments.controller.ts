@@ -50,6 +50,19 @@ const  updateClassTeacherAssignment:RequestHandler=catchAsync(async(req , res)=>
     message: result.message,
     data: result,
   });
+});
+
+
+const deleteClassAssignment:RequestHandler=catchAsync(async(req , res)=>{
+
+
+     const result=await AssignmentsServices.deleteClassAssignmentIntoDb(req.params.id);
+       sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Delete",
+    data: result,
+  });
 })
 
 
@@ -57,7 +70,9 @@ const AssignmentsController={
     createAssignments,
     findBySpecificTeacherAssignment,
     findBySpecificAssignment,
-    updateClassTeacherAssignment
+    updateClassTeacherAssignment,
+    deleteClassAssignment,
+    
 };
 
 export default AssignmentsController;
