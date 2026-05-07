@@ -10,6 +10,7 @@ import cron from "node-cron";
 import autoDeleteUnverifiedUser from "./utils/autoDeleteUnverifiedUser";
 import catchError from "./errors/catchError";
 import autoChangeStatusOnlineClass from "./utils/autoChangeStatusOnlineClass";
+import autoDeleteNotification from "./utils/autoDeleteNotification";
 
 declare global {
   namespace Express {
@@ -87,6 +88,22 @@ cron.schedule("*/10 * * * *", async () => {
     await autoChangeStatusOnlineClass();
   } catch (error: unknown) {
     catchError(error, "[Cron] Error auto-changing online class status:");
+  }
+});
+
+cron.schedule("0 0 * * *", async()=>{
+
+
+  try{
+
+    const result=await autoDeleteNotification();
+    console.log(`result.message-${result.deletedCount}`);
+    
+   
+
+  }
+  catch(error:unknown){
+  catchError(error, "[Cron] Error auto delete notification");
   }
 });
 

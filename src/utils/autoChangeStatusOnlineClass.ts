@@ -4,8 +4,11 @@ import prisma from "../shared/prisma";
 const autoChangeStatusOnlineClass = async () => {
   try {
     
-    const EXPIRY_TIME = 36 * 60 * 60 * 1000;
-    const timeThreshold = new Date(Date.now() - EXPIRY_TIME);
+    const currentTime = new Date();
+
+    const timeThreshold = new Date(
+      currentTime.getTime() - 18 * 60 * 60 * 1000
+    );
 
     const result = await prisma.classDistribution.updateMany({
       where: {
