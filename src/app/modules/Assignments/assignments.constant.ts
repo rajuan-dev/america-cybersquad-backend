@@ -6,3 +6,8 @@ export const AssignmentType={
     Project:"Project",
     Quiz:"Quiz"
 } as const;
+
+export const searchableAssignment:string[]=[
+        "assignmentTitle",
+        "assignmentType",
+      ];

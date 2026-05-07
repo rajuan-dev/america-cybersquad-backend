@@ -7,6 +7,7 @@ import validateRequest from '../../middlewares/validateRequest';
 import httpStatus from 'http-status';
 import AssignmentValidation from './assignments.validation';
 import AssignmentsController from './assignments.controller';
+import auth from '../../middlewares/auth';
 
 const router=express.Router();
 
@@ -41,6 +42,9 @@ router.post(
   validateRequest(AssignmentValidation.assignmentSchema),
   AssignmentsController.createAssignments
 );
+
+router.get("/find_by_specific_teacher_assignment/:classDistributionId", auth(UserRole.TEACHER), AssignmentsController.findBySpecificTeacherAssignment);
+
 
 const AssignmentRouter=router;
 export default AssignmentRouter;

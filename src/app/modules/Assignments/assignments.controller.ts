@@ -17,9 +17,22 @@ const createAssignments:RequestHandler=catchAsync(async(req , res)=>{
     data: result,
   });
 });
+const findBySpecificTeacherAssignment:RequestHandler=catchAsync(async(req , res)=>{
+
+
+   const result=await AssignmentsServices.findBySpecificTeacherAssignmentIntoDb(req.params.classDistributionId, req.user.id, req.query);
+   sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully  Find By Specific Assignment",
+    data: result,
+  });
+});
+
 
 const AssignmentsController={
-    createAssignments
+    createAssignments,
+    findBySpecificTeacherAssignment
 };
 
 export default AssignmentsController;
