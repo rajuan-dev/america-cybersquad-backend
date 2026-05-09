@@ -762,10 +762,68 @@ const updateSpecificClassMaterialIntoDb = async (
       data: updateData,
     });
 
+    return result && {
+      success: true,
+      message: "Class material updated successfully"
+     
+    };
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
+const deleteClassMaterialsIntoDb = async (id: string) => {
+  try {
+    const existing = await prisma.classMaterial.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        classDistributionId: true,
+        materialFiles: true,
+      },
+    });
+
+    if (!existing) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        "Class material not found"
+      );
+    }
+
+    await prisma.classMaterial.delete({
+      where: { id: existing.id },
+    });
+
+    if (existing.materialFiles?.length) {
+      await Promise.allSettled(
+        existing.materialFiles.map((file) =>
+          deleteFileIfExists(file)
+        )
+      );
+    }
+
+
+    const classDistributionId =
+      existing.classDistributionId;
+
+      
+
+    const teacherCachePattern =
+      `teacher-materials:*:${classDistributionId}:*`;
+
+    await deleteByPattern(teacherCachePattern);
+
+    const singleCacheKey = `class-material:${id}`;
+    await deleteCache(singleCacheKey);
+
+    const classCacheKey =
+      `class-materials:${classDistributionId}`;
+    await deleteCache(classCacheKey);
+
     return {
       success: true,
-      message: "Class material updated successfully",
-      data: result,
+      message: "Class material deleted successfully",
+      deletedId: existing.id,
     };
   } catch (error) {
     throw catchError(error);
@@ -781,7 +839,8 @@ const AssignmentsServices={
     createClassMaterialsIntoDb,
     findBySpecificTeacherClassMaterialsIntoDb,
     findBySpecificClassMaterialIntoDb,
-    updateSpecificClassMaterialIntoDb
+    updateSpecificClassMaterialIntoDb,
+    deleteClassMaterialsIntoDb
 };
 
 export default AssignmentsServices;

@@ -110,6 +110,17 @@ const updateSpecificClassMaterial:RequestHandler=catchAsync(async(req , res)=>{
     message: "Successfully  Update Class Material",
     data: result,
   });
+});
+
+const deleteClassMaterials:RequestHandler=catchAsync(async(req , res)=>{
+
+    const result=await AssignmentsServices.deleteClassMaterialsIntoDb(req.params.id);
+     sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: result.message,
+    data: result,
+  });
 })
 
 
@@ -123,7 +134,8 @@ const AssignmentsController={
     createClassMaterials,
     findBySpecificTeacherClassMaterials,
     findBySpecificClassMaterial,
-    updateSpecificClassMaterial
+    updateSpecificClassMaterial,
+    deleteClassMaterials
     
 };
 

@@ -123,8 +123,10 @@ export const deleteByPattern = async (pattern: string) => {
     if (isRedisConnected && redisClient) {
       const keys = await redisClient.keys(pattern);
 
+
       if (keys.length > 0) {
         await redisClient.del(...keys);
+        
         logger.info(
           `[Redis] DELETE pattern ${pattern} (${keys.length})`
         );

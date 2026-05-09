@@ -184,6 +184,8 @@ uploadFile.classMaterialFiles,
 
 validateRequest( AssignmentValidation.updateSpecificClassMaterialSchema), AssignmentsController.updateSpecificClassMaterial);
 
+router.delete("/delete_class_materials/:id", auth(UserRole.TEACHER), AssignmentsController.deleteClassMaterials);
+
 
   
 
