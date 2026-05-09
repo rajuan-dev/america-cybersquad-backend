@@ -86,6 +86,30 @@ const findBySpecificTeacherClassMaterials:RequestHandler=catchAsync(async(req , 
     message: "Successfully Find My All Materials",
     data: result,
   });
+});
+
+
+const findBySpecificClassMaterial:RequestHandler=catchAsync(async(req , res)=>{
+
+    const result=await AssignmentsServices.findBySpecificClassMaterialIntoDb(req.params.id);
+     sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find Specific Materials",
+    data: result,
+  });
+});
+
+
+const updateSpecificClassMaterial:RequestHandler=catchAsync(async(req , res)=>{
+
+    const result=await AssignmentsServices.updateSpecificClassMaterialIntoDb(req.params.id, req.body);
+    sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully  Update Class Material",
+    data: result,
+  });
 })
 
 
@@ -97,7 +121,9 @@ const AssignmentsController={
     updateClassTeacherAssignment,
     deleteClassAssignment,
     createClassMaterials,
-    findBySpecificTeacherClassMaterials
+    findBySpecificTeacherClassMaterials,
+    findBySpecificClassMaterial,
+    updateSpecificClassMaterial
     
 };
 

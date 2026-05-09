@@ -532,7 +532,7 @@ const createClassMaterialsIntoDb = async (
       );
     }
 
-    return {
+    return  result && {
       status: true,
 
       message:
@@ -674,6 +674,103 @@ const findBySpecificTeacherClassMaterialsIntoDb = async (
   }
 };
 
+const findBySpecificClassMaterialIntoDb=async(id: string)=>{
+
+    try{
+
+      return await prisma.classMaterial.findUnique({where:{id},select:{
+
+        id: true,
+        materialType: true,
+        description: true,
+        external_link: true,
+        createdAt: true,
+        updatedAt: true,
+
+      }})
+
+    }
+    catch(error){
+      throw catchError(error);
+    }
+};
+
+const updateSpecificClassMaterialIntoDb = async (
+  id: string,
+  payload: Partial<TMaterials>
+) => {
+  try {
+   
+    const existing = await prisma.classMaterial.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        "Class material not found"
+      );
+    }
+
+  
+    const updateData: Partial<TMaterials> = {};
+
+    const fieldMap: (keyof TMaterials)[] = [
+      "materialType",
+      "description",
+      "external_link",
+    ];
+
+    fieldMap.forEach((field) => {
+      const value = payload[field];
+
+      if (value !== undefined) {
+        if (typeof value === "string") {
+          updateData[field] = value.trim() as any;
+        } else {
+          updateData[field] = value as any;
+        }
+      }
+    });
+
+
+    if (payload.materialFiles !== undefined) {
+      if (payload.materialFiles.length > 0) {
+        updateData.materialFiles = payload.materialFiles;
+      } else {
+        // optional: allow clearing files
+        updateData.materialFiles = [];
+      }
+
+
+      if (existing.materialFiles?.length) {
+        existing.materialFiles.forEach(deleteFileIfExists);
+      }
+    }
+
+
+    if (Object.keys(updateData).length === 0) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "No fields provided for update"
+      );
+    }
+
+   
+    const result = await prisma.classMaterial.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return {
+      success: true,
+      message: "Class material updated successfully",
+      data: result,
+    };
+  } catch (error) {
+    throw catchError(error);
+  }
+};
 
 const AssignmentsServices={
     createAssignmentsIntoDb,
@@ -682,7 +779,9 @@ const AssignmentsServices={
     updateClassTeacherAssignmentIntoDb,
     deleteClassAssignmentIntoDb,
     createClassMaterialsIntoDb,
-    findBySpecificTeacherClassMaterialsIntoDb
+    findBySpecificTeacherClassMaterialsIntoDb,
+    findBySpecificClassMaterialIntoDb,
+    updateSpecificClassMaterialIntoDb
 };
 
 export default AssignmentsServices;

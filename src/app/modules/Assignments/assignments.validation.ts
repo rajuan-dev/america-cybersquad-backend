@@ -70,10 +70,24 @@ const createClassMaterialSchema= z.object({
 
 });
 
+const updateSpecificClassMaterialSchema= z.object({
+   body: z.object({
+  
+       materialType: z.enum([materialType.materialLink,materialType.materialPDF, materialType.materialVideo, materialType.materialWord]).optional(),
+      description: z.string({required_error:"description is not required"}).optional(),
+      materialFiles: z.array(z.string()).optional(),
+      external_link: z.string({required_error:"external_link is not required"}).optional()
+
+    })
+})
+
 const AssignmentValidation={
     assignmentSchema,
     updateAssignmentSchema,
-    createClassMaterialSchema
+    createClassMaterialSchema,
+    updateSpecificClassMaterialSchema
+    
+    
 };
 
 export default AssignmentValidation

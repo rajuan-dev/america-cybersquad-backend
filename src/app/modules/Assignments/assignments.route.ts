@@ -133,6 +133,56 @@ router.post(
 );
 
 router.get("/find_by_specific_teacher_class_material/:classDistributionId", auth(UserRole.TEACHER), AssignmentsController.findBySpecificTeacherClassMaterials);
+router.get("/find_by_specific_class_material/:id",auth(UserRole.TEACHER),AssignmentsController.findBySpecificClassMaterial);
+router.patch("/update_specific_class_material/:id", 
+  auth(UserRole.TEACHER),
+uploadFile.classMaterialFiles,
+
+  async (
+    req: Request,
+    _res: Response,
+    next: NextFunction
+  ) => {
+    try {
+
+      // ✅ Parse JSON data if exists
+      if (req.body.data) {
+        req.body =
+          typeof req.body.data === "string"
+            ? JSON.parse(req.body.data)
+            : req.body.data;
+      }
+
+      // ✅ Handle upload.fields()
+      if (req.files) {
+
+        const files = req.files as {
+          materialFiles?: Express.Multer.File[];
+        };
+
+        if (files.materialFiles?.length) {
+
+          req.body.materialFiles =
+            files.materialFiles.map((file) =>
+              uploadFile.toRelativePath(file.path)
+            );
+        }
+      }
+
+      next();
+
+    } catch (error) {
+
+      next(
+        new ApiError(
+          httpStatus.BAD_REQUEST,
+          "Invalid JSON data"
+        )
+      );
+    }
+  },
+
+validateRequest( AssignmentValidation.updateSpecificClassMaterialSchema), AssignmentsController.updateSpecificClassMaterial);
 
 
   
