@@ -69,7 +69,7 @@ const deleteClassAssignment:RequestHandler=catchAsync(async(req , res)=>{
 const createClassMaterials:RequestHandler=catchAsync(async(req , res)=>{
 
 
-    const result=await AssignmentsServices.createClassMaterialsIntoDb(req.body);
+    const result=await AssignmentsServices.createClassMaterialsIntoDb(req.body, req.user.id);
      sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
@@ -77,6 +77,16 @@ const createClassMaterials:RequestHandler=catchAsync(async(req , res)=>{
     data: result,
   });
 });
+
+const findBySpecificTeacherClassMaterials:RequestHandler=catchAsync(async(req , res)=>{
+  const result=await  AssignmentsServices.findBySpecificTeacherClassMaterialsIntoDb(req.params.classDistributionId, req.user.id, req.query);
+   sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find My All Materials",
+    data: result,
+  });
+})
 
 
 
@@ -86,7 +96,8 @@ const AssignmentsController={
     findBySpecificAssignment,
     updateClassTeacherAssignment,
     deleteClassAssignment,
-    createClassMaterials
+    createClassMaterials,
+    findBySpecificTeacherClassMaterials
     
 };
 

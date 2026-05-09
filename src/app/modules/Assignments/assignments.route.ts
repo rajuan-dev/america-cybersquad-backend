@@ -132,6 +132,9 @@ router.post(
   AssignmentsController.createClassMaterials
 );
 
+router.get("/find_by_specific_teacher_class_material/:classDistributionId", auth(UserRole.TEACHER), AssignmentsController.findBySpecificTeacherClassMaterials);
+
+
   
 
 

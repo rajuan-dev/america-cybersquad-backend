@@ -9,7 +9,6 @@ import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { deleteByPattern, deleteCache, getCache, setCache } from "../../../config/redis";
 import { searchableAssignment } from "./assignments.constant";
 import { deleteFileIfExists } from "../../../utils/deleteFiles/deleteFileIfExists";
-import { AppErrorCodes } from "firebase-admin/app";
 
 
 const createAssignmentsIntoDb = async (
@@ -394,25 +393,286 @@ const deleteClassAssignmentIntoDb = async (
   }
 };
 
+const createClassMaterialsIntoDb = async (
+  payload: TMaterials,
+  teacherId: string
+) => {
+  try {
+    const isExistClassDistributionId =
+      await prisma.classDistribution.findFirst({
+        where: {
+          id: payload.classDistributionId,
+          subscriptionId: payload.subscriptionId,
+          teacherId,
+        },
+        select: {
+          students: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
 
-const createClassMaterialsIntoDb=async(payload:Partial<TMaterials>)=>{
+    if (!isExistClassDistributionId) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        "Class distribution not found"
+      );
+    }
 
-  try{
+    if (!payload.materialType) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "materialType is required"
+      );
+    }
 
-    return payload
-    
+    if (
+      (!payload.materialFiles ||
+        payload.materialFiles.length < 1) &&
+      !payload.external_link
+    ) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Material file or external link is required"
+      );
+    }
 
-  }
-  catch (error) {
+    const result = await prisma.$transaction(
+      async (tx) => {
+
+        const createdMaterial =
+          await tx.classMaterial.create({
+            data: {
+              subscriptionId:
+                payload.subscriptionId!,
+
+              classDistributionId:
+                payload.classDistributionId!,
+
+              materialType:payload.materialType,
+
+              description:
+                payload.description,
+
+              materialFiles:
+                payload.materialFiles || [],
+
+              external_link:
+                payload.external_link,
+            },
+          });
+
+        if (
+          isExistClassDistributionId.students
+            ?.length
+        ) {
+
+          await tx.notification.createMany({
+            data:
+              isExistClassDistributionId.students.map(
+                (student) => ({
+                  title:
+                    "📚 New Material Added",
+
+                  message:
+                    "A new class material has been uploaded.",
+
+                  studentId: student.id,
+
+                  subscriptionId:
+                    payload.subscriptionId!,
+                })
+              ),
+          });
+        }
+
+        return createdMaterial;
+      }
+    );
+
+    const io = getSocketIO() as any;
+
+    const notificationPayload = {
+      id: Date.now(),
+
+      title: "📚 New Material Added",
+
+      message:
+        "A new class material has been uploaded.",
+
+      createdBy: UserRole.TEACHER,
+
+      timestamp: new Date().toISOString(),
+    };
+
+    // ✅ Class Room Notification
+    io.to(
+      `class::${payload.classDistributionId}`
+    ).emit(
+      "notification",
+      notificationPayload
+    );
+
+    // ✅ Individual Students Notification
+    if (
+      isExistClassDistributionId.students
+        ?.length
+    ) {
+
+      isExistClassDistributionId.students.forEach(
+        (student) => {
+
+          io.to(`user::${student.id}`).emit(
+            "notification",
+            notificationPayload
+          );
+        }
+      );
+    }
+
+    return {
+      status: true,
+
+      message:
+        "Class material uploaded successfully"
+    };
+
+  } catch (error) {
+
     throw catchError(error);
   }
+};
 
+const findBySpecificTeacherClassMaterialsIntoDb = async (
+  classDistributionId: string,
+  teacherId: string,
+  query: Record<string, unknown>
+) => {
+  try {
 
+    const cacheKey = `teacher-materials:${teacherId}:${classDistributionId}:${encodeURIComponent(
+      JSON.stringify(query)
+    )}`;
 
+    const cachedData = await getCache(cacheKey);
+    if (cachedData) return cachedData;
 
+  
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(['materialType']) 
+      .filter()
+      .sort()
+      .paginate();
 
-}
+    const queryOptions = queryBuilder.build();
 
+    const {
+      materialType,
+      fromDate,
+      toDate,
+    } = query;
+
+    const extraFilter: any = {};
+
+    if (materialType) {
+      extraFilter.materialType = materialType;
+    }
+
+    
+    if (fromDate || toDate) {
+      extraFilter.createdAt = {};
+
+      if (fromDate) {
+        extraFilter.createdAt.gte = new Date(fromDate as string);
+      }
+
+      if (toDate) {
+        extraFilter.createdAt.lte = new Date(toDate as string);
+      }
+    }
+
+    
+    const result = await prisma.classMaterial.findMany({
+      where: {
+        classDistributionId,
+
+        classDistributions: {
+          is: {
+            teacherId,
+          },
+        },
+
+        ...extraFilter,
+        ...queryOptions.where,
+      },
+
+      orderBy: queryOptions.orderBy,
+
+      skip: queryOptions.skip,
+      take: queryOptions.take,
+
+      select: {
+        id: true,
+        materialType: true,
+        description: true,
+        external_link: true,
+        materialFiles: true,
+
+        createdAt: true,
+        updatedAt: true,
+
+        classDistributions: {
+          select: {
+            id: true,
+            classLevel: true,
+          },
+        },
+      },
+    });
+
+  
+    const totalMaterials = await prisma.classMaterial.count({
+      where: {
+        classDistributionId,
+
+        classDistributions: {
+          is: {
+            teacherId,
+          },
+        },
+
+        ...extraFilter,
+        ...queryOptions.where,
+      },
+    });
+
+    // ✅ Pagination safety
+    const page = Math.max(Number(query.page) || 1, 1);
+    const limit = Math.max(Number(query.limit) || 10, 1);
+
+    const responseData = {
+      meta: {
+        page,
+        limit,
+        total: totalMaterials,
+        totalPage: Math.ceil(totalMaterials / limit),
+      },
+      data: result,
+    };
+
+  
+    await setCache(cacheKey, responseData, 600);
+
+    return responseData;
+  } catch (error) {
+    throw catchError(
+      error,
+      "Error fetching teacher class materials"
+    );
+  }
+};
 
 
 const AssignmentsServices={
@@ -421,7 +681,8 @@ const AssignmentsServices={
     findBySpecificAssignmentIntoDb,
     updateClassTeacherAssignmentIntoDb,
     deleteClassAssignmentIntoDb,
-    createClassMaterialsIntoDb
+    createClassMaterialsIntoDb,
+    findBySpecificTeacherClassMaterialsIntoDb
 };
 
 export default AssignmentsServices;
