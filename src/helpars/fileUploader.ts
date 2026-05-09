@@ -114,6 +114,9 @@ const invertorRelationImage = upload.single("invertorRelationImage");
 const attachmentFiles = upload.fields([
   { name: "attachments", maxCount: 10 },
 ]);
+const classMaterialFiles = upload.fields([
+  { name: "materialFiles", maxCount: 10 },
+]);
 
 // dayTripImage and vehicle image
 const image = upload.array("image", 40);
@@ -260,5 +263,6 @@ export const uploadFile = {
  toRelativePath,
   // dayTripImage and vehicle image
   image,
-  attachmentFiles
+  attachmentFiles,
+  classMaterialFiles
 };

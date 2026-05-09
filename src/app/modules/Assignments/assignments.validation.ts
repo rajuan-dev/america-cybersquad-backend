@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AssignmentType } from "./assignments.constant";
+import { AssignmentType, materialType } from "./assignments.constant";
 
 const assignmentSchema = z.object({
 
@@ -57,9 +57,23 @@ const updateAssignmentSchema = z.object({
    })
 });
 
+const createClassMaterialSchema= z.object({
+    body: z.object({
+      subscriptionId: z.string({required_error:"subscriptionId is required"}),
+      classDistributionId: z.string({required_error:"classDistributionId is required"}),
+       materialType: z.enum([materialType.materialLink,materialType.materialPDF, materialType.materialVideo, materialType.materialWord]),
+      description: z.string({required_error:"description is not required"}).optional(),
+      materialFiles: z.array(z.string()).optional(),
+      external_link: z.string({required_error:"external_link is not required"}).optional()
+
+    })
+
+});
+
 const AssignmentValidation={
     assignmentSchema,
-    updateAssignmentSchema
+    updateAssignmentSchema,
+    createClassMaterialSchema
 };
 
 export default AssignmentValidation

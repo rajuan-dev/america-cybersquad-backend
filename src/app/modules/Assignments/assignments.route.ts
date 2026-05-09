@@ -72,6 +72,66 @@ router.patch("/update_teacher_assignment/:id", auth(UserRole.TEACHER),uploadFile
   }, validateRequest(AssignmentValidation.updateAssignmentSchema), AssignmentsController.updateClassTeacherAssignment);
 
   router.delete("/delete_class_assignment/:id", auth(UserRole.TEACHER), AssignmentsController.deleteClassAssignment);
+ // Class Materials all features
+
+router.post(
+  "/create_class_materials",
+
+  auth(UserRole.TEACHER),
+
+  uploadFile.classMaterialFiles,
+
+  async (
+    req: Request,
+    _res: Response,
+    next: NextFunction
+  ) => {
+    try {
+
+      // ✅ Parse JSON data if exists
+      if (req.body.data) {
+        req.body =
+          typeof req.body.data === "string"
+            ? JSON.parse(req.body.data)
+            : req.body.data;
+      }
+
+      // ✅ Handle upload.fields()
+      if (req.files) {
+
+        const files = req.files as {
+          materialFiles?: Express.Multer.File[];
+        };
+
+        if (files.materialFiles?.length) {
+
+          req.body.materialFiles =
+            files.materialFiles.map((file) =>
+              uploadFile.toRelativePath(file.path)
+            );
+        }
+      }
+
+      next();
+
+    } catch (error) {
+
+      next(
+        new ApiError(
+          httpStatus.BAD_REQUEST,
+          "Invalid JSON data"
+        )
+      );
+    }
+  },
+
+  validateRequest(
+    AssignmentValidation.createClassMaterialSchema
+  ),
+
+  AssignmentsController.createClassMaterials
+);
+
   
 
 

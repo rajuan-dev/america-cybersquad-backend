@@ -63,7 +63,21 @@ const deleteClassAssignment:RequestHandler=catchAsync(async(req , res)=>{
     message: "Successfully Delete",
     data: result,
   });
-})
+});
+
+
+const createClassMaterials:RequestHandler=catchAsync(async(req , res)=>{
+
+
+    const result=await AssignmentsServices.createClassMaterialsIntoDb(req.body);
+     sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Recorded Class Materials",
+    data: result,
+  });
+});
+
 
 
 const AssignmentsController={
@@ -72,6 +86,7 @@ const AssignmentsController={
     findBySpecificAssignment,
     updateClassTeacherAssignment,
     deleteClassAssignment,
+    createClassMaterials
     
 };
 

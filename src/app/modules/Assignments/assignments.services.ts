@@ -2,7 +2,7 @@ import httpStatus from "http-status";
 import ApiError from "../../../errors/ApiErrors";
 import catchError from "../../../errors/catchError";
 import prisma from "../../../shared/prisma";
-import { TAssignments } from "./assignments.interface";
+import { TAssignments, TMaterials } from "./assignments.interface";
 import { getSocketIO } from "../../../socket/connectSocket";
 import { UserRole } from "@prisma/client";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
@@ -395,13 +395,33 @@ const deleteClassAssignmentIntoDb = async (
 };
 
 
+const createClassMaterialsIntoDb=async(payload:Partial<TMaterials>)=>{
+
+  try{
+
+    return payload
+    
+
+  }
+  catch (error) {
+    throw catchError(error);
+  }
+
+
+
+
+
+}
+
+
 
 const AssignmentsServices={
     createAssignmentsIntoDb,
     findBySpecificTeacherAssignmentIntoDb,
     findBySpecificAssignmentIntoDb,
     updateClassTeacherAssignmentIntoDb,
-    deleteClassAssignmentIntoDb
+    deleteClassAssignmentIntoDb,
+    createClassMaterialsIntoDb
 };
 
 export default AssignmentsServices;
