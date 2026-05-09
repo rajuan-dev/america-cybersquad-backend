@@ -228,6 +228,7 @@ model Teacher {
 
   announcements Announcement[]
   notification  Notification[]
+  supports      Support[]
 
   classDistributions ClassDistribution[]
   attendanceSheets   AttendanceSheet[]
@@ -435,6 +436,8 @@ model Support {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   notifications  Notification[]
+  teacherId      String?
+  teachers       Teacher?       @relation(fields: [teacherId], references: [id])
   branchAdmin    BranchAdmin?   @relation(fields: [branchAdminId], references: [id])
   subscriptions  Subscriptions? @relation(fields: [subscriptionId], references: [id])
   user           User?          @relation(fields: [userId], references: [id])

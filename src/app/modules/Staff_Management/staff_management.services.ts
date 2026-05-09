@@ -9,7 +9,7 @@ import bcrypt from 'bcrypt'
 import { jwtHelpers } from "../../../helpars/jwtHelpers";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import fs from "fs";
-import path from "path";
+
 
 
 const createStaffManagementIntoDb = async (

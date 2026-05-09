@@ -8,7 +8,7 @@ import auth from '../../middlewares/auth';
 
 const router= express.Router();
 
-router.post("/send_support_message", branchAdminAuth(UserRole.BRANCH_ADMIN, UserRole.INSTITUTIONAL_OWNER), validateRequest(SupportValidation.createSupportSchema), SupportController.sendSupportMessage);
+router.post("/send_support_message", branchAdminAuth(UserRole.BRANCH_ADMIN, UserRole.INSTITUTIONAL_OWNER, UserRole.TEACHER), validateRequest(SupportValidation.createSupportSchema), SupportController.sendSupportMessage);
 router.get("/find_by_all_support", auth(UserRole.ADMIN, UserRole.SUPER_ADMIN), SupportController. findByAllSupport);
 router.delete("/delete_support/:supportId",auth(UserRole.ADMIN, UserRole.SUPER_ADMIN), SupportController.deleteSupport);
 

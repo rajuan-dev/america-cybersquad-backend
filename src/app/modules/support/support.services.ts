@@ -6,6 +6,7 @@ import { TSupport } from "./support.interface";
 import { getSocketIO } from "../../../socket/connectSocket";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { searchable_support_filed } from "./support.constant";
+import { UserRole } from "@prisma/client";
 
 
 const sendSupportMessageIntoDb = async (
@@ -18,7 +19,7 @@ const sendSupportMessageIntoDb = async (
       let supportResult: any = null;
 
       switch (role) {
-        case "BRANCH_ADMIN": {
+        case UserRole.BRANCH_ADMIN: {
           const isExistSubscription = await tx.subscriptions.findUnique({
             where: { id: payload.subscriptionId },
             select: { userId: true },
@@ -59,9 +60,9 @@ const sendSupportMessageIntoDb = async (
         }
 
         // ✅ EMPTY CASE (no action)
-        case "INSTITUTIONAL_OWNER": {
+        case UserRole.INSTITUTIONAL_OWNER: {
 
-     const isExistSubscription = await tx.subscriptions.findUnique({
+         const isExistSubscription = await tx.subscriptions.findUnique({
             where: { id: payload.subscriptionId },
             select: { userId: true },
           });
@@ -101,6 +102,58 @@ const sendSupportMessageIntoDb = async (
           
          
         }
+        case UserRole.TEACHER:{
+
+           const isExistSubscription = await tx.subscriptions.findUnique({
+            where: { id: payload.subscriptionId },
+            select: { userId: true },
+          });
+
+          if (!isExistSubscription) {
+            throw new ApiError(
+              httpStatus.NOT_FOUND,
+              "Subscription not found"
+            );
+          };
+
+           supportResult = await tx.support.create({
+            data: {
+              subscriptionId: payload.subscriptionId,
+              name: payload.name,
+              email: payload.email,
+              subject: payload.subject,
+              message: payload.message,
+              isDelete: payload.isDelete ?? false,
+              teacherId: userId,
+            },
+          });
+
+          //recorded notification 
+          
+
+
+          // await tx.notification.create({
+          //   data: {
+          //     title: payload.subject,
+          //     message:
+          //       payload.message.length > 20
+          //         ? payload.message.slice(0, 20) + "..."
+          //         : payload.message,
+          //     teacherId: userId,
+          //     subscriptionId: payload.subscriptionId,
+          //   },
+          // });
+          //send notification 
+
+
+
+
+
+
+
+          break;
+
+        }
 
         default:
           throw new ApiError(httpStatus.FORBIDDEN, "Role not allowed");
@@ -114,7 +167,7 @@ const sendSupportMessageIntoDb = async (
 
     const io = getSocketIO() as any;
 
-    io.emit(`notification::${role}`, {
+    io.emit(`notification::${userId}`, {
       id: Date.now(),
       title: payload.subject,
       message:
@@ -124,6 +177,7 @@ const sendSupportMessageIntoDb = async (
       createdBy: role,
       timestamp: new Date().toISOString(),
     });
+
 
     return {
       success: true,

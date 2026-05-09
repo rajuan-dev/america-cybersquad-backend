@@ -103,7 +103,7 @@ export const getCache = async (key: string) => {
   return null;
 };
 
-// ✅ Cache DELETE
+
 export const deleteCache = async (key: string) => {
   try {
     await connectRedis();
@@ -135,5 +135,5 @@ export const deleteByPattern = async (pattern: string) => {
   } catch {}
 };
 
-// ✅ Check Redis status
+
 export const isRedisAlive = () => isRedisConnected;
