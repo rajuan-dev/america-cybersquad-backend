@@ -343,9 +343,7 @@ const findMyAllClassListIntoDb = async (
   query: Record<string, any>
 ) => {
   try {
-    // ======================================================
-    // ✅ Pagination
-    // ======================================================
+
 
     const page = Number(query.page) || 1;
 
@@ -353,18 +351,13 @@ const findMyAllClassListIntoDb = async (
 
     const skip = (page - 1) * limit;
 
-    // ======================================================
-    // ✅ Sorting
-    // ======================================================
+
 
     const sortBy = query.sortBy || "createdAt";
 
     const sortOrder: Prisma.SortOrder =
       query.sortOrder === "asc" ? "asc" : "desc";
 
-    // ======================================================
-    // ✅ Query Params
-    // ======================================================
 
     const searchTerm = query.searchTerm;
 
@@ -386,9 +379,6 @@ const findMyAllClassListIntoDb = async (
       query
     )}`;
 
-    // ======================================================
-    // ✅ Check Cache
-    // ======================================================
 
     const cachedData = await getCache(cacheKey);
 
@@ -489,9 +479,7 @@ const findMyAllClassListIntoDb = async (
       };
     }
 
-    // ======================================================
-    // ✅ Final Where Condition
-    // ======================================================
+
 
     const classDistributionWhereCondition: Prisma.ClassDistributionWhereInput =
       {
@@ -502,13 +490,11 @@ const findMyAllClassListIntoDb = async (
         students: {
           some: {
             id: userId,
+            
           },
         },
       };
 
-    // ======================================================
-    // ✅ Main Query
-    // ======================================================
 
     const [studentData, total] = await Promise.all([
       prisma.student.findFirst({
@@ -522,6 +508,7 @@ const findMyAllClassListIntoDb = async (
 
         select: {
           id: true,
+          branchName:true,
           classDistributions: {
             where: classDistributionWhereCondition,
 
@@ -573,9 +560,7 @@ const findMyAllClassListIntoDb = async (
       }),
     ]);
 
-    // ======================================================
-    // ✅ Final Response
-    // ======================================================
+ 
 
     const responseData = {
       meta: {
@@ -591,17 +576,143 @@ const findMyAllClassListIntoDb = async (
       data: studentData,
     };
 
-    // ======================================================
-    // ✅ Store Cache
-    // ======================================================
+
 
     await setCache(cacheKey, responseData, 60 * 5);
 
-    // cache for 5 minutes
-
+  
     return responseData;
   } catch (error) {
     return catchError(error, "Error fetching class list from database");
+  }
+};
+
+const findMyClassAssignmentIntoDb = async (
+  userId: string,
+  query: Record<string, any>
+) => {
+  try {
+   
+    const cacheKey = `class-assignment:${userId}:${JSON.stringify(query)}`;
+
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData) {
+      return cachedData;
+    }
+
+ 
+
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(["assignmentTitle"])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const queryOptions = queryBuilder.build();
+
+    const isVerified = query.isVerified;
+    const status = query.status;
+    const assignmentType = query.assignmentType;
+    const classDistributionId = query.classDistributionId;
+
+    const whereCondition: any = {
+      id: userId,
+
+      ...(isVerified !== undefined && {
+        isVerified: isVerified === "true",
+      }),
+
+      ...(status && { status }),
+
+      ...(queryOptions.where || {}),
+
+      ...(classDistributionId && {
+        classDistributions: {
+          some: {
+            id: classDistributionId,
+          },
+        },
+      }),
+    };
+
+   
+
+    const [result, total] = await Promise.all([
+      prisma.student.findMany({
+        where: whereCondition,
+        orderBy: queryOptions.orderBy,
+        skip: queryOptions.skip,
+        take: queryOptions.take,
+
+        select: {
+          id: true,
+          branchName: true,
+          className: true,
+
+          classDistributions: {
+            select: {
+              id: true,
+
+              teacher: {
+                select: {
+                  teacherName: true,
+                  email: true,
+                  phoneNumber: true,
+                  teacherId: true,
+                },
+              },
+
+              classAssignments: {
+                where: {
+                  ...(assignmentType && {
+                    assignmentType,
+                  }),
+                },
+
+                select: {
+                  id: true,
+                  assignmentTitle: true,
+                  assignmentType: true,
+                  assessmentAvailable: true,
+                  attachmentFiles: true,
+                  assignmentDueDate: true,
+                  createdAt: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+
+      prisma.student.count({
+        where: whereCondition,
+      }),
+    ]);
+
+    
+
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+
+    const responseData = {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
+      data: result,
+    };
+
+    
+
+    await setCache(cacheKey, responseData, 60 * 5);
+
+    return responseData;
+  } catch (error) {
+    return catchError(error, "Error fetching class assignments");
   }
 };
 
@@ -614,6 +725,7 @@ const StudentsService = {
   findByAllStudents_Institutional_OwnerIntoDb,
   deleteStudentFromDb,
   updateStudentIntoDb,
-  findMyAllClassListIntoDb
+  findMyAllClassListIntoDb,
+  findMyClassAssignmentIntoDb
 };
 export default StudentsService;
