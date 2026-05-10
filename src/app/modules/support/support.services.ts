@@ -18,11 +18,21 @@ const sendSupportMessageIntoDb = async (
     const result = await prisma.$transaction(async (tx) => {
       let supportResult: any = null;
 
+      const shortMessage =
+        payload.message.length > 20
+          ? payload.message.slice(0, 20) + "..."
+          : payload.message;
+
       switch (role) {
+        // ======================================================
+        // BRANCH ADMIN
+        // ======================================================
         case UserRole.BRANCH_ADMIN: {
           const isExistSubscription = await tx.subscriptions.findUnique({
             where: { id: payload.subscriptionId },
-            select: { userId: true },
+            select: {
+              userId: true,
+            },
           });
 
           if (!isExistSubscription) {
@@ -32,6 +42,7 @@ const sendSupportMessageIntoDb = async (
             );
           }
 
+          // create support
           supportResult = await tx.support.create({
             data: {
               subscriptionId: payload.subscriptionId,
@@ -44,27 +55,34 @@ const sendSupportMessageIntoDb = async (
             },
           });
 
+          // notification for owner
           await tx.notification.create({
             data: {
               title: payload.subject,
-              message:
-                payload.message.length > 20
-                  ? payload.message.slice(0, 20) + "..."
-                  : payload.message,
-              branchAdminId: isExistSubscription.userId,
+              message: shortMessage,
+              userId: isExistSubscription.userId,
               subscriptionId: payload.subscriptionId,
+              isDelete: false,
             },
           });
 
           break;
         }
 
-        // ✅ EMPTY CASE (no action)
+        // ======================================================
+        // INSTITUTIONAL OWNER
+        // ======================================================
         case UserRole.INSTITUTIONAL_OWNER: {
-
-         const isExistSubscription = await tx.subscriptions.findUnique({
+          const isExistSubscription = await tx.subscriptions.findUnique({
             where: { id: payload.subscriptionId },
-            select: { userId: true },
+            select: {
+              userId: true,
+              branchAdmins: {
+                select: {
+                  id: true,
+                },
+              },
+            },
           });
 
           if (!isExistSubscription) {
@@ -74,6 +92,7 @@ const sendSupportMessageIntoDb = async (
             );
           }
 
+          // create support
           supportResult = await tx.support.create({
             data: {
               subscriptionId: payload.subscriptionId,
@@ -86,27 +105,44 @@ const sendSupportMessageIntoDb = async (
             },
           });
 
-          await tx.notification.create({
-            data: {
-              title: payload.subject,
-              message:
-                payload.message.length > 20
-                  ? payload.message.slice(0, 20) + "..."
-                  : payload.message,
-              userId: isExistSubscription.userId,
-              subscriptionId: payload.subscriptionId,
-            },
-          });
+          // notification for all branch admins
+          await Promise.all(
+            isExistSubscription.branchAdmins.map((admin) =>
+              tx.notification.create({
+                data: {
+                  title: payload.subject,
+                  message: shortMessage,
+                  branchAdminId: admin.id,
+                  subscriptionId: payload.subscriptionId,
+                  isDelete: false,
+                },
+              })
+            )
+          );
 
           break;
-          
-         
         }
-        case UserRole.TEACHER:{
 
-           const isExistSubscription = await tx.subscriptions.findUnique({
+        // ======================================================
+        // TEACHER
+        // ======================================================
+        case UserRole.TEACHER: {
+          
+          const isExistSubscription = await tx.subscriptions.findUnique({
             where: { id: payload.subscriptionId },
-            select: { userId: true },
+            select: {
+              userId: true,
+              branchAdmins: {
+                select: {
+                  id: true,
+                },
+              },
+              user: {
+                select: {
+                  role: true,
+                },
+              },
+            },
           });
 
           if (!isExistSubscription) {
@@ -114,9 +150,10 @@ const sendSupportMessageIntoDb = async (
               httpStatus.NOT_FOUND,
               "Subscription not found"
             );
-          };
+          }
 
-           supportResult = await tx.support.create({
+          // create support
+          supportResult = await tx.support.create({
             data: {
               subscriptionId: payload.subscriptionId,
               name: payload.name,
@@ -128,66 +165,164 @@ const sendSupportMessageIntoDb = async (
             },
           });
 
-          //recorded notification 
-          
+          // notification for branch admins
+          await Promise.all(
+            isExistSubscription.branchAdmins.map((admin) =>
+              tx.notification.create({
+                data: {
+                  title: payload.subject,
+                  message: shortMessage,
+                  branchAdminId: admin.id,
+                  subscriptionId: payload.subscriptionId,
+                  isDelete: false,
+                },
+              })
+            )
+          );
 
-
-          // await tx.notification.create({
-          //   data: {
-          //     title: payload.subject,
-          //     message:
-          //       payload.message.length > 20
-          //         ? payload.message.slice(0, 20) + "..."
-          //         : payload.message,
-          //     teacherId: userId,
-          //     subscriptionId: payload.subscriptionId,
-          //   },
-          // });
-          //send notification 
-
-
-
-
-
-
+          // notification for institutional owner
+          if (
+            isExistSubscription.user.role ===
+            UserRole.INSTITUTIONAL_OWNER
+          ) {
+            await tx.notification.create({
+              data: {
+                title: payload.subject,
+                message: shortMessage,
+                userId: isExistSubscription.userId,
+                subscriptionId: payload.subscriptionId,
+                isDelete: false,
+              },
+            });
+          }
 
           break;
-
         }
 
+        // ======================================================
+        // DEFAULT
+        // ======================================================
         default:
-          throw new ApiError(httpStatus.FORBIDDEN, "Role not allowed");
+          throw new ApiError(
+            httpStatus.FORBIDDEN,
+            "Role not allowed"
+          );
       }
 
       return supportResult;
     });
-    if(! result){
-        throw new ApiError(httpStatus.NOT_EXTENDED, 'ISSUES BY THE SEND SUPPORT MESSAGE INTO SERVER')
+
+    // ======================================================
+    // RESULT CHECK
+    // ======================================================
+    if (!result) {
+      throw new ApiError(
+        httpStatus.NOT_EXTENDED,
+        "Issues sending support message"
+      );
     }
 
+    // ======================================================
+    // SOCKET NOTIFICATION
+    // ======================================================
     const io = getSocketIO() as any;
 
-    io.emit(`notification::${userId}`, {
-      id: Date.now(),
-      title: payload.subject,
-      message:
-        payload.message.length > 20
-          ? payload.message.slice(0, 20) + "..."
-          : payload.message,
-      createdBy: role,
-      timestamp: new Date().toISOString(),
-    });
+    const shortMessage =
+      payload.message.length > 20
+        ? payload.message.slice(0, 20) + "..."
+        : payload.message;
 
+    // ----------------------------------------------
+    // Teacher Socket Notification
+    // ----------------------------------------------
+    if (role === UserRole.TEACHER) {
+      const subscription = await prisma.subscriptions.findUnique({
+        where: { id: payload.subscriptionId },
+        select: {
+          userId: true,
+          branchAdmins: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      // branch admins
+      subscription?.branchAdmins.forEach((admin) => {
+        io.emit(`notification::${admin.id}`, {
+          id: Date.now(),
+          title: payload.subject,
+          message: shortMessage,
+          createdBy: role,
+          timestamp: new Date().toISOString(),
+        });
+      });
+
+      // institutional owner
+      io.emit(`notification::${subscription?.userId}`, {
+        id: Date.now(),
+        title: payload.subject,
+        message: shortMessage,
+        createdBy: role,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // ----------------------------------------------
+    // Branch Admin Socket Notification
+    // ----------------------------------------------
+    if (role === UserRole.BRANCH_ADMIN) {
+      const subscription = await prisma.subscriptions.findUnique({
+        where: { id: payload.subscriptionId },
+        select: {
+          userId: true,
+        },
+      });
+
+      io.emit(`notification::${subscription?.userId}`, {
+        id: Date.now(),
+        title: payload.subject,
+        message: shortMessage,
+        createdBy: role,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // ----------------------------------------------
+    // Institutional Owner Socket Notification
+    // ----------------------------------------------
+    if (role === UserRole.INSTITUTIONAL_OWNER) {
+      const subscription = await prisma.subscriptions.findUnique({
+        where: { id: payload.subscriptionId },
+        select: {
+          branchAdmins: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      subscription?.branchAdmins.forEach((admin) => {
+        io.emit(`notification::${admin.id}`, {
+          id: Date.now(),
+          title: payload.subject,
+          message: shortMessage,
+          createdBy: role,
+          timestamp: new Date().toISOString(),
+        });
+      });
+    }
 
     return {
       success: true,
-      message:"Successfully Send Support Message"
+      message: "Successfully Send Support Message",
     };
   } catch (error) {
     return catchError(error);
   }
 };
-
 const findByAllSupportIntoDb = async (
   query: Record<string, unknown>
 ) => {
