@@ -45,6 +45,9 @@ router.patch(
   StudentsController.updateStudent
 );
 
+router.get("/find_my_all_class_list", branchAdminAuth(UserRole.STUDENT),StudentsController.findMyAllClassList);
+
+
 
 const  studentRoute=router;
 export default studentRoute;

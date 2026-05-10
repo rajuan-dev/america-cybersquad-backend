@@ -64,6 +64,17 @@ const createStudent:RequestHandler = catchAsync(async (req, res) => {
             data:result
           });
           });
+
+          const findMyAllClassList:RequestHandler=catchAsync(async(req , res)=>{
+
+              const result=await StudentsService.findMyAllClassListIntoDb(req.user.id, req.query);
+           sendResponse(res, {
+            statusCode: httpStatus.OK,
+            success: true,
+            message: "Successfully Find My All Class List",
+            data:result
+          });
+          })
           
 
 
@@ -75,6 +86,7 @@ const createStudent:RequestHandler = catchAsync(async (req, res) => {
     findByAllStudents,
     findByAllStudents_Institutional_Owner,
     deleteStudent,
-    updateStudent
+    updateStudent,
+    findMyAllClassList
   }
   export default StudentsController;

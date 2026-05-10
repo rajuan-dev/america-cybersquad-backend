@@ -61,7 +61,7 @@ const auth = (...roles: string[]) => {
         case UserRole.STUDENT: {
 
           user=await prisma.student.findUnique({
-            where:{id:verifiedUser.id, isVerified:true},
+            where:{id:verifiedUser.id,status:UserStatus.ACTIVE, isVerified:true},
             select:{id:true}
           });
 

@@ -10,9 +10,10 @@ import { searchableFields } from './Students.constant';
 import fs from "fs";
 import path from "path";
 import generateStudentId from '../../../utils/generateId/generateStudentId';
-import { UserRole } from "@prisma/client";
+import { Prisma, UserRole, UserStatus } from "@prisma/client";
 import bcrypt from "bcrypt";
 import config from "../../../config";
+import { getCache, setCache } from "../../../config/redis";
 
 
 const createStudentIntoDb = async (
@@ -337,9 +338,274 @@ const deleteStudentFromDb = async (
   }
 };
 
+const findMyAllClassListIntoDb = async (
+  userId: string,
+  query: Record<string, any>
+) => {
+  try {
+    // ======================================================
+    // ✅ Pagination
+    // ======================================================
 
-// student authentication and verification services can be added here in the future
-// now is pending for future implementation if needed
+    const page = Number(query.page) || 1;
+
+    const limit = Number(query.limit) || 10;
+
+    const skip = (page - 1) * limit;
+
+    // ======================================================
+    // ✅ Sorting
+    // ======================================================
+
+    const sortBy = query.sortBy || "createdAt";
+
+    const sortOrder: Prisma.SortOrder =
+      query.sortOrder === "asc" ? "asc" : "desc";
+
+    // ======================================================
+    // ✅ Query Params
+    // ======================================================
+
+    const searchTerm = query.searchTerm;
+
+    const classLevel = query.classLevel;
+
+    const day = query.day;
+
+    const assignableSubject = query.assignableSubject;
+
+    const teacherId = query.teacherId;
+
+    const isOnline =
+      query.isOnline !== undefined
+        ? query.isOnline === "true"
+        : undefined;
+
+    
+    const cacheKey = `student-class-list:${userId}:${JSON.stringify(
+      query
+    )}`;
+
+    // ======================================================
+    // ✅ Check Cache
+    // ======================================================
+
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData) {
+      return cachedData;
+    }
+
+
+    const searchCondition: Prisma.ClassDistributionWhereInput =
+      searchTerm
+        ? {
+            OR: [
+              {
+                roomNumber: {
+                  contains: searchTerm,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+
+              {
+                classLevel: {
+                  contains: searchTerm,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+
+              {
+                assignableSubject: {
+                  contains: searchTerm,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+
+              {
+                day: {
+                  contains: searchTerm,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+
+              // ✅ Teacher Name Search
+              {
+                teacher: {
+                  is: {
+                    teacherName: {
+                      contains: searchTerm,
+                      mode: Prisma.QueryMode.insensitive,
+                    },
+                  },
+                },
+              },
+
+              // ✅ Teacher ID Search
+              {
+                teacher: {
+                  is: {
+                    teacherId: {
+                      contains: searchTerm,
+                      mode: Prisma.QueryMode.insensitive,
+                    },
+                  },
+                },
+              },
+            ],
+          }
+        : {};
+
+
+
+    const classFilter: Prisma.ClassDistributionWhereInput = {};
+
+  
+    if (classLevel) {
+      classFilter.classLevel = classLevel;
+    }
+
+  
+    if (day) {
+      classFilter.day = day;
+    }
+
+    
+    if (assignableSubject) {
+      classFilter.assignableSubject = assignableSubject;
+    }
+
+  
+    if (typeof isOnline === "boolean") {
+      classFilter.isOnline = isOnline;
+    }
+
+
+    if (teacherId) {
+      classFilter.teacher = {
+        is: {
+          teacherId,
+        },
+      };
+    }
+
+    // ======================================================
+    // ✅ Final Where Condition
+    // ======================================================
+
+    const classDistributionWhereCondition: Prisma.ClassDistributionWhereInput =
+      {
+        ...classFilter,
+
+        ...searchCondition,
+
+        students: {
+          some: {
+            id: userId,
+          },
+        },
+      };
+
+    // ======================================================
+    // ✅ Main Query
+    // ======================================================
+
+    const [studentData, total] = await Promise.all([
+      prisma.student.findFirst({
+        where: {
+          id: userId,
+
+          isVerified: true,
+
+          status: UserStatus.ACTIVE,
+        },
+
+        select: {
+          id: true,
+          classDistributions: {
+            where: classDistributionWhereCondition,
+
+            orderBy: {
+              [sortBy]: sortOrder,
+            },
+
+            skip,
+
+            take: limit,
+
+            select: {
+              id: true,
+
+              roomNumber: true,
+
+              classLevel: true,
+
+              assignableSubject: true,
+
+              day: true,
+
+              time: true,
+
+              isOnline: true,
+
+             
+
+              teacher: {
+                select: {
+                  id: true,
+
+                  teacherName: true,
+
+                  teacherId: true,
+
+                  email: true,
+
+                  photo: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+
+      prisma.classDistribution.count({
+        where: classDistributionWhereCondition,
+      }),
+    ]);
+
+    // ======================================================
+    // ✅ Final Response
+    // ======================================================
+
+    const responseData = {
+      meta: {
+        page,
+
+        limit,
+
+        total,
+
+        totalPage: Math.ceil(total / limit),
+      },
+
+      data: studentData,
+    };
+
+    // ======================================================
+    // ✅ Store Cache
+    // ======================================================
+
+    await setCache(cacheKey, responseData, 60 * 5);
+
+    // cache for 5 minutes
+
+    return responseData;
+  } catch (error) {
+    return catchError(error, "Error fetching class list from database");
+  }
+};
+
+
 
 
 const StudentsService = {
@@ -347,6 +613,7 @@ const StudentsService = {
   findByAllStudentsIntoDb,
   findByAllStudents_Institutional_OwnerIntoDb,
   deleteStudentFromDb,
-  updateStudentIntoDb
+  updateStudentIntoDb,
+  findMyAllClassListIntoDb
 };
 export default StudentsService;
