@@ -11,6 +11,7 @@ import autoDeleteUnverifiedUser from "./utils/autoDeleteUnverifiedUser";
 import catchError from "./errors/catchError";
 import autoChangeStatusOnlineClass from "./utils/autoChangeStatusOnlineClass";
 import autoDeleteNotification from "./utils/autoDeleteNotification";
+import autoCheckedAssessmentAvailable from "./utils/assessmentAvailablity/autoCheckedAssessmentAvailable";
 
 declare global {
   namespace Express {
@@ -98,6 +99,18 @@ cron.schedule("0 0 * * *", async()=>{
   catchError(error, "[Cron] Error auto delete notification");
   }
 });
+
+cron.schedule("*/10 * * * *", async()=>{
+
+
+    try{
+      await autoCheckedAssessmentAvailable();
+
+    }
+    catch(error: unknown){
+      catchError(error, "[Cron] Error auto checked assessment available");
+    }
+})
 
 
 app.use((req: Request, res: Response, next: NextFunction) => {

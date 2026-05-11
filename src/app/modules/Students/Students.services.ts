@@ -648,8 +648,7 @@ const findMyClassAssignmentIntoDb = async (
 
         select: {
           id: true,
-          branchName: true,
-          className: true,
+          
 
           classDistributions: {
             select: {
@@ -679,7 +678,15 @@ const findMyClassAssignmentIntoDb = async (
                   attachmentFiles: true,
                   assignmentDueDate: true,
                   createdAt: true,
+                  classDistributions:{
+                    select:{
+                      classLevel:true ,
+                      assignableSubject:true,
+                      
+                    }
+                  }
                 },
+                
               },
             },
           },
