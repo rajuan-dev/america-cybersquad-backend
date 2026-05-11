@@ -85,7 +85,19 @@ const createStudent:RequestHandler = catchAsync(async (req, res) => {
             message: "Successfully Find My All Class Assignment",
             data:result
           });
-          })
+          });
+
+
+    const submitAssignment:RequestHandler=catchAsync(async(req , res)=>{
+
+       const result=await StudentsService.submitAssignmentIntoDb(req.user.id, req.body);
+        sendResponse(res, {
+            statusCode: httpStatus.OK,
+            success: true,
+            message: "Successfully Recorded",
+            data:result
+          });
+    })
           
 
 
@@ -99,7 +111,8 @@ const createStudent:RequestHandler = catchAsync(async (req, res) => {
     deleteStudent,
     updateStudent,
     findMyAllClassList,
-    findMyClassAssignment
+    findMyClassAssignment,
+    submitAssignment
     
   }
   export default StudentsController;

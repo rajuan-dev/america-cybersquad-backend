@@ -117,6 +117,12 @@ const attachmentFiles = upload.fields([
 const classMaterialFiles = upload.fields([
   { name: "materialFiles", maxCount: 10 },
 ]);
+const fileUrlFiles = upload.fields([
+  {
+    name: "fileUrl",
+    maxCount: 10,
+  },
+]);
 
 // dayTripImage and vehicle image
 const image = upload.array("image", 40);
@@ -264,5 +270,6 @@ export const uploadFile = {
   // dayTripImage and vehicle image
   image,
   attachmentFiles,
-  classMaterialFiles
+  classMaterialFiles,
+  fileUrlFiles
 };

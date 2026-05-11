@@ -2,7 +2,7 @@
 
 import catchError from "../../../errors/catchError";
 import prisma from "../../../shared/prisma";
-import { CreateStudentDto } from "./Students.interface";
+import { CreateStudentDto, TSubmitAssignment } from "./Students.interface";
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 import PrismaQueryBuilder from '../../builder/PrismaQueryBuilder';
@@ -724,6 +724,98 @@ const findMyClassAssignmentIntoDb = async (
 };
 
 
+const submitAssignmentIntoDb = async (
+  studentId: string,
+  payload: TSubmitAssignment
+) => {
+  try {
+  
+    const isExistAssignment =
+      await prisma.classAssignment.findUnique({
+        where: {
+          id: payload.classAssignmentId,
+        },
+        select: {
+          id: true,
+          assessmentAvailable: true,
+        },
+      });
+
+      
+    if (!isExistAssignment) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        "This assignment does not exist"
+      );
+    }
+
+  
+    if (isExistAssignment.assessmentAvailable) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Submission deadline finished"
+      );
+    }
+
+   
+    const alreadyUploaded =
+      await prisma.submitAssignment.findFirst({
+        where: {
+          studentId,
+          classAssignmentId: payload.classAssignmentId,
+        },
+        select:{
+          id:true
+        }
+      });
+
+    if (alreadyUploaded) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "You already uploaded this assignment"
+      );
+    }
+
+    
+    if (
+      !payload.uploadFiles ||
+      !Array.isArray(payload.uploadFiles) ||
+      payload.uploadFiles.length < 1
+    ) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "At least one file is required"
+      );
+    }
+
+    
+    const result = await prisma.submitAssignment.create({
+      data: {
+        studentId,
+        classAssignmentId: payload.classAssignmentId,
+
+        uploadFiles: {
+          create: payload.uploadFiles.map((file) => ({
+            fileUrl: file.fileUrl,
+          })),
+        },
+      },
+
+      include: {
+        uploadFiles: true,
+      },
+    });
+
+    return result && {
+      status: true,
+      message: "Assignment submitted successfully"
+
+    };
+  } catch (error) {
+    catchError(error);
+  }
+};
+
 
 
 const StudentsService = {
@@ -733,6 +825,7 @@ const StudentsService = {
   deleteStudentFromDb,
   updateStudentIntoDb,
   findMyAllClassListIntoDb,
-  findMyClassAssignmentIntoDb
+  findMyClassAssignmentIntoDb,
+  submitAssignmentIntoDb
 };
 export default StudentsService;

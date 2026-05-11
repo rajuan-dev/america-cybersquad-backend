@@ -1,5 +1,5 @@
 import z from "zod";
-import { Router } from "express";
+import { NextFunction, Request, Response, Router } from "express";
 
 import studentValidation from "./Students.validation";
 import validateRequest from "../../middlewares/validateRequest";    
@@ -7,6 +7,9 @@ import StudentsController from "./Students.controller";
 import branchAdminAuth from "../../middlewares/branchAdminAuth";
 import { UserRole } from "@prisma/client";
 import auth from "../../middlewares/auth";
+import { uploadFile } from "../../../helpars/fileUploader";
+import ApiError from "../../../errors/ApiErrors";
+import httpStatus from "http-status";
 
 
 
@@ -47,8 +50,64 @@ router.patch(
 
 router.get("/find_my_all_class_list", branchAdminAuth(UserRole.STUDENT),StudentsController.findMyAllClassList);
 router.get("/find_my_class_assignment",branchAdminAuth(UserRole.STUDENT), StudentsController.findMyClassAssignment);
+// ================================
+// Students.routes.ts
+// ================================
 
+router.patch(
+  "/submit-assignment",
 
+  branchAdminAuth(UserRole.STUDENT),
+
+  uploadFile.fileUrlFiles,
+
+  async (
+    req: Request,
+    _res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      // parse multipart form-data json
+      if (req.body.data) {
+        req.body =
+          typeof req.body.data === "string"
+            ? JSON.parse(req.body.data)
+            : req.body.data;
+      }
+
+      // uploaded files
+      if (req.files) {
+        const files = req.files as {
+          fileUrl?: Express.Multer.File[];
+        };
+
+        if (files.fileUrl?.length) {
+          req.body.uploadFiles = files.fileUrl.map(
+            (file) => ({
+              fileUrl:
+                uploadFile.toRelativePath(file.path),
+            })
+          );
+        }
+      }
+
+      next();
+    } catch (error) {
+      next(
+        new ApiError(
+          httpStatus.BAD_REQUEST,
+          "Invalid JSON data"
+        )
+      );
+    }
+  },
+
+  validateRequest(
+    studentValidation.submitAssignmentSchema
+  ),
+
+  StudentsController.submitAssignment
+);
 
 const  studentRoute=router;
 export default studentRoute;

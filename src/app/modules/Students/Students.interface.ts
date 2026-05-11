@@ -17,3 +17,13 @@ export interface CreateStudentDto {
 
 
 }
+
+type TUploadFiles = {
+  fileUrl: string
+}
+
+export interface TSubmitAssignment{
+  classAssignmentId: string;
+  uploadFiles: TUploadFiles[];
+  isDeleted: boolean;
+}

@@ -73,10 +73,37 @@ import { z } from "zod";
   }),
 });
 
+// ================================
+// student.validation.ts
+// ================================
+
+
+
+const submitAssignmentSchema = z.object({
+  body: z.object({
+    classAssignmentId: z.string({
+      required_error: "classAssignmentId is required",
+    }),
+
+    uploadFiles: z
+      .array(
+        z.object({
+          fileUrl: z.string({
+            required_error: "file url is required",
+          }),
+        })
+      )
+      .optional(),
+  }),
+});
+
+
+
 
 const studentValidation = {
   createStudentZodSchema,
-  updateStudentZodSchema
+  updateStudentZodSchema,
+  submitAssignmentSchema
 };
 
 export default studentValidation;
