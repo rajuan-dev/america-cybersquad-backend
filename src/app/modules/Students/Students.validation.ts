@@ -97,13 +97,35 @@ const submitAssignmentSchema = z.object({
   }),
 });
 
+const updateAssignmentSchema=z.object({
+
+  body: z.object({
+    submitAssignmentId: z.string({
+      required_error: "classAssignmentId is required",
+    }),
+
+    uploadFiles: z
+      .array(
+        z.object({
+          fileUrl: z.string({
+            required_error: "file url is required",
+          }),
+        })
+      )
+      .optional(),
+  })
+    
+
+})
+
 
 
 
 const studentValidation = {
   createStudentZodSchema,
   updateStudentZodSchema,
-  submitAssignmentSchema
+  submitAssignmentSchema,
+  updateAssignmentSchema
 };
 
 export default studentValidation;

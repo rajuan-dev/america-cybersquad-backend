@@ -112,6 +112,53 @@ router.get("/find_by_specif_assignment/:classAssignmentId", auth(UserRole.STUDEN
 
 
 
+router.patch("/update_and_add_assignment/:uploadFileId",
+   auth(UserRole.STUDENT),
+  uploadFile.fileUrlFiles,
+  async (
+    req: Request,
+    _res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      // parse multipart form-data json
+      if (req.body.data) {
+        req.body =
+          typeof req.body.data === "string"
+            ? JSON.parse(req.body.data)
+            : req.body.data;
+      }
+
+      // uploaded files
+      if (req.files) {
+        const files = req.files as {
+          fileUrl?: Express.Multer.File[];
+        };
+
+        if (files.fileUrl?.length) {
+          req.body.uploadFiles = files.fileUrl.map(
+            (file) => ({
+              fileUrl:
+                uploadFile.toRelativePath(file.path),
+            })
+          );
+        }
+      }
+
+      next();
+    } catch (error) {
+      next(
+        new ApiError(
+          httpStatus.BAD_REQUEST,
+          "Invalid JSON data"
+        )
+      );
+    }
+  },
+
+validateRequest(studentValidation.updateAssignmentSchema), StudentsController.updateAndAddAssignment);
+
+router.delete("/delete_submit_assignment/:uploadFileId", auth(UserRole.STUDENT),StudentsController.deleteSubmitAssignment)
 
 const  studentRoute=router;
 export default studentRoute;

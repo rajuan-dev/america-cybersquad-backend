@@ -112,6 +112,32 @@ const createStudent:RequestHandler = catchAsync(async (req, res) => {
        });
 
 
+       const updateAndAddAssignment:RequestHandler=catchAsync(async(req , res)=>{
+
+       const result=await StudentsService.updateAndAddAssignmentIntoDb(req.params.uploadFileId, req.body);
+       sendResponse(res, {
+            statusCode: httpStatus.OK,
+            success: true,
+            message: "Successfully Recorded",
+            data:result
+          });
+       });
+
+       const deleteSubmitAssignment:RequestHandler=catchAsync(async(req , res)=>{
+
+        const result=await StudentsService.deleteSubmitAssignmentIntoDb(req.params.uploadFileId, req.user.id);
+             sendResponse(res, {
+            statusCode: httpStatus.OK,
+            success: true,
+            message: "Successfully Delete",
+            data:result
+          });
+       })
+
+          
+      
+
+
 
           
 
@@ -128,7 +154,9 @@ const createStudent:RequestHandler = catchAsync(async (req, res) => {
     findMyAllClassList,
     findMyClassAssignment,
     submitAssignment,
-    findBySpecifAssignment
+    findBySpecifAssignment,
+    updateAndAddAssignment,
+    deleteSubmitAssignment
     
     
   }

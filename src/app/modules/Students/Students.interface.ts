@@ -24,6 +24,8 @@ type TUploadFiles = {
 
 export interface TSubmitAssignment{
   classAssignmentId: string;
+  submitAssignmentId?: string;
+  
   uploadFiles: TUploadFiles[];
   isDeleted: boolean;
 }

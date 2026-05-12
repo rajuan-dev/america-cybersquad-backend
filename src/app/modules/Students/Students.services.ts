@@ -13,7 +13,9 @@ import generateStudentId from '../../../utils/generateId/generateStudentId';
 import { Prisma, UserRole, UserStatus } from "@prisma/client";
 import bcrypt from "bcrypt";
 import config from "../../../config";
-import { getCache, setCache } from "../../../config/redis";
+import { deleteByPattern, deleteCache, getCache, setCache } from "../../../config/redis";
+import { deleteFileIfExists } from "../../../utils/deleteFiles/deleteFileIfExists";
+import { create } from "domain";
 
 
 const createStudentIntoDb = async (
@@ -833,6 +835,7 @@ const findBySpecifAssignmentIntoDb = async (
         uploadFiles:{
           select:{
             id:true , 
+            submitAssignmentId:true,
             fileUrl:true
           }
         },
@@ -846,7 +849,201 @@ const findBySpecifAssignmentIntoDb = async (
 
     
   } catch (error) {
-    catchError(error);
+     return  catchError(error);
+  }
+};
+
+const updateAndAddAssignmentIntoDb = async (
+  id: string,
+  payload: Partial<TSubmitAssignment>
+):Promise<{
+  success:boolean,
+  message:string
+}> => {
+  try {
+    if (!payload.uploadFiles?.length) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Upload files are required"
+      );
+    }
+
+    const isExistSubmitAssignment =
+      await prisma.submitAssignmentFile.findFirst({
+        where: {
+          id,
+          submitAssignmentId: payload.submitAssignmentId,
+        },
+        select: {
+          id: true,
+          submitAssignmentId: true,
+          fileUrl: true,
+          submitAssignment: {
+            select: {
+              classAssignments: {   
+                select: {
+                  assessmentAvailable: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+    if (!isExistSubmitAssignment) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        "Assignment not found"
+      );
+    }
+    if (
+      isExistSubmitAssignment
+        .submitAssignment.classAssignments
+      
+        .assessmentAvailable
+    ) {
+      throw new ApiError(
+        httpStatus.FORBIDDEN,
+        "Assessment uploading expired"
+      );
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+
+      const updatedFile = await tx.submitAssignmentFile.update({
+        where: {
+          id: isExistSubmitAssignment.id,
+        },
+        data: {
+          fileUrl: payload.uploadFiles![0].fileUrl,
+        },
+      });
+
+  
+      const remainingFiles = payload.uploadFiles!.slice(1);
+
+      if (remainingFiles.length > 0) {
+        await tx.submitAssignmentFile.createMany({
+          data: remainingFiles.map((file) => ({
+            submitAssignmentId: payload.submitAssignmentId!,
+            fileUrl: file.fileUrl,
+          })),
+        });
+      }
+
+      return updatedFile;
+    });
+
+    try {
+      deleteFileIfExists(isExistSubmitAssignment.fileUrl);
+    } catch (err) {
+      console.log("file delete failed:", err);
+    }
+
+    return result && {
+      success: true,
+      message: "Assignment updated successfully"
+     
+    };
+
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
+
+const deleteSubmitAssignmentIntoDb = async (
+  id: string,
+  studentId: string
+) => {
+  try {
+    const assignmentFile =
+      await prisma.submitAssignmentFile.findFirst({
+        where: {
+          id,
+          submitAssignment: {
+            studentId,
+          },
+        },
+
+        select: {
+          id: true,
+          fileUrl: true,
+          submitAssignmentId: true,
+
+          submitAssignment: {
+            select: {
+              _count: {
+                select: {
+                  uploadFiles: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+    if (!assignmentFile) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        "Assignment file not found"
+      );
+    }
+
+    const totalFiles =
+      assignmentFile.submitAssignment
+        ._count.uploadFiles;
+
+    await prisma.$transaction(async (tx) => {
+
+    
+      await tx.submitAssignmentFile.delete({
+        where: {
+          id: assignmentFile.id,
+        },
+      });
+
+      if (totalFiles <= 1) {
+        await tx.submitAssignment.delete({
+          where: {
+            id: assignmentFile.submitAssignmentId,
+          },
+        });
+      }
+    });
+    await Promise.all([
+      deleteCache(
+        `submit-assignment-${assignmentFile.submitAssignmentId}`
+      ),
+
+      deleteByPattern(
+        `student-assignments-${studentId}*`
+      ),
+
+      deleteByPattern(
+        `class-assignment-*`
+      ),
+    ]);
+
+    try {
+      deleteFileIfExists(
+        assignmentFile.fileUrl
+      );
+    } catch (err) {
+      console.log(
+        "File delete failed:",
+        err
+      );
+    }
+
+    return {
+      success: true,
+      message:
+        "Assignment deleted successfully",
+    };
+
+  } catch (error) {
+    return catchError(error);
   }
 };
 
@@ -862,6 +1059,8 @@ const StudentsService = {
   findMyAllClassListIntoDb,
   findMyClassAssignmentIntoDb,
   submitAssignmentIntoDb,
-  findBySpecifAssignmentIntoDb
+  findBySpecifAssignmentIntoDb,
+  updateAndAddAssignmentIntoDb,
+  deleteSubmitAssignmentIntoDb
 };
 export default StudentsService;
