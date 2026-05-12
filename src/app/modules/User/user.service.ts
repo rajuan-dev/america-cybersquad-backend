@@ -188,7 +188,7 @@ const forgotPasswordIntoDb = async (payload: string | { email: string }) => {
         throw new ApiError(httpStatus.NOT_FOUND, 'User not found', '');
       }
 
-     const otp = Number(generateOtp());
+       const otp = Number(generateOtp());
 
 
       const updatedUser = await tx.user.update({

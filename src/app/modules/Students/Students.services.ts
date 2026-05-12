@@ -1030,10 +1030,7 @@ const deleteSubmitAssignmentIntoDb = async (
         assignmentFile.fileUrl
       );
     } catch (err) {
-      console.log(
-        "File delete failed:",
-        err
-      );
+      return catchError( err );
     }
 
     return {
