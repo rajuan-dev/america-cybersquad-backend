@@ -818,6 +818,41 @@ const submitAssignmentIntoDb = async (
 
 
 
+
+const findBySpecifAssignmentIntoDb = async (
+  classAssignmentId: string,
+  studentId: string
+) => {
+  try {
+    const result=await prisma.submitAssignment.findFirst({
+      where:{
+        classAssignmentId:classAssignmentId,
+        studentId
+      },select:{
+        id:true ,
+        uploadFiles:{
+          select:{
+            id:true , 
+            fileUrl:true
+          }
+        },
+        createdAt:true,
+        updatedAt:true
+      }
+    });
+
+    return result;
+
+
+    
+  } catch (error) {
+    catchError(error);
+  }
+};
+
+
+
+
 const StudentsService = {
   createStudentIntoDb,
   findByAllStudentsIntoDb,
@@ -826,6 +861,7 @@ const StudentsService = {
   updateStudentIntoDb,
   findMyAllClassListIntoDb,
   findMyClassAssignmentIntoDb,
-  submitAssignmentIntoDb
+  submitAssignmentIntoDb,
+  findBySpecifAssignmentIntoDb
 };
 export default StudentsService;

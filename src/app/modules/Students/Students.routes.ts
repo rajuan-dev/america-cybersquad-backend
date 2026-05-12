@@ -108,6 +108,10 @@ router.patch(
 
   StudentsController.submitAssignment
 );
+router.get("/find_by_specif_assignment/:classAssignmentId", auth(UserRole.STUDENT), StudentsController.findBySpecifAssignment);
+
+
+
 
 const  studentRoute=router;
 export default studentRoute;

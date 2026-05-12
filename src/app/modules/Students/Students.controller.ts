@@ -97,7 +97,22 @@ const createStudent:RequestHandler = catchAsync(async (req, res) => {
             message: "Successfully Recorded",
             data:result
           });
-    })
+    });
+
+    const findBySpecifAssignment:RequestHandler=catchAsync(async(req , res)=>{
+
+
+      const result=await StudentsService.findBySpecifAssignmentIntoDb(req.params.classAssignmentId, req.user.id);
+       sendResponse(res, {
+            statusCode: httpStatus.OK,
+            success: true,
+            message: "Successfully find By Specific Assignment",
+            data:result
+          });
+       });
+
+
+
           
 
 
@@ -112,7 +127,9 @@ const createStudent:RequestHandler = catchAsync(async (req, res) => {
     updateStudent,
     findMyAllClassList,
     findMyClassAssignment,
-    submitAssignment
+    submitAssignment,
+    findBySpecifAssignment
+    
     
   }
   export default StudentsController;
