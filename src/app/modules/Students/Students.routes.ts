@@ -165,7 +165,10 @@ router.get("/find_my_class_schedule/:subscriptionId", auth(UserRole.STUDENT),Stu
 router.get("/find_my_class_attendance_history/:subscriptionId", 
    auth(UserRole.STUDENT), 
    StudentsController.findMyClassAttendanceHistory
-)
+);
+
+router.get("/find_my_class_material/:subscriptionId",auth(UserRole.STUDENT), StudentsController.findMyClassMaterial);
+
 
 const  studentRoute=router;
 export default studentRoute;

@@ -16,3 +16,11 @@ export const  searchableFields=[
         "day",
         "roomNumber",
       ]
+
+      export const searchableClassMaterial=[
+        "classLevel",
+        "assignableSubject",
+        "classDistributions.teacher.teacherName",
+        "classDistributions.teacher.email",
+        "classDistributions.teacher.teacherId"
+      ]

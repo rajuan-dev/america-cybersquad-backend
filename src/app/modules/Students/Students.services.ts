@@ -6,7 +6,7 @@ import { CreateStudentDto, TSubmitAssignment } from "./Students.interface";
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 import PrismaQueryBuilder from '../../builder/PrismaQueryBuilder';
-import { searchableClassDistribution, searchableFields } from './Students.constant';
+import { searchableClassDistribution, searchableClassMaterial, searchableFields } from './Students.constant';
 import fs from "fs";
 import path from "path";
 import generateStudentId from '../../../utils/generateId/generateStudentId';
@@ -1509,6 +1509,169 @@ const findMyClassAttendanceHistoryIntoDb = async (
   }
 };
 
+const findMyClassMaterialIntoDb = async (
+  studentId: string,
+  subscriptionId: string,
+  query: Record<string, unknown>
+) => {
+  try {
+
+
+    const cacheKey = `class-material:${studentId}:${subscriptionId}:${JSON.stringify(
+      query
+    )}`;
+
+
+
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData) {
+      return cachedData;
+    }
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(searchableClassMaterial)
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const queryOptions = queryBuilder.build();
+    const classLevel =
+      query.classLevel as string;
+    const assignableSubject =
+      query.assignableSubject as string;
+    const materialType =
+      query.materialType as string;
+    const classDistributionFilter: Record<
+      string,
+      any
+    > = {};
+
+    if (classLevel) {
+       classDistributionFilter.classLevel =
+        classLevel;
+    }
+
+    if (assignableSubject) {
+      classDistributionFilter.assignableSubject =
+        {
+          contains: assignableSubject,
+          mode: "insensitive",
+        };
+    }
+
+   
+
+    const materialFilter: Record<string, any> = {};
+
+    if (materialType) {
+      materialFilter.materialType = {
+        contains: materialType,
+        mode: "insensitive",
+      };
+    }
+
+   
+
+    const whereCondition: Record<string, any> = {
+      id: studentId,
+      subscriptionId,
+    };
+
+    
+
+    const [result, total] = await Promise.all([
+      prisma.student.findMany({
+        where: whereCondition,
+
+        select: {
+          id: true,
+          branchName: true,
+          classDistributions: {
+            where: classDistributionFilter,
+
+            orderBy:
+              queryOptions.orderBy || {
+                createdAt: "desc",
+              },
+
+            skip: queryOptions.skip,
+            take: queryOptions.take,
+
+            select: {
+              id: true,
+              classLevel: true,
+              assignableSubject: true,
+
+              teacher: {
+                select: {
+                  teacherName: true,
+                  email: true,
+                  teacherId: true,
+                },
+              },
+
+              classMaterials: {
+                where: materialFilter,
+
+                orderBy: {
+                  createdAt: "desc",
+                },
+
+                select: {
+                  id: true,
+                  materialType: true,
+                  description: true,
+                  external_link: true,
+                  materialFiles: true,
+                  createdAt: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+
+      prisma.classMaterial.count({
+        where: {
+          ...materialFilter,
+        },
+      }),
+    ]);
+
+
+
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+
+    const responseData = {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
+
+      data: result,
+    };
+
+
+
+    await setCache(
+      cacheKey,
+      responseData,
+      60 * 5 
+    );
+
+    return responseData;
+  } catch (error) {
+    return catchError(
+      error,
+      "Error fetching class materials"
+    );
+  }
+};
+
 const StudentsService = {
   createStudentIntoDb,
   findByAllStudentsIntoDb,
@@ -1522,6 +1685,7 @@ const StudentsService = {
   updateAndAddAssignmentIntoDb,
   deleteSubmitAssignmentIntoDb,
   findMyClassScheduleIntoDb,
-  findMyClassAttendanceHistoryIntoDb
+  findMyClassAttendanceHistoryIntoDb,
+  findMyClassMaterialIntoDb
 };
 export default StudentsService;
