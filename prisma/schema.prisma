@@ -150,6 +150,7 @@ model Student {
   notification       Notification[]
   staffs             Staff?
   studentFees        StudentFees[]
+  supports           Support[]
   branchAdmin        BranchAdmin         @relation(fields: [branchAdminId], references: [id])
   subscriptions      Subscriptions       @relation(fields: [subscriptionId], references: [id])
   submitAssignments  SubmitAssignment[]
@@ -363,11 +364,13 @@ model Support {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   teacherId      String?
+  studentId      String?
   notifications  Notification[]
   branchAdmin    BranchAdmin?   @relation(fields: [branchAdminId], references: [id])
   subscriptions  Subscriptions? @relation(fields: [subscriptionId], references: [id])
   teachers       Teacher?       @relation(fields: [teacherId], references: [id])
   user           User?          @relation(fields: [userId], references: [id])
+  students       Student?       @relation(fields: [studentId], references: [id])
 
   @@index([name])
   @@index([email])

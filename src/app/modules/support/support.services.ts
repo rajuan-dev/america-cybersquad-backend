@@ -15,34 +15,34 @@ const sendSupportMessageIntoDb = async (
   payload: TSupport
 ) => {
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      let supportResult: any = null;
+    const shortMessage =
+      payload.message.length > 20
+        ? payload.message.slice(0, 20) + "..."
+        : payload.message;
 
-      const shortMessage =
-        payload.message.length > 20
-          ? payload.message.slice(0, 20) + "..."
-          : payload.message;
+    const result = await prisma.$transaction(async (tx) => {
+      const subscription = await tx.subscriptions.findUnique({
+        where: { id: payload.subscriptionId },
+        select: {
+          userId: true,
+          branchAdmins: {
+            select: { id: true },
+          },
+          user: {
+            select: { role: true },
+          },
+        },
+      });
+
+      if (!subscription) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Subscription not found");
+      }
+
+      let supportResult: any;
 
       switch (role) {
-        // ======================================================
-        // BRANCH ADMIN
-        // ======================================================
+      
         case UserRole.BRANCH_ADMIN: {
-          const isExistSubscription = await tx.subscriptions.findUnique({
-            where: { id: payload.subscriptionId },
-            select: {
-              userId: true,
-            },
-          });
-
-          if (!isExistSubscription) {
-            throw new ApiError(
-              httpStatus.NOT_FOUND,
-              "Subscription not found"
-            );
-          }
-
-          // create support
           supportResult = await tx.support.create({
             data: {
               subscriptionId: payload.subscriptionId,
@@ -55,12 +55,12 @@ const sendSupportMessageIntoDb = async (
             },
           });
 
-          // notification for owner
+
           await tx.notification.create({
             data: {
               title: payload.subject,
               message: shortMessage,
-              userId: isExistSubscription.userId,
+              userId: subscription.userId,
               subscriptionId: payload.subscriptionId,
               isDelete: false,
             },
@@ -69,30 +69,8 @@ const sendSupportMessageIntoDb = async (
           break;
         }
 
-        // ======================================================
-        // INSTITUTIONAL OWNER
-        // ======================================================
+        
         case UserRole.INSTITUTIONAL_OWNER: {
-          const isExistSubscription = await tx.subscriptions.findUnique({
-            where: { id: payload.subscriptionId },
-            select: {
-              userId: true,
-              branchAdmins: {
-                select: {
-                  id: true,
-                },
-              },
-            },
-          });
-
-          if (!isExistSubscription) {
-            throw new ApiError(
-              httpStatus.NOT_FOUND,
-              "Subscription not found"
-            );
-          }
-
-          // create support
           supportResult = await tx.support.create({
             data: {
               subscriptionId: payload.subscriptionId,
@@ -101,13 +79,12 @@ const sendSupportMessageIntoDb = async (
               subject: payload.subject,
               message: payload.message,
               isDelete: payload.isDelete ?? false,
-              userId: userId,
+              userId,
             },
           });
 
-          // notification for all branch admins
           await Promise.all(
-            isExistSubscription.branchAdmins.map((admin) =>
+            subscription.branchAdmins.map((admin) =>
               tx.notification.create({
                 data: {
                   title: payload.subject,
@@ -123,36 +100,10 @@ const sendSupportMessageIntoDb = async (
           break;
         }
 
-        // ======================================================
+        // --------------------------------------
         // TEACHER
-        // ======================================================
+        // --------------------------------------
         case UserRole.TEACHER: {
-          
-          const isExistSubscription = await tx.subscriptions.findUnique({
-            where: { id: payload.subscriptionId },
-            select: {
-              userId: true,
-              branchAdmins: {
-                select: {
-                  id: true,
-                },
-              },
-              user: {
-                select: {
-                  role: true,
-                },
-              },
-            },
-          });
-
-          if (!isExistSubscription) {
-            throw new ApiError(
-              httpStatus.NOT_FOUND,
-              "Subscription not found"
-            );
-          }
-
-          // create support
           supportResult = await tx.support.create({
             data: {
               subscriptionId: payload.subscriptionId,
@@ -165,9 +116,9 @@ const sendSupportMessageIntoDb = async (
             },
           });
 
-          // notification for branch admins
+          // branch admins
           await Promise.all(
-            isExistSubscription.branchAdmins.map((admin) =>
+            subscription.branchAdmins.map((admin) =>
               tx.notification.create({
                 data: {
                   title: payload.subject,
@@ -180,16 +131,12 @@ const sendSupportMessageIntoDb = async (
             )
           );
 
-          // notification for institutional owner
-          if (
-            isExistSubscription.user.role ===
-            UserRole.INSTITUTIONAL_OWNER
-          ) {
+          if (subscription.user.role === UserRole.INSTITUTIONAL_OWNER) {
             await tx.notification.create({
               data: {
                 title: payload.subject,
                 message: shortMessage,
-                userId: isExistSubscription.userId,
+                userId: subscription.userId,
                 subscriptionId: payload.subscriptionId,
                 isDelete: false,
               },
@@ -199,22 +146,60 @@ const sendSupportMessageIntoDb = async (
           break;
         }
 
-        // ======================================================
-        // DEFAULT
-        // ======================================================
-        default:
-          throw new ApiError(
-            httpStatus.FORBIDDEN,
-            "Role not allowed"
+       
+        case UserRole.STUDENT: {
+
+
+          supportResult = await tx.support.create({
+            data: {
+              subscriptionId: payload.subscriptionId,
+              name: payload.name,
+              email: payload.email,
+              subject: payload.subject,
+              message: payload.message,
+              isDelete: payload.isDelete ?? false,
+              studentId: userId,
+            },
+          });
+
+          // branch admins
+          await Promise.all(
+            subscription.branchAdmins.map((admin) =>
+              tx.notification.create({
+                data: {
+                  title: payload.subject,
+                  message: shortMessage,
+                  branchAdminId: admin.id,
+                  subscriptionId: payload.subscriptionId,
+                  isDelete: false,
+                },
+              })
+            )
           );
+
+          // institutional owner
+          if (subscription.user.role === UserRole.INSTITUTIONAL_OWNER) {
+            await tx.notification.create({
+              data: {
+                title: payload.subject,
+                message: shortMessage,
+                userId: subscription.userId,
+                subscriptionId: payload.subscriptionId,
+                isDelete: false,
+              },
+            });
+          }
+
+          break;
+        }
+
+        default:
+          throw new ApiError(httpStatus.FORBIDDEN, "Role not allowed");
       }
 
       return supportResult;
     });
 
-    // ======================================================
-    // RESULT CHECK
-    // ======================================================
     if (!result) {
       throw new ApiError(
         httpStatus.NOT_EXTENDED,
@@ -222,107 +207,48 @@ const sendSupportMessageIntoDb = async (
       );
     }
 
-    // ======================================================
+    // ======================================
     // SOCKET NOTIFICATION
-    // ======================================================
+    // ======================================
     const io = getSocketIO() as any;
 
-    const shortMessage =
-      payload.message.length > 20
-        ? payload.message.slice(0, 20) + "..."
-        : payload.message;
+    const subscription = await prisma.subscriptions.findUnique({
+      where: { id: payload.subscriptionId },
+      select: {
+        userId: true,
+        branchAdmins: { select: { id: true } },
+      },
+    });
 
-    // ----------------------------------------------
-    // Teacher Socket Notification
-    // ----------------------------------------------
-    if (role === UserRole.TEACHER) {
-      const subscription = await prisma.subscriptions.findUnique({
-        where: { id: payload.subscriptionId },
-        select: {
-          userId: true,
-          branchAdmins: {
-            select: {
-              id: true,
-            },
-          },
-        },
-      });
-
-      // branch admins
-      subscription?.branchAdmins.forEach((admin) => {
-        io.emit(`notification::${admin.id}`, {
-          id: Date.now(),
-          title: payload.subject,
-          message: shortMessage,
-          createdBy: role,
-          timestamp: new Date().toISOString(),
-        });
-      });
-
-      // institutional owner
-      io.emit(`notification::${subscription?.userId}`, {
+    const emitNotification = (receiverId: string) => {
+      io.emit(`notification::${receiverId}`, {
         id: Date.now(),
         title: payload.subject,
         message: shortMessage,
         createdBy: role,
         timestamp: new Date().toISOString(),
       });
-    }
+    };
 
-    // ----------------------------------------------
-    // Branch Admin Socket Notification
-    // ----------------------------------------------
-    if (role === UserRole.BRANCH_ADMIN) {
-      const subscription = await prisma.subscriptions.findUnique({
-        where: { id: payload.subscriptionId },
-        select: {
-          userId: true,
-        },
-      });
+    // branch admins always
+    subscription?.branchAdmins.forEach((admin) =>
+      emitNotification(admin.id)
+    );
 
-      io.emit(`notification::${subscription?.userId}`, {
-        id: Date.now(),
-        title: payload.subject,
-        message: shortMessage,
-        createdBy: role,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // ----------------------------------------------
-    // Institutional Owner Socket Notification
-    // ----------------------------------------------
-    if (role === UserRole.INSTITUTIONAL_OWNER) {
-      const subscription = await prisma.subscriptions.findUnique({
-        where: { id: payload.subscriptionId },
-        select: {
-          branchAdmins: {
-            select: {
-              id: true,
-            },
-          },
-        },
-      });
-
-      subscription?.branchAdmins.forEach((admin) => {
-        io.emit(`notification::${admin.id}`, {
-          id: Date.now(),
-          title: payload.subject,
-          message: shortMessage,
-          createdBy: role,
-          timestamp: new Date().toISOString(),
-        });
-      });
+    // owner always (if exists)
+    if (subscription?.userId) {
+      emitNotification(subscription.userId);
     }
 
     return {
       success: true,
-      message: "Successfully Send Support Message",
+      message: "Successfully sent support message",
     };
   } catch (error) {
     return catchError(error);
   }
 };
+
 const findByAllSupportIntoDb = async (
   query: Record<string, unknown>
 ) => {
