@@ -15,7 +15,8 @@ import bcrypt from "bcrypt";
 import config from "../../../config";
 import { deleteByPattern, deleteCache, getCache, setCache } from "../../../config/redis";
 import { deleteFileIfExists } from "../../../utils/deleteFiles/deleteFileIfExists";
-import { create } from "domain";
+import { getSocketIO } from "../../../socket/connectSocket";
+
 
 
 const createStudentIntoDb = async (
@@ -731,7 +732,7 @@ const submitAssignmentIntoDb = async (
   payload: TSubmitAssignment
 ) => {
   try {
-  
+
     const isExistAssignment =
       await prisma.classAssignment.findUnique({
         where: {
@@ -740,10 +741,20 @@ const submitAssignmentIntoDb = async (
         select: {
           id: true,
           assessmentAvailable: true,
+
+          classDistributions: {
+            select: {
+              teacher: {
+                select: {
+                  id: true,
+                  subscriptionId: true,
+                },
+              },
+            },
+          },
         },
       });
 
-      
     if (!isExistAssignment) {
       throw new ApiError(
         httpStatus.NOT_FOUND,
@@ -751,7 +762,7 @@ const submitAssignmentIntoDb = async (
       );
     }
 
-  
+
     if (isExistAssignment.assessmentAvailable) {
       throw new ApiError(
         httpStatus.BAD_REQUEST,
@@ -759,26 +770,18 @@ const submitAssignmentIntoDb = async (
       );
     }
 
-   
-    const alreadyUploaded =
-      await prisma.submitAssignment.findFirst({
-        where: {
-          studentId,
-          classAssignmentId: payload.classAssignmentId,
-        },
-        select:{
-          id:true
-        }
-      });
-
-    if (alreadyUploaded) {
+    // 3. Validate teacher relation
+    if (
+      !isExistAssignment.classDistributions ||
+      !isExistAssignment.classDistributions.teacher
+    ) {
       throw new ApiError(
         httpStatus.BAD_REQUEST,
-        "You already uploaded this assignment"
+        "Teacher information not found"
       );
     }
 
-    
+ 
     if (
       !payload.uploadFiles ||
       !Array.isArray(payload.uploadFiles) ||
@@ -790,28 +793,98 @@ const submitAssignmentIntoDb = async (
       );
     }
 
-    
-    const result = await prisma.submitAssignment.create({
-      data: {
-        studentId,
-        classAssignmentId: payload.classAssignmentId,
 
-        uploadFiles: {
-          create: payload.uploadFiles.map((file) => ({
-            fileUrl: file.fileUrl,
-          })),
+    const alreadyUploaded =
+      await prisma.submitAssignment.findFirst({
+        where: {
+          studentId,
+          classAssignmentId: payload.classAssignmentId,
+          isDelete: false,
         },
-      },
+        select: {
+          id: true,
+        },
+      });
 
-      include: {
-        uploadFiles: true,
-      },
+    if (alreadyUploaded) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "You already uploaded this assignment"
+      );
+    }
+
+ 
+
+    const result = await prisma.$transaction(
+      async (tx) => {
+        
+        const submitAssignment =
+          await tx.submitAssignment.create({
+            data: {
+              studentId,
+              classAssignmentId:
+                payload.classAssignmentId,
+
+              uploadFiles: {
+                create: payload.uploadFiles.map(
+                  (file) => ({
+                    fileUrl: file.fileUrl,
+                  })
+                ),
+              },
+            },
+
+            include: {
+              uploadFiles: true,
+            },
+          });
+
+        const notification =
+          await tx.notification.create({
+            data: {
+              title: "📢 Assignment Submitted",
+
+              message:
+                "A student submitted an assessment",
+
+              teacherId:
+                isExistAssignment
+                  .classDistributions.teacher.id,
+
+              subscriptionId:
+                isExistAssignment
+                  .classDistributions.teacher
+                  .subscriptionId,
+            },
+          });
+
+        return {
+          submitAssignment,
+          notification,
+        };
+      }
+    );
+
+
+
+    const io = getSocketIO() as any;
+
+    io.to(
+      `teacher::${isExistAssignment.classDistributions.teacher.id}`
+    ).emit("notification", {
+      id: result.notification.id,
+      title: result.notification.title,
+      message: result.notification.message,
+      createdBy: UserRole.STUDENT,
+      timestamp: new Date().toISOString(),
+      teacherId:
+        isExistAssignment.classDistributions.teacher.id,
     });
 
-    return result && {
+    return {
       status: true,
       message: "Assignment submitted successfully"
-
+      
     };
   } catch (error) {
     catchError(error);
