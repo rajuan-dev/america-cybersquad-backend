@@ -132,6 +132,19 @@ const createStudent:RequestHandler = catchAsync(async (req, res) => {
             message: "Successfully Delete",
             data:result
           });
+       });
+
+
+       const findMyClassSchedule:RequestHandler=catchAsync(async(req , res)=>{
+
+
+          const result=await StudentsService.findMyClassScheduleIntoDb(req.user.id, req.params.subscriptionId, req.query);
+           sendResponse(res, {
+            statusCode: httpStatus.OK,
+            success: true,
+            message: "Successfully  My Class Schedule List",
+            data:result
+          });
        })
 
           
@@ -156,7 +169,8 @@ const createStudent:RequestHandler = catchAsync(async (req, res) => {
     submitAssignment,
     findBySpecifAssignment,
     updateAndAddAssignment,
-    deleteSubmitAssignment
+    deleteSubmitAssignment,
+    findMyClassSchedule
     
     
   }

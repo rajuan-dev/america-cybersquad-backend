@@ -160,5 +160,8 @@ validateRequest(studentValidation.updateAssignmentSchema), StudentsController.up
 
 router.delete("/delete_submit_assignment/:uploadFileId", auth(UserRole.STUDENT),StudentsController.deleteSubmitAssignment)
 
+
+router.get("/find_my_class_schedule/:subscriptionId", auth(UserRole.STUDENT),StudentsController.findMyClassSchedule);
+
 const  studentRoute=router;
 export default studentRoute;

@@ -1068,8 +1068,6 @@ const deleteSubmitAssignmentIntoDb = async (
         ._count.uploadFiles;
 
     await prisma.$transaction(async (tx) => {
-
-    
       await tx.submitAssignmentFile.delete({
         where: {
           id: assignmentFile.id,
@@ -1084,6 +1082,7 @@ const deleteSubmitAssignmentIntoDb = async (
         });
       }
     });
+
     await Promise.all([
       deleteCache(
         `submit-assignment-${assignmentFile.submitAssignmentId}`
@@ -1119,6 +1118,193 @@ const deleteSubmitAssignmentIntoDb = async (
 
 
 
+const findMyClassScheduleIntoDb = async (
+  studentId: string,
+  subscriptionId: string,
+  query: Record<string, unknown>
+) => {
+  try {
+    // ============================================
+    // CACHE KEY
+    // ============================================
+
+    const cacheKey = `class-schedule:${studentId}:${subscriptionId}:${JSON.stringify(
+      query
+    )}`;
+
+    
+
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData) {
+      return cachedData;
+    }
+
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search([
+        "classLevel",
+        "assignableSubject",
+        "day",
+        "roomNumber",
+      ])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const queryOptions = queryBuilder.build();
+    const day = query.day as string;
+
+    const classLevel = query.classLevel as string;
+
+    const assignableSubject =
+      query.assignableSubject as string;
+
+    const isOnline =
+      query.isOnline !== undefined
+        ? query.isOnline === "true"
+        : undefined;
+
+
+    const classDistributionFilter: Record<
+      string,
+      any
+    > = {};
+
+    if (day) {
+      classDistributionFilter.day = day;
+    }
+
+    if (classLevel) {
+      classDistributionFilter.classLevel =
+        classLevel;
+    }
+
+    if (assignableSubject) {
+      classDistributionFilter.assignableSubject =
+        {
+          contains: assignableSubject,
+          mode: "insensitive",
+        };
+    }
+
+    if (typeof isOnline === "boolean") {
+      classDistributionFilter.isOnline =
+        isOnline;
+    }
+
+
+    const whereCondition: Record<
+      string,
+      any
+    > = {
+      id: studentId,
+      subscriptionId,
+
+      ...(Object.keys(classDistributionFilter)
+        .length > 0 && {
+        classDistributions: {
+          some: classDistributionFilter,
+        },
+      }),
+    };
+
+
+
+    const [result, total] = await Promise.all([
+      prisma.student.findMany({
+        where: whereCondition,
+
+        select: {
+          branchName: true,
+          classDistributions: {
+            where: {
+              ...classDistributionFilter,
+            },
+
+            orderBy:
+              queryOptions.orderBy || {
+                createdAt: "desc",
+              },
+
+            skip: queryOptions.skip,
+
+            take: queryOptions.take,
+
+            select: {
+              id: true,
+
+              classLevel: true,
+
+              assignableSubject: true,
+
+              day: true,
+
+              time: true,
+
+              isOnline: true,
+
+              roomNumber: true,
+
+              createdAt: true,
+
+              
+            },
+          },
+        },
+      }),
+
+      prisma.classDistribution.count({
+        where: {
+          students: {
+            some: {
+              id: studentId,
+              subscriptionId,
+            },
+          },
+
+          ...classDistributionFilter,
+        },
+      }),
+    ]);
+
+
+
+    const page = Number(query.page) || 1;
+
+    const limit = Number(query.limit) || 10;
+
+    
+
+    const responseData = {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
+
+      data: result,
+    };
+
+    
+    await setCache(
+      cacheKey,
+      responseData,
+      60 * 5 
+    );
+
+    return responseData;
+  } catch (error) {
+    return catchError(
+      error,
+      "Error fetching class schedule"
+    );
+  }
+};
+
+
+
 
 const StudentsService = {
   createStudentIntoDb,
@@ -1131,6 +1317,7 @@ const StudentsService = {
   submitAssignmentIntoDb,
   findBySpecifAssignmentIntoDb,
   updateAndAddAssignmentIntoDb,
-  deleteSubmitAssignmentIntoDb
+  deleteSubmitAssignmentIntoDb,
+  findMyClassScheduleIntoDb
 };
 export default StudentsService;
