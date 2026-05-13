@@ -6,11 +6,11 @@ import { CreateStudentDto, TSubmitAssignment } from "./Students.interface";
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 import PrismaQueryBuilder from '../../builder/PrismaQueryBuilder';
-import { searchableFields } from './Students.constant';
+import { searchableClassDistribution, searchableFields } from './Students.constant';
 import fs from "fs";
 import path from "path";
 import generateStudentId from '../../../utils/generateId/generateStudentId';
-import { Prisma, UserRole, UserStatus } from "@prisma/client";
+import { AttendanceStatus, Prisma, UserRole, UserStatus } from "@prisma/client";
 import bcrypt from "bcrypt";
 import config from "../../../config";
 import { deleteByPattern, deleteCache, getCache, setCache } from "../../../config/redis";
@@ -1124,9 +1124,7 @@ const findMyClassScheduleIntoDb = async (
   query: Record<string, unknown>
 ) => {
   try {
-    // ============================================
-    // CACHE KEY
-    // ============================================
+   
 
     const cacheKey = `class-schedule:${studentId}:${subscriptionId}:${JSON.stringify(
       query
@@ -1141,12 +1139,7 @@ const findMyClassScheduleIntoDb = async (
     }
 
     const queryBuilder = new PrismaQueryBuilder(query)
-      .search([
-        "classLevel",
-        "assignableSubject",
-        "day",
-        "roomNumber",
-      ])
+      .search(searchableClassDistribution)
       .filter()
       .sort()
       .paginate()
@@ -1303,8 +1296,218 @@ const findMyClassScheduleIntoDb = async (
   }
 };
 
+const findMyClassAttendanceHistoryIntoDb = async (
+  studentId: string,
+  subscriptionId: string,
+  query: Record<string, unknown>
+) => {
+  try {
 
 
+    const cacheKey = `attendance-history:${studentId}:${subscriptionId}:${JSON.stringify(
+      query
+    )}`;
+
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData) {
+      return cachedData;
+    }
+
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(["attendanceStatus"])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const queryOptions = queryBuilder.build();
+    const {
+      attendanceStatus,
+      className,
+      branchName,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 10,
+    } = query as Record<string, string>;
+
+
+
+    const whereCondition: Record<string, any> = {
+      studentId,
+      subscriptionId,
+
+      ...(attendanceStatus && {
+        attendanceStatus: {
+          equals: attendanceStatus,
+        },
+      }),
+
+      ...(startDate || endDate
+        ? {
+            AttendanceDate: {
+              ...(startDate && {
+                gte: new Date(startDate),
+              }),
+
+              ...(endDate && {
+                lte: new Date(endDate),
+              }),
+            },
+          }
+        : {}),
+
+      students: {
+        id: studentId,
+        subscriptionId,
+
+        ...(className && { className }),
+
+        ...(branchName && { branchName }),
+      },
+
+      ...queryOptions.where,
+    };
+
+    const [
+      attendanceHistory,
+      total,
+      groupedAttendance,
+    ] = await Promise.all([
+      prisma.attendanceSheet.findMany({
+        where: whereCondition,
+
+        orderBy:
+          queryOptions.orderBy ?? {
+            AttendanceDate: "desc",
+          },
+
+        skip: queryOptions.skip,
+
+        take: queryOptions.take,
+
+        select: {
+          id: true,
+
+          AttendanceDate: true,
+
+          attendanceStatus: true,
+
+          createdAt: true,
+
+          updatedAt: true,
+
+          students: {
+            select: {
+              className: true,
+            },
+          },
+        },
+      }),
+
+      prisma.attendanceSheet.count({
+        where: whereCondition,
+      }),
+
+      prisma.attendanceSheet.groupBy({
+        by: ["attendanceStatus"],
+
+        where: {
+          studentId,
+          subscriptionId,
+        },
+
+        _count: {
+          attendanceStatus: true,
+        },
+      }),
+    ]);
+
+
+
+    const present =
+      groupedAttendance.find(
+        (item) =>
+          item.attendanceStatus ===
+          AttendanceStatus.PRESENT
+      )?._count.attendanceStatus || 0;
+
+    const absent =
+      groupedAttendance.find(
+        (item) =>
+          item.attendanceStatus ===
+          AttendanceStatus.ABSENT
+      )?._count.attendanceStatus || 0;
+
+    const totalAttendance = present + absent;
+
+    const calculatePercentage = (
+      value: number,
+      total: number
+    ) =>
+      total
+        ? Number(
+            ((value / total) * 100).toFixed(2)
+          )
+        : 0;
+
+    const statistics = {
+      totalAttendance,
+
+      present,
+
+      absent,
+
+      presentPercentage:
+        calculatePercentage(
+          present,
+          totalAttendance
+        ),
+
+      absentPercentage:
+        calculatePercentage(
+          absent,
+          totalAttendance
+        ),
+    };
+
+
+
+    const responseData = {
+      meta: {
+        page: Number(page),
+
+        limit: Number(limit),
+
+        total,
+
+        totalPage: Math.ceil(
+          total / Number(limit)
+        ),
+      },
+
+      statistics,
+
+      data: attendanceHistory,
+    };
+
+
+
+    await setCache(
+      cacheKey,
+      responseData,
+      60 * 5
+    );
+
+    return responseData;
+  } catch (error) {
+    return catchError(
+      error,
+      "Error fetching attendance history"
+    );
+  }
+};
 
 const StudentsService = {
   createStudentIntoDb,
@@ -1318,6 +1521,7 @@ const StudentsService = {
   findBySpecifAssignmentIntoDb,
   updateAndAddAssignmentIntoDb,
   deleteSubmitAssignmentIntoDb,
-  findMyClassScheduleIntoDb
+  findMyClassScheduleIntoDb,
+  findMyClassAttendanceHistoryIntoDb
 };
 export default StudentsService;

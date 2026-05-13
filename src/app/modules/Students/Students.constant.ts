@@ -9,3 +9,10 @@ export const  searchableFields=[
         "guardianName",
         "guardianPhone",
       ]
+
+      export const searchableClassDistribution=[
+        "classLevel",
+        "assignableSubject",
+        "day",
+        "roomNumber",
+      ]

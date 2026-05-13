@@ -145,6 +145,17 @@ const createStudent:RequestHandler = catchAsync(async (req, res) => {
             message: "Successfully  My Class Schedule List",
             data:result
           });
+       });
+
+       const findMyClassAttendanceHistory:RequestHandler=catchAsync(async(req , res)=>{
+
+          const result=await StudentsService.findMyClassAttendanceHistoryIntoDb(req.user.id,req.params.subscriptionId, req.query );
+          sendResponse(res, {
+            statusCode: httpStatus.OK,
+            success: true,
+            message: "Successfully  My  attendance History",
+            data:result
+          });
        })
 
           
@@ -170,7 +181,8 @@ const createStudent:RequestHandler = catchAsync(async (req, res) => {
     findBySpecifAssignment,
     updateAndAddAssignment,
     deleteSubmitAssignment,
-    findMyClassSchedule
+    findMyClassSchedule,
+    findMyClassAttendanceHistory
     
     
   }

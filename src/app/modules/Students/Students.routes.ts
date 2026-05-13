@@ -162,6 +162,10 @@ router.delete("/delete_submit_assignment/:uploadFileId", auth(UserRole.STUDENT),
 
 
 router.get("/find_my_class_schedule/:subscriptionId", auth(UserRole.STUDENT),StudentsController.findMyClassSchedule);
+router.get("/find_my_class_attendance_history/:subscriptionId", 
+   auth(UserRole.STUDENT), 
+   StudentsController.findMyClassAttendanceHistory
+)
 
 const  studentRoute=router;
 export default studentRoute;
