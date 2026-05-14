@@ -29,8 +29,15 @@ router.patch("/update_announcement_exam/:id",
   ExamAnnouncementController.updateAnnouncementExam);
 
 
-  router.delete("/delete_announcement_exam/:id", auth(UserRole.TEACHER), ExamAnnouncementController.deleteAnnouncementExam);
-  
+router.delete("/delete_announcement_exam/:id", 
+  auth(UserRole.TEACHER),
+ ExamAnnouncementController.deleteAnnouncementExam);
+
+ router.get("/find_by_specific_student_announcement_list/:subscriptionId",
+  auth(UserRole.STUDENT),
+  ExamAnnouncementController.findBySpecificStudentAnnouncementExamList);
+
+
 
 
 const examAnnouncementRouter = router;

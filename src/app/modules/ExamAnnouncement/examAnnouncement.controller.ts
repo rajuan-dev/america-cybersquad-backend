@@ -68,7 +68,20 @@ const  findMyAnnouncementExamList:RequestHandler=catchAsync(async(req , res)=>{
   });
   });
 
+
+  const findBySpecificStudentAnnouncementExamList:RequestHandler=catchAsync(async(req , res)=>{
+
+      const result=await ExamAnnouncementServices.findBySpecificStudentAnnouncementExamListIntoDb(req.params.subscriptionId, req.user.id, req.query);
+        sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By Exam Announcement List",
+    data: result,
+  });
+  });
   
+
+
 
 
 const ExamAnnouncementController={
@@ -76,7 +89,8 @@ const ExamAnnouncementController={
     findMyAnnouncementExamList,
     findBySpecificAnnouncementExam,
     updateAnnouncementExam,
-    deleteAnnouncementExam
+    deleteAnnouncementExam,
+    findBySpecificStudentAnnouncementExamList
 };
 
 export default ExamAnnouncementController;

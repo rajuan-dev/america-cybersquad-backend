@@ -6,6 +6,7 @@ import { TExamAnnouncement } from "./examAnnouncement.interface";
 import { getSocketIO } from "../../../socket/connectSocket";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { deleteByPattern, getCache, setCache } from "../../../config/redis";
+import { searchableStudentField, searchableTeacherField } from "./examAnnouncement.constant";
 
 const examAnnouncementServiceIntoDb = async (payload: TExamAnnouncement):Promise<{success:boolean, message:string}> => {
   try {
@@ -96,7 +97,7 @@ const examAnnouncementServiceIntoDb = async (payload: TExamAnnouncement):Promise
     }
 
     const queryBuilder = new PrismaQueryBuilder(query)
-      .search(["tipTapEditor"]) // FIX: relational search not supported by Prisma
+      .search(searchableTeacherField)
       .filter()
       .sort()
       .paginate()
@@ -250,12 +251,105 @@ const deleteAnnouncementExamIntoDb = async (id: string) => {
   }
 };
 
+
+
+const findBySpecificStudentAnnouncementExamListIntoDb = async (
+  subscriptionId: string,
+  studentId: string,
+  query: Record<string, unknown>
+) => {
+  try {
+
+    const cacheKey = `student-exam-announcement:${subscriptionId}:${studentId}:${JSON.stringify(
+      query
+    )}`;
+
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData) {
+      return cachedData;
+    }
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(searchableStudentField)
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const { where, orderBy, skip, take, select } = queryBuilder.build();
+
+  
+    const baseWhere = {
+      subscriptionId,
+      classDistribution: {
+        students: {
+          some: {
+            id: studentId,
+          },
+        },
+      },
+      ...where,
+    };
+
+
+    const [data, total] = await prisma.$transaction([
+      prisma.examAnnouncement.findMany({
+        where: baseWhere,
+        orderBy,
+        skip,
+        take,
+        select: select ?? {
+          id: true,
+          tipTapEditor: true,
+          examDate: true,
+          createdAt: true,
+          classDistribution: {
+            select: {
+              classLevel: true,
+              assignableSubject: true,
+              teacher: {
+                select: {
+                  teacherName: true,
+                  teacherId: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+
+      prisma.examAnnouncement.count({
+        where: baseWhere,
+      }),
+    ]);
+
+    const result = {
+    
+      meta: {
+        total,
+        page: Number(query.page) || 1,
+        limit: Number(query.limit) || 10,
+        totalPages: Math.ceil(total / (Number(query.limit) || 10)),
+      },
+      data,
+    };
+
+    await setCache(cacheKey, result, 300);
+
+    return result;
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
 const ExamAnnouncementServices={
     examAnnouncementServiceIntoDb,
     findMyAnnouncementExamListIntoDb,
     findBySpecificAnnouncementExamIntoDb,
     updateAnnouncementExamIntoDb,
-    deleteAnnouncementExamIntoDb
-}
+    deleteAnnouncementExamIntoDb,
+    findBySpecificStudentAnnouncementExamListIntoDb
+};
+
 
 export default ExamAnnouncementServices;
