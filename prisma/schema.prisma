@@ -220,6 +220,7 @@ model ClassDistribution {
   classRecordings   ClassRecording[]
   onlineClasses     OnlineClass[]
   students          Student[]         @relation("ClassDistributionToStudent")
+  examAnnouncement    ExamAnnouncement[]
 
   @@index([teacherId])
   @@index([classLevel])
@@ -250,6 +251,7 @@ model Subscriptions {
   user                User                  @relation(fields: [userId], references: [id])
   supports            Support[]
   teacher             Teacher[]
+  examAnnouncement    ExamAnnouncement[]
 
   @@map("subscriptions")
 }
@@ -553,6 +555,28 @@ model AttendanceSheet {
   @@index([studentId])
   @@index([AttendanceDate])
   @@map("attendance_sheets")
+}
+
+// exam announcement
+model ExamAnnouncement {
+  id                  String              @id @default(uuid())
+  examDate            DateTime
+  tipTapEditor        String              
+  subscriptionId      String              @db.VarChar(255)
+  classDistributionId String              @db.VarChar(255)
+
+  subscription         Subscriptions      @relation(fields: [subscriptionId], references: [id])
+  classDistribution    ClassDistribution  @relation(fields: [classDistributionId], references: [id])
+
+  isDelete             Boolean            @default(false)
+
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([subscriptionId])
+  @@index([classDistributionId])
+  @@index([examDate])
+  @@map("exam_announcements")
 }
 
 model Admin {

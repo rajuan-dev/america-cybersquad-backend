@@ -15,6 +15,11 @@ import SubjectRouter from "../modules/subjects/subjects.route";
 import ClassDistributionRouter from "../modules/ClassDistribution/class_distribution.route";
 import FeesManagementRouter from "../modules/FeesManagement/fees_management.route";
 import AssignmentRouter from "../modules/Assignments/assignments.route";
+import examAnnouncementRouter from "../modules/ExamAnnouncement/examAnnouncement.route";
+
+
+
+
 
 
 const router = express.Router();
@@ -80,7 +85,12 @@ const moduleRoutes = [
    {
     path:"/assignments",
     route: AssignmentRouter
+   },
+   {
+    path:"/exam_announcement", 
+    route: examAnnouncementRouter
    }
+ 
 
   
 ];
