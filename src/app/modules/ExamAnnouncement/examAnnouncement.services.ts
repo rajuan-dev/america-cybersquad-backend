@@ -4,6 +4,8 @@ import catchError from "../../../errors/catchError";
 import prisma from "../../../shared/prisma";
 import { TExamAnnouncement } from "./examAnnouncement.interface";
 import { getSocketIO } from "../../../socket/connectSocket";
+import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
+import { getCache, setCache } from "../../../config/redis";
 
 const examAnnouncementServiceIntoDb = async (payload: TExamAnnouncement):Promise<{success:boolean, message:string}> => {
   try {
@@ -77,8 +79,108 @@ const examAnnouncementServiceIntoDb = async (payload: TExamAnnouncement):Promise
   }
 };
 
+ const findMyAnnouncementExamListIntoDb = async (
+  subscriptionId: string,
+  teacherId: string,
+  query: Record<string, unknown>
+) => {
+  try {
+    const cacheKey = `exam-announcement:${subscriptionId}:${teacherId}:${JSON.stringify(
+      query
+    )}`;
+
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData) {
+      return cachedData;
+    }
+
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(["tipTapEditor"]) // FIX: relational search not supported by Prisma
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const { where, orderBy, skip, take, select } = queryBuilder.build();
+
+
+    const baseWhere = {
+      subscriptionId,
+      classDistribution: {
+        teacherId,
+      },
+      ...where,
+    };
+    const [data, total] = await prisma.$transaction([
+      prisma.examAnnouncement.findMany({
+        where: baseWhere,
+        orderBy,
+        skip,
+        take,
+        select: select ?? {
+          id: true,
+          tipTapEditor: true,
+          examDate: true,
+          createdAt: true,
+          classDistribution: {
+            select: {
+              classLevel: true,
+              assignableSubject: true,
+            },
+          },
+        },
+      }),
+
+      prisma.examAnnouncement.count({
+        where: baseWhere,
+      }),
+    ]);
+
+    const result = {
+      success: true,
+      meta: {
+        total,
+        page: Number(query.page) || 1,
+        limit: Number(query.limit) || 10,
+        totalPages: Math.ceil(total / (Number(query.limit) || 10)),
+      },
+      data,
+    };
+
+    await setCache(cacheKey, result, 300);
+
+    return result;
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
+
+const findBySpecificAnnouncementExamIntoDb=async(id: string)=>{
+
+   try{
+
+      return await prisma.examAnnouncement.findUnique({where:{
+        id
+      }, select:{
+        id:true,
+        tipTapEditor: true,
+        examDate: true,
+        createdAt: true
+      }})
+
+   }
+ catch (error) {
+    return catchError(error);
+  }
+   
+}
+
 const ExamAnnouncementServices={
-    examAnnouncementServiceIntoDb
+    examAnnouncementServiceIntoDb,
+    findMyAnnouncementExamListIntoDb,
+    findBySpecificAnnouncementExamIntoDb
 }
 
 export default ExamAnnouncementServices;

@@ -18,6 +18,11 @@ router.post(
   ),
   ExamAnnouncementController.examAnnouncementService
 );
+router.get("/find_my_announcement_exam_list/:subscriptionId",  auth(UserRole.TEACHER), ExamAnnouncementController.findMyAnnouncementExamList);
+router.get("/find_by_specific_announcement_exam/:id",
+  auth(UserRole.TEACHER),
+ExamAnnouncementController.findBySpecificAnnouncementExam);
+
 
 const examAnnouncementRouter = router;
 
