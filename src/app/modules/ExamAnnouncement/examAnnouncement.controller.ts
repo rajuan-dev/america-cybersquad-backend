@@ -79,6 +79,19 @@ const  findMyAnnouncementExamList:RequestHandler=catchAsync(async(req , res)=>{
     data: result,
   });
   });
+
+
+  const findByParticipantStudentList:RequestHandler=catchAsync(async(req , res)=>{
+
+
+      const result=await ExamAnnouncementServices.findByParticipantStudentListIntoDb(req.params.examAnnouncementId, req.query);
+        sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find My Participant Student List",
+    data: result,
+  });
+  });
   
 
 
@@ -90,7 +103,8 @@ const ExamAnnouncementController={
     findBySpecificAnnouncementExam,
     updateAnnouncementExam,
     deleteAnnouncementExam,
-    findBySpecificStudentAnnouncementExamList
+    findBySpecificStudentAnnouncementExamList,
+    findByParticipantStudentList
 };
 
 export default ExamAnnouncementController;

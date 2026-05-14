@@ -38,6 +38,11 @@ router.delete("/delete_announcement_exam/:id",
   ExamAnnouncementController.findBySpecificStudentAnnouncementExamList);
 
 
+  router.get("/find_by_participant_student_list/:examAnnouncementId", 
+    auth(UserRole.TEACHER),
+  ExamAnnouncementController.findByParticipantStudentList);
+  
+  
 
 
 const examAnnouncementRouter = router;

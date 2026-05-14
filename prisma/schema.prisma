@@ -155,6 +155,7 @@ model Student {
   subscriptions      Subscriptions       @relation(fields: [subscriptionId], references: [id])
   submitAssignments  SubmitAssignment[]
   classDistributions ClassDistribution[] @relation("ClassDistributionToStudent")
+  examGrades         ExamGrades[]
 
   @@index([name])
   @@index([email])
@@ -195,6 +196,7 @@ model Teacher {
   supports           Support[]
   branchAdmin        BranchAdmin         @relation(fields: [branchAdminId], references: [id])
   subscriptions      Subscriptions       @relation(fields: [subscriptionId], references: [id])
+  examGrades         ExamGrades[]
 
   @@map("teachers")
 }
@@ -559,25 +561,48 @@ model AttendanceSheet {
 
 // exam announcement
 model ExamAnnouncement {
-  id                  String              @id @default(uuid())
+  id                  String   @id @default(uuid())
   examDate            DateTime
-  tipTapEditor        String              
-  subscriptionId      String              @db.VarChar(255)
-  classDistributionId String              @db.VarChar(255)
+  tipTapEditor        String
 
-  subscription         Subscriptions      @relation(fields: [subscriptionId], references: [id])
-  classDistribution    ClassDistribution  @relation(fields: [classDistributionId], references: [id])
+  subscriptionId      String   @db.VarChar(255)
+  classDistributionId String   @db.VarChar(255)
 
-  isDelete             Boolean            @default(false)
+  subscription        Subscriptions @relation(fields: [subscriptionId], references: [id])
+  classDistribution   ClassDistribution @relation(fields: [classDistributionId], references: [id])
 
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
+  examGrade           ExamGrades?
+  isDelete            Boolean @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
+  @@map("exam_announcements")
   @@index([subscriptionId])
   @@index([classDistributionId])
-  @@index([examDate])
-  @@map("exam_announcements")
 }
+
+
+model ExamGrades {
+  id                 String   @id @default(uuid())
+  examAnnouncementId String   @unique @db.VarChar(255)
+  studentId          String   @db.VarChar(255)
+  teacherId          String
+  totalMarks         Float
+  marks              Float
+  instructions       String? @db.VarChar(555)
+  students           Student @relation(fields: [studentId], references: [id])
+  teachers           Teacher @relation(fields: [teacherId], references: [id])
+  examAnnouncement   ExamAnnouncement @relation(fields: [examAnnouncementId],references: [id])
+  isDelete           Boolean @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  @@map("exam_grades")
+  @@index([studentId])
+  @@index([teacherId])
+  @@index([examAnnouncementId])
+}
+
+
 
 model Admin {
   id          String   @id @default(uuid())
