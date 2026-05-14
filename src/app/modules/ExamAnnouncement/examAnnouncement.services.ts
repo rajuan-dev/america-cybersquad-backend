@@ -2,7 +2,7 @@ import httpStatus from "http-status";
 import ApiError from "../../../errors/ApiErrors";
 import catchError from "../../../errors/catchError";
 import prisma from "../../../shared/prisma";
-import { TExamAnnouncement } from "./examAnnouncement.interface";
+import { TExamAnnouncement, TExamGrades } from "./examAnnouncement.interface";
 import { getSocketIO } from "../../../socket/connectSocket";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { deleteByPattern, getCache, setCache } from "../../../config/redis";
@@ -449,6 +449,118 @@ const findByParticipantStudentListIntoDb = async (
     return catchError(error);
   }
 };
+const recordedExamGradesIntoDb = async (
+  teacherId: string,
+  payload: TExamGrades
+):Promise<{
+  success: boolean,
+  message: string
+}> => {
+  try {
+   
+    const result = await prisma.$transaction(async (tx) => {
+     
+      const examAnnouncement =
+        await tx.examAnnouncement.findFirst({
+          where: {
+            id: payload.examAnnouncementId,
+
+            classDistribution: {
+              teacherId,
+
+              students: {
+                some: {
+                  id: payload.studentId,
+                },
+              },
+            },
+          },
+
+          select: {
+            id: true,
+            subscriptionId: true,
+          },
+        });
+
+      if (!examAnnouncement) {
+        throw new ApiError(
+          httpStatus.NOT_FOUND,
+          "Exam announcement not found or access denied"
+        );
+      }
+
+      const isAlreadyExist =
+        await tx.examGrades.findFirst({
+          where: {
+            examAnnouncementId:
+              payload.examAnnouncementId,
+
+            studentId: payload.studentId,
+          },
+        });
+
+      if (isAlreadyExist) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          "Exam grade already recorded"
+        );
+      }
+      const examGrade =
+        await tx.examGrades.create({
+          data: {
+            teacherId,
+
+            studentId: payload.studentId,
+
+            examAnnouncementId:
+              payload.examAnnouncementId,
+
+            totalMarks: payload.totalMarks,
+
+            marks: payload.marks,
+
+            instructions: payload.instructions,
+          },
+        });
+
+      await tx.notification.create({
+        data: {
+          title: "📚 Exam Result Published",
+          message:
+            "Your exam result has been published",
+
+          studentId: payload.studentId,
+
+          subscriptionId:
+            examAnnouncement.subscriptionId,
+        },
+      });
+
+      return examGrade;
+    });
+
+    const io = getSocketIO();
+    io.to(`user::${payload.studentId}`).emit(
+      "notification",
+      {
+        title: "📚 Exam Result Published",
+        message:
+          "Your exam result has been published",
+
+        timestamp: new Date().toISOString(),
+      }
+    );
+
+   
+    return result && {
+      success: true,
+      message: "Successfully recorded exam grade"
+     
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
 
 
 
@@ -459,7 +571,8 @@ const ExamAnnouncementServices={
     updateAnnouncementExamIntoDb,
     deleteAnnouncementExamIntoDb,
     findBySpecificStudentAnnouncementExamListIntoDb,
-    findByParticipantStudentListIntoDb
+    findByParticipantStudentListIntoDb,
+    recordedExamGradesIntoDb
 };
 
 

@@ -571,7 +571,7 @@ model ExamAnnouncement {
   subscription        Subscriptions @relation(fields: [subscriptionId], references: [id])
   classDistribution   ClassDistribution @relation(fields: [classDistributionId], references: [id])
 
-  examGrade           ExamGrades?
+  examGrades           ExamGrades []
   isDelete            Boolean @default(false)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -584,19 +584,27 @@ model ExamAnnouncement {
 
 model ExamGrades {
   id                 String   @id @default(uuid())
-  examAnnouncementId String   @unique @db.VarChar(255)
+
+  examAnnouncementId String   @db.VarChar(255)
   studentId          String   @db.VarChar(255)
   teacherId          String
+
   totalMarks         Float
   marks              Float
-  instructions       String? @db.VarChar(555)
-  students           Student @relation(fields: [studentId], references: [id])
-  teachers           Teacher @relation(fields: [teacherId], references: [id])
-  examAnnouncement   ExamAnnouncement @relation(fields: [examAnnouncementId],references: [id])
+  instructions       String?  @db.VarChar(555)
+
+  students           Student  @relation(fields: [studentId], references: [id])
+  teachers           Teacher  @relation(fields: [teacherId], references: [id])
+
+  examAnnouncement   ExamAnnouncement @relation( fields: [examAnnouncementId], references: [id])
+
   isDelete           Boolean @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
   @@map("exam_grades")
+  @@unique([examAnnouncementId, studentId])
+
   @@index([studentId])
   @@index([teacherId])
   @@index([examAnnouncementId])

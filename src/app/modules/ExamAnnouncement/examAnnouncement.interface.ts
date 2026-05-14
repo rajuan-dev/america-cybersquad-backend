@@ -6,3 +6,12 @@ export interface TExamAnnouncement{
      classDistributionId: string;
      isDelete:boolean;
 }
+
+export interface TExamGrades {
+     examAnnouncementId: string;
+     studentId: string;
+     totalMarks: number;
+     marks: number;
+     instructions: string;
+      isDelete:boolean;
+}

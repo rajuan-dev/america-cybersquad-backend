@@ -92,6 +92,18 @@ const  findMyAnnouncementExamList:RequestHandler=catchAsync(async(req , res)=>{
     data: result,
   });
   });
+
+  const recordedExamGrades:RequestHandler=catchAsync(async(req , res)=>{
+
+     const result=await ExamAnnouncementServices.recordedExamGradesIntoDb(req.user.id, req.body);
+    sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Recorded  Grades",
+    data: result,
+  });
+
+  })
   
 
 
@@ -104,7 +116,8 @@ const ExamAnnouncementController={
     updateAnnouncementExam,
     deleteAnnouncementExam,
     findBySpecificStudentAnnouncementExamList,
-    findByParticipantStudentList
+    findByParticipantStudentList,
+    recordedExamGrades
 };
 
 export default ExamAnnouncementController;

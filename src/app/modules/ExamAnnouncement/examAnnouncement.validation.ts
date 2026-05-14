@@ -43,9 +43,46 @@ const  updateAnnouncementExamSchema=z.object({
   }),
 });
 
+
+ const ExamGradesValidationSchema = z.object({
+  body: z.object({
+    examAnnouncementId: z
+      .string({
+        required_error: "Exam announcement ID is required",
+      })
+      .uuid("Invalid exam announcement ID format"),
+
+    studentId: z
+      .string({
+        required_error: "Student ID is required",
+      })
+      .uuid("Invalid student ID format"),
+
+    totalMarks: z
+      .number({
+        required_error: "Total marks is required",
+      })
+      .positive("Total marks must be greater than 0"),
+
+    marks: z
+      .number({
+        required_error: "Marks is required",
+      })
+      .min(0, "Marks cannot be negative"),
+
+    instructions: z
+      .string()
+      .max(555, "Instructions cannot exceed 555 characters")
+      .optional(),
+
+    isDelete: z.boolean().optional(),
+  }),
+});
+
 const AnnouncementValidation={
    createAnnouncementValidationSchema,
-   updateAnnouncementExamSchema
+   updateAnnouncementExamSchema,
+   ExamGradesValidationSchema
 };
 
 export default AnnouncementValidation;

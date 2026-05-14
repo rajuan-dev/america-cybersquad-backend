@@ -41,7 +41,17 @@ router.delete("/delete_announcement_exam/:id",
   router.get("/find_by_participant_student_list/:examAnnouncementId", 
     auth(UserRole.TEACHER),
   ExamAnnouncementController.findByParticipantStudentList);
-  
+
+
+  router.post("/recorded_exam_grades",
+     auth(UserRole.TEACHER),
+     validateRequest(AnnouncementValidation.ExamGradesValidationSchema),
+     ExamAnnouncementController.recordedExamGrades);
+
+
+
+
+
   
 
 
