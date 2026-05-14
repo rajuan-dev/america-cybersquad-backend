@@ -23,6 +23,15 @@ router.get("/find_by_specific_announcement_exam/:id",
   auth(UserRole.TEACHER),
 ExamAnnouncementController.findBySpecificAnnouncementExam);
 
+router.patch("/update_announcement_exam/:id", 
+  auth(UserRole.TEACHER),
+  validateRequest(AnnouncementValidation.updateAnnouncementExamSchema) , 
+  ExamAnnouncementController.updateAnnouncementExam);
+
+
+  router.delete("/delete_announcement_exam/:id", auth(UserRole.TEACHER), ExamAnnouncementController.deleteAnnouncementExam);
+  
+
 
 const examAnnouncementRouter = router;
 

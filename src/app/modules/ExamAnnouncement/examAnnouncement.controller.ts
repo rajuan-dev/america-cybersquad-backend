@@ -46,10 +46,37 @@ const  findMyAnnouncementExamList:RequestHandler=catchAsync(async(req , res)=>{
   });
 
 
+  const updateAnnouncementExam:RequestHandler=catchAsync(async(req , res)=>{
+
+     const result=await ExamAnnouncementServices.updateAnnouncementExamIntoDb(req.params.id, req.body);
+     sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Update Announcement Exam",
+    data: result,
+  });
+  });
+
+  const deleteAnnouncementExam:RequestHandler=catchAsync(async(req , res)=>{
+
+      const result=await ExamAnnouncementServices.deleteAnnouncementExamIntoDb(req.params.id);
+       sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Delete Announcement Exam",
+    data: result,
+  });
+  });
+
+  
+
+
 const ExamAnnouncementController={
     examAnnouncementService,
     findMyAnnouncementExamList,
-    findBySpecificAnnouncementExam
+    findBySpecificAnnouncementExam,
+    updateAnnouncementExam,
+    deleteAnnouncementExam
 };
 
 export default ExamAnnouncementController;

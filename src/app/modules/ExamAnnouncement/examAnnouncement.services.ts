@@ -5,7 +5,7 @@ import prisma from "../../../shared/prisma";
 import { TExamAnnouncement } from "./examAnnouncement.interface";
 import { getSocketIO } from "../../../socket/connectSocket";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
-import { getCache, setCache } from "../../../config/redis";
+import { deleteByPattern, getCache, setCache } from "../../../config/redis";
 
 const examAnnouncementServiceIntoDb = async (payload: TExamAnnouncement):Promise<{success:boolean, message:string}> => {
   try {
@@ -175,12 +175,87 @@ const findBySpecificAnnouncementExamIntoDb=async(id: string)=>{
     return catchError(error);
   }
    
-}
+};
+
+const updateAnnouncementExamIntoDb = async (
+  id: string,
+  payload: Partial<TExamAnnouncement>
+):Promise<{
+  success: boolean,
+   message: string
+}> => {
+  try {
+    
+    const cleanPayload = Object.fromEntries(
+      Object.entries(payload).filter(
+        ([_, value]) => value !== undefined
+      )
+    );
+
+   
+    const result = await prisma.examAnnouncement.update({
+      where: { id },
+      data: cleanPayload
+     
+    });
+
+    
+    return  result && {
+      success: true,
+      message: "Successfully updated announcement exam"
+      
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+const deleteAnnouncementExamIntoDb = async (id: string) => {
+  try {
+    
+    const announcement = await prisma.examAnnouncement.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        subscriptionId: true,
+        classDistributionId: true,
+      },
+    });
+
+    if (!announcement) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        "Exam announcement not found"
+      );
+    }
+
+    await prisma.examAnnouncement.delete({
+      where: { id },
+    });
+
+    await Promise.all([
+      deleteByPattern(
+        `exam-announcement:${announcement.subscriptionId}:*`
+      ),
+      deleteByPattern(
+        `exam-announcement:*:${announcement.classDistributionId}:*`
+      ),
+    ]);
+
+    return {
+      success: true,
+      message: "Successfully deleted exam announcement",
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
 
 const ExamAnnouncementServices={
     examAnnouncementServiceIntoDb,
     findMyAnnouncementExamListIntoDb,
-    findBySpecificAnnouncementExamIntoDb
+    findBySpecificAnnouncementExamIntoDb,
+    updateAnnouncementExamIntoDb,
+    deleteAnnouncementExamIntoDb
 }
 
 export default ExamAnnouncementServices;

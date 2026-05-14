@@ -27,8 +27,25 @@ const createAnnouncementValidationSchema = z.object({
   }),
 });
 
+
+const  updateAnnouncementExamSchema=z.object({
+  body: z.object({
+    examDate: z.coerce.date({
+      required_error: "Exam date is required",
+      invalid_type_error: "Invalid exam date",
+    }).optional(),
+
+    tipTapEditor: z
+      .string({
+        required_error: "Exam announcement content is required",
+      })
+      .min(1, "TipTap editor content cannot be empty").optional()
+  }),
+});
+
 const AnnouncementValidation={
-   createAnnouncementValidationSchema
+   createAnnouncementValidationSchema,
+   updateAnnouncementExamSchema
 };
 
 export default AnnouncementValidation;
