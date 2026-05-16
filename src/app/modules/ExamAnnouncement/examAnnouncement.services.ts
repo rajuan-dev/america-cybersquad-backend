@@ -6,15 +6,21 @@ import { TExamAnnouncement, TExamGrades } from "./examAnnouncement.interface";
 import { getSocketIO } from "../../../socket/connectSocket";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { deleteByPattern, getCache, setCache } from "../../../config/redis";
-import { searchableAttendedStudent, searchableStudentField, searchableTeacherField } from "./examAnnouncement.constant";
+import {
+  searchableAttendedStudent,
+  searchableGradeExamFields,
+  searchableStudentField,
+  searchableTeacherField,
+} from "./examAnnouncement.constant";
 
-const examAnnouncementServiceIntoDb = async (payload: TExamAnnouncement):Promise<{success:boolean, message:string}> => {
+const examAnnouncementServiceIntoDb = async (
+  payload: TExamAnnouncement,
+): Promise<{ success: boolean; message: string }> => {
   try {
     const { examDate, tipTapEditor, classDistributionId, subscriptionId } =
       payload;
 
-    const {  students } = await prisma.$transaction(async (tx) => {
-     
+    const { students } = await prisma.$transaction(async (tx) => {
       const classDistribution = await tx.classDistribution.findUnique({
         where: { id: classDistributionId },
         select: {
@@ -27,11 +33,10 @@ const examAnnouncementServiceIntoDb = async (payload: TExamAnnouncement):Promise
       if (!classDistribution) {
         throw new ApiError(
           httpStatus.NOT_FOUND,
-          "Class distribution does not exist"
+          "Class distribution does not exist",
         );
       }
 
-      
       const announcement = await tx.examAnnouncement.create({
         data: {
           examDate,
@@ -41,7 +46,6 @@ const examAnnouncementServiceIntoDb = async (payload: TExamAnnouncement):Promise
         },
       });
 
-      
       if (classDistribution.students.length) {
         await tx.notification.createMany({
           data: classDistribution.students.map((student) => ({
@@ -59,8 +63,7 @@ const examAnnouncementServiceIntoDb = async (payload: TExamAnnouncement):Promise
       };
     });
 
-    
-    const io = getSocketIO() 
+    const io = getSocketIO();
 
     students.forEach((student) => {
       io.to(`user::${student.id}`).emit("notification", {
@@ -72,22 +75,21 @@ const examAnnouncementServiceIntoDb = async (payload: TExamAnnouncement):Promise
 
     return {
       success: true,
-      message: "Successfully sent this announcement"
-      
+      message: "Successfully sent this announcement",
     };
   } catch (error) {
     return catchError(error);
   }
 };
 
- const findMyAnnouncementExamListIntoDb = async (
+const findMyAnnouncementExamListIntoDb = async (
   subscriptionId: string,
   teacherId: string,
-  query: Record<string, unknown>
+  query: Record<string, unknown>,
 ) => {
   try {
     const cacheKey = `exam-announcement:${subscriptionId}:${teacherId}:${JSON.stringify(
-      query
+      query,
     )}`;
 
     const cachedData = await getCache(cacheKey);
@@ -104,7 +106,6 @@ const examAnnouncementServiceIntoDb = async (payload: TExamAnnouncement):Promise
       .fields();
 
     const { where, orderBy, skip, take, select } = queryBuilder.build();
-
 
     const baseWhere = {
       subscriptionId,
@@ -157,62 +158,53 @@ const examAnnouncementServiceIntoDb = async (payload: TExamAnnouncement):Promise
   }
 };
 
-
-const findBySpecificAnnouncementExamIntoDb=async(id: string)=>{
-
-   try{
-
-      return await prisma.examAnnouncement.findUnique({where:{
-        id
-      }, select:{
-        id:true,
+const findBySpecificAnnouncementExamIntoDb = async (id: string) => {
+  try {
+    return await prisma.examAnnouncement.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
         tipTapEditor: true,
         examDate: true,
-        createdAt: true
-      }})
-
-   }
- catch (error) {
+        createdAt: true,
+      },
+    });
+  } catch (error) {
     return catchError(error);
   }
-   
 };
 
 const updateAnnouncementExamIntoDb = async (
   id: string,
-  payload: Partial<TExamAnnouncement>
-):Promise<{
-  success: boolean,
-   message: string
+  payload: Partial<TExamAnnouncement>,
+): Promise<{
+  success: boolean;
+  message: string;
 }> => {
   try {
-    
     const cleanPayload = Object.fromEntries(
-      Object.entries(payload).filter(
-        ([_, value]) => value !== undefined
-      )
+      Object.entries(payload).filter(([_, value]) => value !== undefined),
     );
 
-   
     const result = await prisma.examAnnouncement.update({
       where: { id },
-      data: cleanPayload
-     
+      data: cleanPayload,
     });
 
-    
-    return  result && {
-      success: true,
-      message: "Successfully updated announcement exam"
-      
-    };
+    return (
+      result && {
+        success: true,
+        message: "Successfully updated announcement exam",
+      }
+    );
   } catch (error) {
     return catchError(error);
   }
 };
 const deleteAnnouncementExamIntoDb = async (id: string) => {
   try {
-    
     const announcement = await prisma.examAnnouncement.findUnique({
       where: { id },
       select: {
@@ -223,10 +215,7 @@ const deleteAnnouncementExamIntoDb = async (id: string) => {
     });
 
     if (!announcement) {
-      throw new ApiError(
-        httpStatus.NOT_FOUND,
-        "Exam announcement not found"
-      );
+      throw new ApiError(httpStatus.NOT_FOUND, "Exam announcement not found");
     }
 
     await prisma.examAnnouncement.delete({
@@ -234,11 +223,9 @@ const deleteAnnouncementExamIntoDb = async (id: string) => {
     });
 
     await Promise.all([
+      deleteByPattern(`exam-announcement:${announcement.subscriptionId}:*`),
       deleteByPattern(
-        `exam-announcement:${announcement.subscriptionId}:*`
-      ),
-      deleteByPattern(
-        `exam-announcement:*:${announcement.classDistributionId}:*`
+        `exam-announcement:*:${announcement.classDistributionId}:*`,
       ),
     ]);
 
@@ -251,17 +238,14 @@ const deleteAnnouncementExamIntoDb = async (id: string) => {
   }
 };
 
-
-
 const findBySpecificStudentAnnouncementExamListIntoDb = async (
   subscriptionId: string,
   studentId: string,
-  query: Record<string, unknown>
+  query: Record<string, unknown>,
 ) => {
   try {
-
     const cacheKey = `student-exam-announcement:${subscriptionId}:${studentId}:${JSON.stringify(
-      query
+      query,
     )}`;
 
     const cachedData = await getCache(cacheKey);
@@ -278,7 +262,6 @@ const findBySpecificStudentAnnouncementExamListIntoDb = async (
 
     const { where, orderBy, skip, take, select } = queryBuilder.build();
 
-  
     const baseWhere = {
       subscriptionId,
       classDistribution: {
@@ -290,7 +273,6 @@ const findBySpecificStudentAnnouncementExamListIntoDb = async (
       },
       ...where,
     };
-
 
     const [data, total] = await prisma.$transaction([
       prisma.examAnnouncement.findMany({
@@ -324,7 +306,6 @@ const findBySpecificStudentAnnouncementExamListIntoDb = async (
     ]);
 
     const result = {
-    
       meta: {
         total,
         page: Number(query.page) || 1,
@@ -342,25 +323,22 @@ const findBySpecificStudentAnnouncementExamListIntoDb = async (
   }
 };
 
-//participants user list 
+//participants user list
 const findByParticipantStudentListIntoDb = async (
   examAnnouncementId: string,
-  query: Record<string, unknown>
+  query: Record<string, unknown>,
 ) => {
   try {
-   
     const cacheKey = `participant-students:${examAnnouncementId}:${JSON.stringify(
-      query
+      query,
     )}`;
 
-  
     const cachedData = await getCache(cacheKey);
 
     if (cachedData) {
       return cachedData;
     }
 
-    
     const queryBuilder = new PrismaQueryBuilder(query)
       .search(searchableAttendedStudent)
       .filter()
@@ -368,20 +346,17 @@ const findByParticipantStudentListIntoDb = async (
       .paginate()
       .fields();
 
-    const { where, orderBy, skip, take, select } =
-      queryBuilder.build();
+    const { where, orderBy, skip, take, select } = queryBuilder.build();
 
-   
-    const examAnnouncement =
-      await prisma.examAnnouncement.findUnique({
-        where: {
-          id: examAnnouncementId,
-        },
-        select: {
-          id: true,
-          classDistributionId: true,
-        },
-      });
+    const examAnnouncement = await prisma.examAnnouncement.findUnique({
+      where: {
+        id: examAnnouncementId,
+      },
+      select: {
+        id: true,
+        classDistributionId: true,
+      },
+    });
 
     if (!examAnnouncement) {
       return {
@@ -390,7 +365,6 @@ const findByParticipantStudentListIntoDb = async (
       };
     }
 
-  
     const baseWhere = {
       classDistributions: {
         some: {
@@ -401,7 +375,6 @@ const findByParticipantStudentListIntoDb = async (
       ...where,
     };
 
-   
     const [data, total] = await prisma.$transaction([
       prisma.student.findMany({
         where: baseWhere,
@@ -412,13 +385,12 @@ const findByParticipantStudentListIntoDb = async (
 
         take,
 
-        select:
-          select ?? {
-            id: true,
-            name: true,
-            studentId: true,
-            createdAt: true,
-          },
+        select: select ?? {
+          id: true,
+          name: true,
+          studentId: true,
+          createdAt: true,
+        },
       }),
 
       prisma.student.count({
@@ -426,7 +398,6 @@ const findByParticipantStudentListIntoDb = async (
       }),
     ]);
 
-   
     const result = {
       success: true,
 
@@ -434,9 +405,7 @@ const findByParticipantStudentListIntoDb = async (
         total,
         page: Number(query.page) || 1,
         limit: Number(query.limit) || 10,
-        totalPages: Math.ceil(
-          total / (Number(query.limit) || 10)
-        ),
+        totalPages: Math.ceil(total / (Number(query.limit) || 10)),
       },
 
       data,
@@ -451,88 +420,79 @@ const findByParticipantStudentListIntoDb = async (
 };
 const recordedExamGradesIntoDb = async (
   teacherId: string,
-  payload: TExamGrades
-):Promise<{
-  success: boolean,
-  message: string
+  payload: TExamGrades,
+): Promise<{
+  success: boolean;
+  message: string;
 }> => {
   try {
-   
     const result = await prisma.$transaction(async (tx) => {
-     
-      const examAnnouncement =
-        await tx.examAnnouncement.findFirst({
-          where: {
-            id: payload.examAnnouncementId,
+      const examAnnouncement = await tx.examAnnouncement.findFirst({
+        where: {
+          id: payload.examAnnouncementId,
 
-            classDistribution: {
-              teacherId,
+          classDistribution: {
+            teacherId,
 
-              students: {
-                some: {
-                  id: payload.studentId,
-                },
+            students: {
+              some: {
+                id: payload.studentId,
               },
             },
           },
+        },
 
-          select: {
-            id: true,
-            subscriptionId: true,
-          },
-        });
+        select: {
+          id: true,
+          subscriptionId: true,
+        },
+      });
 
       if (!examAnnouncement) {
         throw new ApiError(
           httpStatus.NOT_FOUND,
-          "Exam announcement not found or access denied"
+          "Exam announcement not found or access denied",
         );
       }
 
-      const isAlreadyExist =
-        await tx.examGrades.findFirst({
-          where: {
-            examAnnouncementId:
-              payload.examAnnouncementId,
+      const isAlreadyExist = await tx.examGrades.findFirst({
+        where: {
+          examAnnouncementId: payload.examAnnouncementId,
 
-            studentId: payload.studentId,
-          },
-        });
+          studentId: payload.studentId,
+        },
+      });
 
       if (isAlreadyExist) {
         throw new ApiError(
           httpStatus.BAD_REQUEST,
-          "Exam grade already recorded"
+          "Exam grade already recorded",
         );
       }
-      const examGrade =
-        await tx.examGrades.create({
-          data: {
-            teacherId,
+      const examGrade = await tx.examGrades.create({
+        data: {
+          teacherId,
 
-            studentId: payload.studentId,
+          studentId: payload.studentId,
 
-            examAnnouncementId:
-              payload.examAnnouncementId,
+          examAnnouncementId: payload.examAnnouncementId,
 
-            totalMarks: payload.totalMarks,
+          totalMarks: payload.totalMarks,
 
-            marks: payload.marks,
+          marks: payload.marks,
 
-            instructions: payload.instructions,
-          },
-        });
+          instructions: payload.instructions,
+        },
+      });
 
       await tx.notification.create({
         data: {
           title: "📚 Exam Result Published",
-          message:
-            "Your exam result has been published",
+          message: "Your exam result has been published",
 
           studentId: payload.studentId,
 
-          subscriptionId:
-            examAnnouncement.subscriptionId,
+          subscriptionId: examAnnouncement.subscriptionId,
         },
       });
 
@@ -540,40 +500,212 @@ const recordedExamGradesIntoDb = async (
     });
 
     const io = getSocketIO();
-    io.to(`user::${payload.studentId}`).emit(
-      "notification",
-      {
-        title: "📚 Exam Result Published",
-        message:
-          "Your exam result has been published",
+    io.to(`user::${payload.studentId}`).emit("notification", {
+      title: "📚 Exam Result Published",
+      message: "Your exam result has been published",
 
-        timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
+    });
+
+    return (
+      result && {
+        success: true,
+        message: "Successfully recorded exam grade",
       }
     );
-
-   
-    return result && {
-      success: true,
-      message: "Successfully recorded exam grade"
-     
-    };
   } catch (error) {
     return catchError(error);
   }
 };
 
+const findByExamGradesSpecificTeacherIntoDb = async (
+  subscriptionId: string,
+  teacherId: string,
+  query: Record<string, unknown>,
+) => {
+  try {
 
+    const cacheKey = `teacher-exam-grades:${subscriptionId}:${teacherId}:${JSON.stringify(
+      query,
+    )}`;
 
-const ExamAnnouncementServices={
-    examAnnouncementServiceIntoDb,
-    findMyAnnouncementExamListIntoDb,
-    findBySpecificAnnouncementExamIntoDb,
-    updateAnnouncementExamIntoDb,
-    deleteAnnouncementExamIntoDb,
-    findBySpecificStudentAnnouncementExamListIntoDb,
-    findByParticipantStudentListIntoDb,
-    recordedExamGradesIntoDb
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData) {
+      return cachedData;
+    }
+
+   
+
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const sortBy = (query.sortBy as string) || "createdAt";
+    const sortOrder = (query.sortOrder as string) || "desc";
+
+    const searchTerm = (query.searchTerm as string) || "";
+
+   
+
+    const baseWhere: any = {
+      teacherId,
+
+      examAnnouncement: {
+        subscriptionId,
+      },
+    };
+
+   
+
+    if (searchTerm) {
+      baseWhere.OR = [
+        {
+          instructions: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+
+        {
+          students: {
+            name: {
+              contains: searchTerm,
+              mode: "insensitive",
+            },
+          },
+        },
+
+        {
+          students: {
+            email: {
+              contains: searchTerm,
+              mode: "insensitive",
+            },
+          },
+        },
+
+        {
+          students: {
+            studentId: {
+              contains: searchTerm,
+              mode: "insensitive",
+            },
+          },
+        },
+
+        {
+          examAnnouncement: {
+            tipTapEditor: {
+              contains: searchTerm,
+              mode: "insensitive",
+            },
+          },
+        },
+
+        {
+          examAnnouncement: {
+            classDistribution: {
+              classLevel: {
+                contains: searchTerm,
+                mode: "insensitive",
+              },
+            },
+          },
+        },
+      ];
+    }
+
+   
+    const [data, total] = await prisma.$transaction([
+      prisma.examGrades.findMany({
+        where: baseWhere,
+
+        orderBy: {
+          [sortBy]: sortOrder,
+        },
+
+        skip,
+        take: limit,
+
+        select: {
+          id: true,
+
+          studentId: true,
+
+          totalMarks: true,
+
+          marks: true,
+
+          instructions: true,
+
+          createdAt: true,
+
+          examAnnouncement: {
+            select: {
+              examDate: true,
+
+              tipTapEditor: true,
+
+              classDistribution: {
+                select: {
+                  classLevel: true,
+                  assignableSubject: true,
+                },
+              },
+            },
+          },
+
+          students: {
+            select: {
+              name: true,
+              email: true,
+              photo: true,
+              studentId: true,
+            },
+          },
+        },
+      }),
+
+      prisma.examGrades.count({
+        where: baseWhere,
+      }),
+    ]);
+
+    
+
+    const result = {
+      success: true,
+
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+
+      data,
+    };
+
+    
+    await setCache(cacheKey, result, 300);
+
+    return result;
+  } catch (error) {
+    return catchError(error);
+  }
 };
 
+const ExamAnnouncementServices = {
+  examAnnouncementServiceIntoDb,
+  findMyAnnouncementExamListIntoDb,
+  findBySpecificAnnouncementExamIntoDb,
+  updateAnnouncementExamIntoDb,
+  deleteAnnouncementExamIntoDb,
+  findBySpecificStudentAnnouncementExamListIntoDb,
+  findByParticipantStudentListIntoDb,
+  recordedExamGradesIntoDb,
+  findByExamGradesSpecificTeacherIntoDb,
+};
 
 export default ExamAnnouncementServices;
