@@ -800,6 +800,173 @@ const deleteExamGradesSpecificTeacherIntoDb = async (id: string):Promise<{
   }
 };
 
+// student  role  api 
+
+const findByExamGradesSpecificStudentIntoDb = async (
+  subscriptionId: string,
+  studentId: string,
+  query: Record<string, unknown>,
+) => {
+  try {
+    // ============================================
+    // CACHE KEY
+    // ============================================
+
+    const cacheKey = `student-exam-grades:${subscriptionId}:${studentId}:${JSON.stringify(
+      query,
+    )}`;
+
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData) {
+      return cachedData;
+    }
+
+    
+    const page = Number(query.page) || 1;
+
+    const limit = Number(query.limit) || 10;
+
+    const skip = (page - 1) * limit;
+
+    const sortBy = (query.sortBy as string) || "createdAt";
+
+    const sortOrder = (query.sortOrder as string) || "desc";
+
+    const searchTerm = (query.searchTerm as string) || "";
+
+    // ============================================
+    // BASE WHERE
+    // ============================================
+
+    const baseWhere: any = {
+      studentId,
+
+      examAnnouncement: {
+        subscriptionId,
+      },
+    };
+
+
+
+    if (searchTerm) {
+      baseWhere.OR = [
+        {
+          instructions: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+
+        {
+          examAnnouncement: {
+            tipTapEditor: {
+              contains: searchTerm,
+              mode: "insensitive",
+            },
+          },
+        },
+
+        {
+          examAnnouncement: {
+            classDistribution: {
+              classLevel: {
+                contains: searchTerm,
+                mode: "insensitive",
+              },
+            },
+          },
+        },
+
+        {
+          examAnnouncement: {
+            classDistribution: {
+              assignableSubject: {
+                contains: searchTerm,
+                mode: "insensitive",
+              },
+            },
+          },
+        },
+      ];
+    }
+
+    // ============================================
+    // DATABASE QUERY
+    // ============================================
+
+    const [data, total] = await prisma.$transaction([
+      prisma.examGrades.findMany({
+        where: baseWhere,
+
+        orderBy: {
+          [sortBy]: sortOrder,
+        },
+
+        skip,
+
+        take: limit,
+
+        select: {
+          id: true,
+
+          totalMarks: true,
+
+          marks: true,
+
+          instructions: true,
+
+          createdAt: true,
+
+          examAnnouncement: {
+            select: {
+              examDate: true,
+
+              tipTapEditor: true,
+
+              classDistribution: {
+                select: {
+                  classLevel: true,
+                    assignableSubject: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+
+      prisma.examGrades.count({
+        where: baseWhere,
+      }),
+    ]);
+
+    
+
+    const result = {
+      meta: {
+        total,
+
+        page,
+
+        limit,
+
+        totalPages: Math.ceil(total / limit),
+      },
+
+      data,
+    };
+
+
+
+    await setCache(cacheKey, result, 300);
+
+    return result;
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
+
 const ExamAnnouncementServices = {
   examAnnouncementServiceIntoDb,
   findMyAnnouncementExamListIntoDb,
@@ -812,7 +979,9 @@ const ExamAnnouncementServices = {
   findByExamGradesSpecificTeacherIntoDb,
   findBySpecificExamGradesIntoDb,
   updateExamGradesSpecificTeacherIntoDb,
-  deleteExamGradesSpecificTeacherIntoDb
+  deleteExamGradesSpecificTeacherIntoDb,
+  findByExamGradesSpecificStudentIntoDb,
+  
 };
 
 export default ExamAnnouncementServices;

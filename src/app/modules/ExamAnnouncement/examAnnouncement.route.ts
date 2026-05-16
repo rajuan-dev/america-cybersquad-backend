@@ -74,6 +74,9 @@ router.patch("/update_exam_grades_specific_teacher/:id", auth(UserRole.TEACHER),
 
 router.delete("/delete_exam_grades_specific_teacher/:id", auth(UserRole.TEACHER),ExamAnnouncementController.deleteExamGradesSpecificTeacher);
 
+router.get("/find_by_exam_grades_specific_student/:subscriptionId", auth(UserRole.STUDENT), ExamAnnouncementController.findByExamGradesSpecificStudent);
+
+
 const examAnnouncementRouter = router;
 
 export default examAnnouncementRouter;

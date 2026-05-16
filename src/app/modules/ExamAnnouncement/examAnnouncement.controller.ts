@@ -149,7 +149,19 @@ const  findMyAnnouncementExamList:RequestHandler=catchAsync(async(req , res)=>{
     message: "Successfully Delete Exam Grades",
     data: result,
   });
-  })
+  });
+
+  const findByExamGradesSpecificStudent:RequestHandler=catchAsync(async(req , res)=>{
+
+      const result=await ExamAnnouncementServices.findByExamGradesSpecificStudentIntoDb(req.params.subscriptionId, req.user.id, req.query);
+       sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By The  Specific Exam Grades",
+    data: result,
+  });
+  });
+
   
 
 
@@ -167,7 +179,8 @@ const ExamAnnouncementController={
     findByExamGradesSpecificTeacher,
     findBySpecificExamGrades,
     updateExamGradesSpecificTeacher,
-    deleteExamGradesSpecificTeacher
+    deleteExamGradesSpecificTeacher,
+    findByExamGradesSpecificStudent
 };
 
 export default ExamAnnouncementController;
