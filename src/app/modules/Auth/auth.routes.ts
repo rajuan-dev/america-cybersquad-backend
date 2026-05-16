@@ -14,17 +14,15 @@ const router = express.Router();
 // login user
 router.post("/login",validateRequest(authValidation.LoginSchema), AuthController.loginUser);
 router.post("/refresh-token", validateRequest(authValidation.requestTokenValidationSchema), AuthController.refreshToken);
-router.get("/my-profile", auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STUDENT, UserRole.PARENT,UserRole.TEACHER), AuthController.myProfile);
+router.get("/my-profile", auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STUDENT, UserRole.parent,UserRole.TEACHER), AuthController.myProfile);
 //  updateUserZodSchema
-
-
 router.patch(
   "/update_my_profile",
   auth(
     UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
     UserRole.STUDENT,
-    UserRole.PARENT,
+    UserRole.parent,
     UserRole.TEACHER  
   ),
   uploadFile.profileImage,
@@ -48,7 +46,7 @@ router.get(
   AuthController.findByAllUsersAdmin
 );
 
-router.delete( `/delete_account`, auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STUDENT, UserRole.PARENT,UserRole.TEACHER), AuthController.deleteAccount);
+router.delete( `/delete_account`, auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STUDENT, UserRole.parent,UserRole.TEACHER), AuthController.deleteAccount);
 
 router.patch(
   "/block_unblock_user/:id",
@@ -72,7 +70,7 @@ router.patch(
 //change password
 router.put(
   "/change-password",
-  auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STUDENT, UserRole.PARENT,UserRole.TEACHER),
+  auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STUDENT, UserRole.parent,UserRole.TEACHER),
   validateRequest(authValidation.changePasswordValidationSchema),
   AuthController.changePassword
 );

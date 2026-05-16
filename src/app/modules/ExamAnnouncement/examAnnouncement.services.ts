@@ -8,7 +8,6 @@ import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { deleteByPattern, getCache, setCache } from "../../../config/redis";
 import {
   searchableAttendedStudent,
-  searchableGradeExamFields,
   searchableStudentField,
   searchableTeacherField,
 } from "./examAnnouncement.constant";
@@ -955,7 +954,6 @@ const findByExamGradesSpecificStudentIntoDb = async (
 
       data,
     };
-
 
 
     await setCache(cacheKey, result, 300);

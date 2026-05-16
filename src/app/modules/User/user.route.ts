@@ -18,7 +18,7 @@ router.patch(
 );
 
 router.patch(
-  "/change_password",auth(UserRole.ADMIN, UserRole.STUDENT, UserRole.SUPER_ADMIN, UserRole.PARENT,UserRole.TEACHER,UserRole.INSTITUTIONAL_OWNER),
+  "/change_password",auth(UserRole.ADMIN, UserRole.STUDENT, UserRole.SUPER_ADMIN, UserRole.parent,UserRole.TEACHER,UserRole.INSTITUTIONAL_OWNER),
   validateRequest(userValidation.changePasswordSchema),
   UserController.changePassword
 );

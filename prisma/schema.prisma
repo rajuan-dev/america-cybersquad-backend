@@ -656,7 +656,7 @@ enum AttendanceStatus {
 
 enum UserRole {
   STUDENT
-  PARENT
+  parent
   TEACHER
   ADMIN
   SUPER_ADMIN

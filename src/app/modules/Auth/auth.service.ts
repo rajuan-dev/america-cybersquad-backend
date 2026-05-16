@@ -215,6 +215,66 @@ const loginUserIntoDb = async (payload: Partial<TUser>) => {
 
         break;
       }
+      case UserRole.parent :{
+          const user = await prisma.staff.findFirst({
+          where: {
+            email: payload.email,
+             isVerified:true, 
+            status: UserStatus.ACTIVE,
+
+           
+          },
+          select: {
+            id: true,
+            password: true,
+            email: true,
+            role:true
+          },
+        });
+
+        if (!user) {
+          throw new ApiError(httpStatus.NOT_FOUND, "User not found", "");
+        };
+
+
+        if (payload.role && user.role !== payload.role) {
+          throw new ApiError(httpStatus.FORBIDDEN, "Invalid role for this user", "");
+        }
+
+        const isPasswordMatched = await bcrypt.compare(
+          payload.password as string,
+          user.password
+        );
+
+        if (!isPasswordMatched) {
+          throw new ApiError(httpStatus.FORBIDDEN, "Password not matched", "");
+        };
+
+         const jwtPayload = {
+          id: user.id,
+          role: user.role,
+          email: user.email,
+        };
+
+        const accessToken = jwtHelpers.generateToken(
+          jwtPayload,
+          config.jwt_access_secret as string,
+          config.expires_in as string
+        );
+
+        const refreshToken = jwtHelpers.generateToken(
+          jwtPayload,
+          config.jwt_refresh_secret as string,
+          config.refresh_expires_in as string
+        );
+
+        result = {
+          accessToken,
+          refreshToken,
+        };
+
+         break;
+      }
 
       default: {
         throw new ApiError(httpStatus.BAD_REQUEST, "Invalid user role", "");

@@ -29,7 +29,7 @@ const resetPasswordSchema = z.object({
 const LoginSchema = z.object({
   body: z.object({
     email: z.string({ required_error: "email is required" }).email(),
-    role: z.enum([UserRole.INSTITUTIONAL_OWNER, UserRole.STUDENT,  UserRole.ADMIN, UserRole.BRANCH_ADMIN, UserRole.PARENT, UserRole.TEACHER], {
+    role: z.enum([UserRole.INSTITUTIONAL_OWNER, UserRole.STUDENT,  UserRole.ADMIN, UserRole.BRANCH_ADMIN, UserRole.parent, UserRole.TEACHER], {
       required_error: "Role is required",
       invalid_type_error: "Invalid role value",
     }),
