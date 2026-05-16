@@ -115,6 +115,40 @@ const  findMyAnnouncementExamList:RequestHandler=catchAsync(async(req , res)=>{
     message: "Successfully Find My Student Grate",
     data: result,
   });
+  });
+
+  const findBySpecificExamGrades:RequestHandler=catchAsync(async(req , res)=>{
+
+
+     const  result=await ExamAnnouncementServices.findBySpecificExamGradesIntoDb(req.params.id);
+      sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By The Specific Exam Grades",
+    data: result,
+  });
+  });
+
+  const updateExamGradesSpecificTeacher:RequestHandler=catchAsync(async(req , res)=>{
+
+      const result=await ExamAnnouncementServices.updateExamGradesSpecificTeacherIntoDb(req.params.id, req.body);
+       sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Update Exam Grades",
+    data: result,
+  });
+
+  });
+
+  const deleteExamGradesSpecificTeacher:RequestHandler=catchAsync(async(req , res)=>{
+     const result=await ExamAnnouncementServices.deleteExamGradesSpecificTeacherIntoDb(req.params.id);
+      sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Delete Exam Grades",
+    data: result,
+  });
   })
   
 
@@ -130,7 +164,10 @@ const ExamAnnouncementController={
     findBySpecificStudentAnnouncementExamList,
     findByParticipantStudentList,
     recordedExamGrades,
-    findByExamGradesSpecificTeacher
+    findByExamGradesSpecificTeacher,
+    findBySpecificExamGrades,
+    updateExamGradesSpecificTeacher,
+    deleteExamGradesSpecificTeacher
 };
 
 export default ExamAnnouncementController;

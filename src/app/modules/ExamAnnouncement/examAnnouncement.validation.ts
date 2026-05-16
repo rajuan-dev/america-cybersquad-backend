@@ -79,10 +79,35 @@ const  updateAnnouncementExamSchema=z.object({
   }),
 });
 
+ const UpdateExamGradesValidationSchema = z.object({
+  body: z.object({
+    totalMarks: z
+      .number({
+        required_error: "Total marks is required",
+      }).optional()
+      ,
+
+    marks: z
+      .number({
+        required_error: "Marks is required",
+      })
+      .optional(),
+
+    instructions: z
+      .string()
+      .max(555, "Instructions cannot exceed 555 characters")
+      .optional(),
+
+    isDelete: z.boolean().optional(),
+  }),
+});
+
 const AnnouncementValidation={
    createAnnouncementValidationSchema,
    updateAnnouncementExamSchema,
-   ExamGradesValidationSchema
+   ExamGradesValidationSchema,
+   UpdateExamGradesValidationSchema
+   
 };
 
 export default AnnouncementValidation;

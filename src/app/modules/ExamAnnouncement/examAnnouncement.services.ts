@@ -675,8 +675,6 @@ const findByExamGradesSpecificTeacherIntoDb = async (
     
 
     const result = {
-      success: true,
-
       meta: {
         total,
         page,
@@ -696,6 +694,112 @@ const findByExamGradesSpecificTeacherIntoDb = async (
   }
 };
 
+
+const findBySpecificExamGradesIntoDb=async(id: string)=>{
+
+   try{
+
+       return await prisma.examGrades.findUnique({where:{
+        id
+       },select:{
+        id: true ,
+        totalMarks: true , 
+        marks: true , 
+        instructions: true,
+        createdAt: true 
+       }})
+
+   }
+   catch (error) {
+    return catchError(error);
+  }
+};
+
+
+const updateExamGradesSpecificTeacherIntoDb = async (
+  id: string,
+  payload: Partial<TExamGrades>,
+):Promise<{
+  success: boolean,
+  message: string
+}> => {
+  try {
+    
+
+    const isExist = await prisma.examGrades.findUnique({
+      where: {
+        id,
+      },
+      select:{
+        id:true
+      }
+    });
+
+    if (!isExist) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Exam grade not found");
+    }
+
+    const updateData = Object.fromEntries(
+      Object.entries(payload).filter(
+        ([_, value]) => value !== undefined,
+      ),
+    );
+    const result = await prisma.examGrades.update({
+      where: {
+        id,
+      },
+      data: updateData,
+    });
+
+    return  result && {
+      success: true,
+      message: "Successfully Updated"
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
+const deleteExamGradesSpecificTeacherIntoDb = async (id: string):Promise<{
+  success: boolean,
+  message: string
+}> => {
+  try {
+  
+
+    const isExist = await prisma.examGrades.findUnique({
+      where: {
+        id,
+      },
+      select:{
+        id: true
+      }
+    });
+
+    if (!isExist) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        "Exam grade not found",
+      );
+    }
+
+    
+
+    const result = await prisma.examGrades.delete({
+      where: {
+        id,
+      },
+    });
+    return result && {
+      success: true,
+      message: "Successfully Deleted"
+    
+    };
+  } catch (error) {
+    return catchError(error);
+  }
+};
+
 const ExamAnnouncementServices = {
   examAnnouncementServiceIntoDb,
   findMyAnnouncementExamListIntoDb,
@@ -706,6 +810,9 @@ const ExamAnnouncementServices = {
   findByParticipantStudentListIntoDb,
   recordedExamGradesIntoDb,
   findByExamGradesSpecificTeacherIntoDb,
+  findBySpecificExamGradesIntoDb,
+  updateExamGradesSpecificTeacherIntoDb,
+  deleteExamGradesSpecificTeacherIntoDb
 };
 
 export default ExamAnnouncementServices;

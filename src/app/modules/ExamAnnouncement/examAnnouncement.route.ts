@@ -5,6 +5,7 @@ import validateRequest from "../../middlewares/validateRequest";
 
 import ExamAnnouncementController from "./examAnnouncement.controller";
 import AnnouncementValidation from "./examAnnouncement.validation";
+import ExamAnnouncementServices from "./examAnnouncement.services";
 
 const router = express.Router();
 
@@ -57,10 +58,21 @@ router.post(
   ExamAnnouncementController.recordedExamGrades,
 );
 
-router.get("/find_by_exam_grades_specific_teacher/:subscriptionId", 
+router.get(
+  "/find_by_exam_grades_specific_teacher/:subscriptionId",
   auth(UserRole.TEACHER),
-   ExamAnnouncementController.findByExamGradesSpecificTeacher);
+  ExamAnnouncementController.findByExamGradesSpecificTeacher,
+);
 
+router.get(
+  "/find_by_specific_exam_grades/:id",
+  auth(UserRole.TEACHER),
+  ExamAnnouncementController.findBySpecificExamGrades,
+);
+router.patch("/update_exam_grades_specific_teacher/:id", auth(UserRole.TEACHER),validateRequest(AnnouncementValidation.UpdateExamGradesValidationSchema),ExamAnnouncementController.updateExamGradesSpecificTeacher)
+
+
+router.delete("/delete_exam_grades_specific_teacher/:id", auth(UserRole.TEACHER),ExamAnnouncementController.deleteExamGradesSpecificTeacher);
 
 const examAnnouncementRouter = router;
 
