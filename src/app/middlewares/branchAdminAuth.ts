@@ -64,7 +64,7 @@ const branchAdminAuth = (...roles: string[]) => {
 
         }break;
 
-        case UserRole.PARENT: {
+        case UserRole.parent: {
 
           user=await prisma.staff.findUnique({
             where:{id:verifiedUser.id},

@@ -1,68 +1,148 @@
-import { UserStatus } from "@prisma/client";
-import catchError from "../../../errors/catchError"
+
+
+import { Prisma, UserStatus } from "@prisma/client";
+import catchError from "../../../errors/catchError";
 import prisma from "../../../shared/prisma";
+import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
+import { getCache, setCache } from "../../../config/redis";
 
+const findMyChildrenAllResultIntoDb = async (
+  parentId: string,
+  query: Record<string, unknown>
+) => {
+  try {
+   
+    const cacheKey = `children-results:${parentId}:${JSON.stringify(query)}`;
 
+    // 1️⃣ CHECK CACHE FIRST
+    const cachedData = await getCache(cacheKey);
+    if (cachedData) {
+      return {
+        success: true,
+        message: "Fetched from cache",
+        meta: cachedData.meta,
+        data: cachedData.data,
+      };
+    }
+    const queryBuilder = new PrismaQueryBuilder(query)
+      .search(["name", "studentId"])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
 
+    const queryOptions = queryBuilder.build();
 
+    const whereClause = (queryOptions.where ?? {}) as Prisma.StudentWhereInput;
 
-const findMyChildrenAllResultIntoDb=async(parentId: string,query: Record<string, unknown>)=>{
+    const classLevel = query?.classLevel as string | undefined;
+    const teacherId = query?.teacherId as string | undefined;
 
+    const examGradeFilter: Prisma.ExamGradesWhereInput = teacherId
+      ? { teacherId }
+      : {};
 
-     try{
+    const studentWhere: Prisma.StudentWhereInput = {
+      ...whereClause,
+    };
 
-        const result=await prisma.staff.findMany({
-            where:{id:parentId, isVerified:true , status:UserStatus.ACTIVE},
-            select:{
-                students:{
-                    select:{
-                        name:true ,
-                        studentId: true ,
-                        classDistributions:{
-                            select:{
-                                assignableSubject: true ,
-                                classLevel: true ,
-                                examAnnouncement:{
-                                    select:{
-                                        examDate: true ,
-                                        tipTapEditor: true ,
-                                        examGrades:{
-                                            select:{
-                                                totalMarks:true ,
-                                                marks:true,
-                                                teachers:{
-                                                    select:{
-                                                        teacherId: true ,
-                                                        teacherName: true 
-                                                    }
+    if (classLevel) {
+      studentWhere.examGrades = {
+        some: {
+          examAnnouncement: {
+            classDistribution: {
+              classLevel,
+            },
+          },
+        },
+      };
+    }
+    const [result, total] = await Promise.all([
+      prisma.staff.findMany({
+        where: {
+          id: parentId,
+          isVerified: true,
+          status: UserStatus.ACTIVE,
+        },
+        select: {
+          students: {
+            where: studentWhere,
+            select: {
+              id: true,
+              studentId: true,
+              name: true,
+              createdAt: true,
+              updatedAt: true,
 
-                                                },
-                                                instructions: true
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
+              examGrades: {
+                where: examGradeFilter,
+                select: {
+                  id: true,
+                  totalMarks: true,
+                  marks: true,
+                  instructions: true,
+                  createdAt: true,
+                  updatedAt: true,
 
-        return result
+                  teachers: {
+                    select: {
+                      teacherName: true,
+                      teacherId: true,
+                    },
+                  },
 
-     }
-     catch(error){
-        return catchError(error);
+                  examAnnouncement: {
+                    select: {
+                      examDate: true,
+                      tipTapEditor: true,
+                      classDistribution: {
+                        select: {
+                          classLevel: true,
+                          assignableSubject: true
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
 
-     }
+      prisma.student.count({
+        where: studentWhere,
+      }),
+    ]);
 
-    
+    const page = Number(query?.page) || 1;
+    const limit = Number(query?.limit) || 10;
 
+    const response = {
+      success: true,
+      message: "Successfully fetched children exam results",
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
+      data: result,
+    };
 
+    // 4️⃣ SAVE TO CACHE
+    await setCache(cacheKey, response, 3600); // 1 hour cache
+
+    return response;
+  } catch (error) {
+    return catchError(error);
+  }
 };
 
- const ParentServices={
-        findMyChildrenAllResultIntoDb
-     };
+
+
+const ParentServices = {
+  findMyChildrenAllResultIntoDb,
+};
+
 export default ParentServices;

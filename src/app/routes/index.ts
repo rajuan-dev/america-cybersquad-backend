@@ -16,6 +16,7 @@ import ClassDistributionRouter from "../modules/ClassDistribution/class_distribu
 import FeesManagementRouter from "../modules/FeesManagement/fees_management.route";
 import AssignmentRouter from "../modules/Assignments/assignments.route";
 import examAnnouncementRouter from "../modules/ExamAnnouncement/examAnnouncement.route";
+import ParentRouter from "../modules/Parent/parent.route";
 
 
 
@@ -89,6 +90,10 @@ const moduleRoutes = [
    {
     path:"/exam_announcement", 
     route: examAnnouncementRouter
+   },
+   {
+    path:"/parent",
+    route: ParentRouter
    }
  
 
