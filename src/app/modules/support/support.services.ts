@@ -193,6 +193,57 @@ const sendSupportMessageIntoDb = async (
           break;
         }
 
+        case UserRole.parent :{
+
+           supportResult = await tx.support.create({
+            data: {
+              subscriptionId: payload.subscriptionId,
+              name: payload.name,
+              email: payload.email,
+              subject: payload.subject,
+              message: payload.message,
+              isDelete: payload.isDelete ?? false,
+              parentId: userId
+            },
+          });
+
+            // branch admins
+          await Promise.all(
+            subscription.branchAdmins.map((admin) =>
+              tx.notification.create({
+                data: {
+                  title: payload.subject,
+                  message: shortMessage,
+                  branchAdminId: admin.id,
+                  subscriptionId: payload.subscriptionId,
+                  isDelete: false,
+                },
+              })
+            )
+          );
+
+            // institutional owner
+          if (subscription.user.role === UserRole.INSTITUTIONAL_OWNER) {
+            await tx.notification.create({
+              data: {
+                title: payload.subject,
+                message: shortMessage,
+                userId: subscription.userId,
+                subscriptionId: payload.subscriptionId,
+                isDelete: false,
+              },
+            });
+          }
+
+
+
+
+
+
+
+          break;
+        }
+
         default:
           throw new ApiError(httpStatus.FORBIDDEN, "Role not allowed");
       }
