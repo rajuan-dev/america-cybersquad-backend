@@ -17,9 +17,21 @@ const findMyChildrenAllResult:RequestHandler=catchAsync(async(req , res)=>{
   });
 });
 
+const findBySpecificStudentAttendanceReportParent:RequestHandler=catchAsync(async(req , res)=>{
+
+    const result=await ParentServices.findBySpecificStudentAttendanceReportParentIntoDb(req.user.id, req.params.subscriptionId, req.query);
+    sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By Specific Student Attendance",
+    data: result,
+  });
+})
+
 
 const  ParentController={
-    findMyChildrenAllResult
+    findMyChildrenAllResult,
+    findBySpecificStudentAttendanceReportParent
 };
 
 export default ParentController

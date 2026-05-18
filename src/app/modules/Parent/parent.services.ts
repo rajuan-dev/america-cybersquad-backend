@@ -131,11 +131,113 @@ const findMyChildrenAllResultIntoDb = async (
     };
 
     // 4️⃣ SAVE TO CACHE
-    await setCache(cacheKey, response, 3600); // 1 hour cache
-
+    await setCache(cacheKey, response, 3600); 
     return response;
   } catch (error) {
     return catchError(error);
+  }
+};
+
+const findBySpecificStudentAttendanceReportParentIntoDb = async (
+  parentId: string,
+  subscriptionId: string,
+  query: Record<string, unknown>
+) => {
+  try {
+    const cacheKey = `attendance-report:${parentId}:${subscriptionId}:${JSON.stringify(query)}`;
+
+    const cachedData = await getCache(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const search = query.search as string | undefined;
+    const teacherName = query.teacherName as string | undefined;
+    const teacherId = query.teacherId as string | undefined;
+    const date = query.date as string | undefined;
+
+    const where: Prisma.AttendanceSheetWhereInput = {
+      subscriptionId,
+      students: {
+        staffs: {
+          id: parentId,
+        },
+      },
+      ...(date && {
+        AttendanceDate: {
+          gte: new Date(date),
+          lte: new Date(date),
+        },
+      }),
+      ...(teacherId || teacherName
+        ? {
+            teachers: {
+              ...(teacherId && { teacherId }),
+              ...(teacherName && {
+                teacherName: {
+                  contains: teacherName,
+                  mode: "insensitive",
+                },
+              }),
+            },
+          }
+        : {}),
+    };
+
+    const [data, total] = await Promise.all([
+      prisma.attendanceSheet.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: {
+          AttendanceDate: "desc",
+        },
+        select: {
+          AttendanceDate: true,
+          attendanceStatus: true,
+          
+
+          teachers: {
+            select: {
+              teacherName: true,
+              teacherId: true,
+              photo: true,
+            },
+          },
+
+          students: {
+            select: {
+              name: true,
+              studentId: true,
+            },
+          },
+        },
+      }),
+
+      prisma.attendanceSheet.count({ where }),
+    ]);
+
+    const response = {
+      success: true,
+      message: "Successfully fetched attendance report",
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
+      data,
+    };
+
+    await setCache(cacheKey, response, 3600);
+
+    return response;
+  } catch (error) {
+    throw catchError(error);
   }
 };
 
@@ -143,6 +245,7 @@ const findMyChildrenAllResultIntoDb = async (
 
 const ParentServices = {
   findMyChildrenAllResultIntoDb,
+  findBySpecificStudentAttendanceReportParentIntoDb
 };
 
 export default ParentServices;
