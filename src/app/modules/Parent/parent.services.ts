@@ -1,6 +1,6 @@
 
 
-import { Prisma, UserStatus } from "@prisma/client";
+import { AttendanceStatus, Prisma, UserStatus } from "@prisma/client";
 import catchError from "../../../errors/catchError";
 import prisma from "../../../shared/prisma";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
@@ -241,11 +241,86 @@ const findBySpecificStudentAttendanceReportParentIntoDb = async (
   }
 };
 
+const avgAttendanceCalculationIntoDb = async (
+  parentId: string,
+  subscriptionId: string,
+  query: Record<string, unknown>
+) => {
+  try {
+    const year = String(query.year);
+
+    const cacheKey = `attendance:avg:${parentId}:${subscriptionId}:${year}`;
+
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      return {
+        success: true,
+        fromCache: true,
+        ...cached,
+      };
+    }
+
+    const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
+    const endDate = new Date(`${year}-12-31T23:59:59.999Z`);
+
+    const whereCondition = {
+      subscriptionId,
+      createdAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+      students: {
+        staffs: {
+          id: parentId,
+        },
+      },
+    };
+
+    const presentCount = await prisma.attendanceSheet.count({
+      where: {
+        ...whereCondition,
+        attendanceStatus: AttendanceStatus.PRESENT,
+      },
+    });
+
+    const absentCount = await prisma.attendanceSheet.count({
+      where: {
+        ...whereCondition,
+        attendanceStatus: AttendanceStatus.ABSENT,
+      },
+    });
+
+    const total = presentCount + absentCount;
+
+    const presentAvg = total ? (presentCount / total) * 100 : 0;
+    const absentAvg = total ? (absentCount / total) * 100 : 0;
+
+    const result = {
+      presentCount,
+      absentCount,
+      presentAvg,
+      absentAvg,
+      total,
+    };
+
+    
+    await setCache(cacheKey, result, 60 * 60 * 6); 
+
+    return {
+      success: true,
+      fromCache: false,
+      ...result,
+    };
+  } catch (error) {
+    throw catchError(error);
+  }
+};
 
 
 const ParentServices = {
   findMyChildrenAllResultIntoDb,
-  findBySpecificStudentAttendanceReportParentIntoDb
+  findBySpecificStudentAttendanceReportParentIntoDb,
+  avgAttendanceCalculationIntoDb
 };
 
 export default ParentServices;

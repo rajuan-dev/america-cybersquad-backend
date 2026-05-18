@@ -16,5 +16,10 @@ router.get(
   ParentController.findBySpecificStudentAttendanceReportParent,
 );
 
+router.get("/avg_attendance_calculation/:subscriptionId",
+     auth(UserRole.parent),
+      ParentController.avgAttendanceCalculation
+)
+
 const ParentRouter = router;
 export default ParentRouter;

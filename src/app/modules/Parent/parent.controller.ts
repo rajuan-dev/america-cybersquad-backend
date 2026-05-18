@@ -26,12 +26,24 @@ const findBySpecificStudentAttendanceReportParent:RequestHandler=catchAsync(asyn
     message: "Successfully Find By Specific Student Attendance",
     data: result,
   });
+});
+
+const avgAttendanceCalculation:RequestHandler=catchAsync(async(req , res)=>{
+
+    const result=await ParentServices.avgAttendanceCalculationIntoDb(req.user.id, req.params.subscriptionId, req.query);
+    sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By Avg Attendance",
+    data: result,
+  });
 })
 
 
 const  ParentController={
     findMyChildrenAllResult,
-    findBySpecificStudentAttendanceReportParent
+    findBySpecificStudentAttendanceReportParent,
+    avgAttendanceCalculation
 };
 
 export default ParentController
