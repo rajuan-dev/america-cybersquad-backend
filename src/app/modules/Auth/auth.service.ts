@@ -381,6 +381,7 @@ const loginUserIntoDb = async (payload: Partial<TUser>) => {
         if (!isPasswordMatched) {
           throw new ApiError(httpStatus.FORBIDDEN, "Password not matched", "");
         };
+        
 
          const jwtPayload = {
           id: user.id,

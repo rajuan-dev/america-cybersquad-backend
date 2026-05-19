@@ -17,6 +17,7 @@ import FeesManagementRouter from "../modules/FeesManagement/fees_management.rout
 import AssignmentRouter from "../modules/Assignments/assignments.route";
 import examAnnouncementRouter from "../modules/ExamAnnouncement/examAnnouncement.route";
 import ParentRouter from "../modules/Parent/parent.route";
+import nurseRoute from "../modules/nurse/nurse.route";
 
 
 
@@ -94,6 +95,10 @@ const moduleRoutes = [
    {
     path:"/parent",
     route: ParentRouter
+   },
+   {
+    path:"/nurse",
+    route: nurseRoute
    }
  
 

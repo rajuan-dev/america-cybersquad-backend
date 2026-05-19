@@ -98,8 +98,8 @@ model BranchAdmin {
   emailAddress     String         @unique
   password         String
   photo            String?
-  status             UserStatus          @default(ACTIVE)
-  isVerified         Boolean             @default(true)
+  status           UserStatus     @default(ACTIVE)
+  isVerified       Boolean        @default(true)
   verificationCode Int?           @unique
   role             String
   joinDate         DateTime
@@ -393,24 +393,25 @@ model Support {
 }
 
 model Staff {
-  id             String        @id @default(uuid())
-  name           String        @db.VarChar(100)
-  role           String        @db.VarChar(100)
-  email          String        @db.VarChar(100)
-  phoneNumber    String        @db.VarChar(100)
-  password       String        @db.VarChar(300)
-  generateId     String        @unique @db.VarChar(100)
+  id             String          @id @default(uuid())
+  name           String          @db.VarChar(100)
+  role           String          @db.VarChar(100)
+  email          String          @db.VarChar(100)
+  phoneNumber    String          @db.VarChar(100)
+  password       String          @db.VarChar(300)
+  generateId     String          @unique @db.VarChar(100)
   subscriptionId String
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   photo          String?
   studentId      String?
-  isVerified     Boolean       @default(true)
-  status         UserStatus    @default(ACTIVE)
-  sId            String?       @unique @db.VarChar(100)
-  students       Student?      @relation(fields: [sId], references: [id])
-  subscriptions  Subscriptions @relation(fields: [subscriptionId], references: [id])
+  isVerified     Boolean         @default(true)
+  status         UserStatus      @default(ACTIVE)
+  sId            String?         @unique @db.VarChar(100)
+  students       Student?        @relation(fields: [sId], references: [id])
+  subscriptions  Subscriptions   @relation(fields: [subscriptionId], references: [id])
   support        Support[]
+  healthRecords  HealthRecords[]
 
   @@index([name])
   @@index([role])
@@ -629,11 +630,14 @@ enum bloodTypeEnum {
 }
 
 model HealthRecords {
-  id               String        @id @default(uuid())
-  studentId        String        @db.VarChar(255)
-  subscriptionId   String        @db.VarChar(255)
-  students         Student       @relation(fields: [studentId], references: [id])
-  subscription     Subscriptions @relation(fields: [subscriptionId], references: [id])
+  id             String        @id @default(uuid())
+  studentId      String        @db.VarChar(255)
+  subscriptionId String        @db.VarChar(255)
+  nurseId        String        @db.VarChar(255)
+  students       Student       @relation(fields: [studentId], references: [id])
+  subscription   Subscriptions @relation(fields: [subscriptionId], references: [id])
+  nurses         Staff         @relation(fields: [nurseId], references: [id])
+
   bloodType        bloodTypeEnum
   tipTapEditor     String
   emergencyContact String

@@ -64,8 +64,8 @@ const auth = (...roles: string[]) => {
             where:{id:verifiedUser.id,status:UserStatus.ACTIVE, isVerified:true},
             select:{id:true}
           });
-
-        }break;
+         break;
+        }
 
         case UserRole.parent: {
 
@@ -73,15 +73,26 @@ const auth = (...roles: string[]) => {
             where:{id:verifiedUser.id},
             select:{id:true}
           });
-
-        }break; 
+     break;
+        } 
         case UserRole.TEACHER: {
 
           user=await prisma.teacher.findUnique({
             where:{id:verifiedUser.id, isVerified:true, status:UserStatus.ACTIVE},
             select:{id:true}
           }); 
-        }break;
+          break;
+        }
+
+        case UserRole.NURSE :{
+
+           user=await prisma.staff.findUnique({
+            where:{id:verifiedUser.id, isVerified:true, status:UserStatus.ACTIVE},
+            select:{id:true}
+          }); 
+
+         break;
+        }
         
         default: {
           throw new ApiError(httpStatus.FORBIDDEN, "Invalid role!");
