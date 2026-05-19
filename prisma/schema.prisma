@@ -98,6 +98,8 @@ model BranchAdmin {
   emailAddress     String         @unique
   password         String
   photo            String?
+  status             UserStatus          @default(ACTIVE)
+  isVerified         Boolean             @default(true)
   verificationCode Int?           @unique
   role             String
   joinDate         DateTime
@@ -123,6 +125,8 @@ model BranchAdmin {
   @@index([emailAddress])
   @@index([assignBranch])
   @@index([verificationCode])
+  @@index([status])
+  @@index([isVerified])
   @@map("branchadmins")
 }
 
@@ -694,6 +698,8 @@ enum UserRole {
   SUPER_ADMIN
   INSTITUTIONAL_OWNER
   BRANCH_ADMIN
+  NURSE
+  BURSAR
 }
 
 enum UserStatus {
