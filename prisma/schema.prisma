@@ -156,6 +156,7 @@ model Student {
   submitAssignments  SubmitAssignment[]
   classDistributions ClassDistribution[] @relation("ClassDistributionToStudent")
   examGrades         ExamGrades[]
+  healthRecords      HealthRecords[]
 
   @@index([name])
   @@index([email])
@@ -202,27 +203,27 @@ model Teacher {
 }
 
 model ClassDistribution {
-  id                String            @id @default(uuid())
+  id                String             @id @default(uuid())
   capacity          Int
   roomNumber        String
   classLevel        String
   teacherId         String
   subscriptionId    String
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  isDeleted         Boolean           @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  isDeleted         Boolean            @default(false)
   assignableSubject String?
   day               String?
   time              String?
-  isOnline          Boolean?          @default(false)
-  subscriptions     Subscriptions     @relation(fields: [subscriptionId], references: [id])
-  teacher           Teacher           @relation(fields: [teacherId], references: [id])
+  isOnline          Boolean?           @default(false)
+  subscriptions     Subscriptions      @relation(fields: [subscriptionId], references: [id])
+  teacher           Teacher            @relation(fields: [teacherId], references: [id])
   classAssignments  ClassAssignment[]
   classMaterials    ClassMaterial[]
   classRecordings   ClassRecording[]
   onlineClasses     OnlineClass[]
-  students          Student[]         @relation("ClassDistributionToStudent")
-  examAnnouncement    ExamAnnouncement[]
+  students          Student[]          @relation("ClassDistributionToStudent")
+  examAnnouncement  ExamAnnouncement[]
 
   @@index([teacherId])
   @@index([classLevel])
@@ -254,6 +255,7 @@ model Subscriptions {
   supports            Support[]
   teacher             Teacher[]
   examAnnouncement    ExamAnnouncement[]
+  healthRecords       HealthRecords[]
 
   @@map("subscriptions")
 }
@@ -369,14 +371,14 @@ model Support {
   updatedAt      DateTime       @updatedAt
   teacherId      String?
   studentId      String?
-   parentId       String?
+  parentId       String?
   notifications  Notification[]
   branchAdmin    BranchAdmin?   @relation(fields: [branchAdminId], references: [id])
   subscriptions  Subscriptions? @relation(fields: [subscriptionId], references: [id])
   teachers       Teacher?       @relation(fields: [teacherId], references: [id])
   user           User?          @relation(fields: [userId], references: [id])
   students       Student?       @relation(fields: [studentId], references: [id])
-  parents        Staff?           @relation(fields: [parentId], references: [id])
+  parents        Staff?         @relation(fields: [parentId], references: [id])
 
   @@index([name])
   @@index([email])
@@ -564,56 +566,83 @@ model AttendanceSheet {
 
 // exam announcement
 model ExamAnnouncement {
-  id                  String   @id @default(uuid())
-  examDate            DateTime
-  tipTapEditor        String
+  id           String   @id @default(uuid())
+  examDate     DateTime
+  tipTapEditor String
 
-  subscriptionId      String   @db.VarChar(255)
-  classDistributionId String   @db.VarChar(255)
+  subscriptionId      String @db.VarChar(255)
+  classDistributionId String @db.VarChar(255)
 
-  subscription        Subscriptions @relation(fields: [subscriptionId], references: [id])
-  classDistribution   ClassDistribution @relation(fields: [classDistributionId], references: [id])
+  subscription      Subscriptions     @relation(fields: [subscriptionId], references: [id])
+  classDistribution ClassDistribution @relation(fields: [classDistributionId], references: [id])
 
-  examGrades           ExamGrades []
-  isDelete            Boolean @default(false)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  examGrades ExamGrades[]
+  isDelete   Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
-  @@map("exam_announcements")
   @@index([subscriptionId])
   @@index([classDistributionId])
+  @@map("exam_announcements")
 }
 
-
 model ExamGrades {
-  id                 String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  examAnnouncementId String   @db.VarChar(255)
-  studentId          String   @db.VarChar(255)
+  examAnnouncementId String @db.VarChar(255)
+  studentId          String @db.VarChar(255)
   teacherId          String
 
-  totalMarks         Float
-  marks              Float
-  instructions       String?  @db.VarChar(555)
+  totalMarks   Float
+  marks        Float
+  instructions String? @db.VarChar(555)
 
-  students           Student  @relation(fields: [studentId], references: [id])
-  teachers           Teacher  @relation(fields: [teacherId], references: [id])
+  students Student @relation(fields: [studentId], references: [id])
+  teachers Teacher @relation(fields: [teacherId], references: [id])
 
-  examAnnouncement   ExamAnnouncement @relation( fields: [examAnnouncementId], references: [id])
+  examAnnouncement ExamAnnouncement @relation(fields: [examAnnouncementId], references: [id])
 
-  isDelete           Boolean @default(false)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  isDelete  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("exam_grades")
   @@unique([examAnnouncementId, studentId])
-
   @@index([studentId])
   @@index([teacherId])
   @@index([examAnnouncementId])
+  @@map("exam_grades")
 }
 
+enum bloodTypeEnum {
+  A_POSITIVE  @map("A+")
+  A_NEGATIVE  @map("A-")
+  B_POSITIVE  @map("B+")
+  B_NEGATIVE  @map("B-")
+  AB_POSITIVE @map("AB+")
+  AB_NEGATIVE @map("AB-")
+  O_POSITIVE  @map("O+")
+  O_NEGATIVE  @map("O-")
+}
 
+model HealthRecords {
+  id               String        @id @default(uuid())
+  studentId        String        @db.VarChar(255)
+  subscriptionId   String        @db.VarChar(255)
+  students         Student       @relation(fields: [studentId], references: [id])
+  subscription     Subscriptions @relation(fields: [subscriptionId], references: [id])
+  bloodType        bloodTypeEnum
+  tipTapEditor     String
+  emergencyContact String
+  isDelete         Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([studentId])
+  @@index([subscriptionId])
+  @@index([bloodType])
+  @@index([emergencyContact])
+  @@map("health_records")
+}
 
 model Admin {
   id          String   @id @default(uuid())
