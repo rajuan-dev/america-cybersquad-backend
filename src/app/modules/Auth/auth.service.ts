@@ -169,6 +169,7 @@ const loginUserIntoDb = async (payload: Partial<TUser>) => {
             password: true,
             email: true,
             role: true,
+            subscriptionId: true
           },
         });
 
@@ -194,6 +195,7 @@ const loginUserIntoDb = async (payload: Partial<TUser>) => {
           id: user.id,
           role: user.role,
           email: user.email,
+          subscriptionId: user.subscriptionId
         };
 
         const accessToken = jwtHelpers.generateToken(

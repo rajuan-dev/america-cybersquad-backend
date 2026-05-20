@@ -59,6 +59,17 @@ const deleteHealthRecord:RequestHandler=catchAsync(async(req , res)=>{
     message: result.message,
     data: result,
   });
+});
+const findBySpecificStudentHealthRecord:RequestHandler=catchAsync(async(req , res)=>{
+
+    const result=await nurseServices.findBySpecificStudentHealthRecordIntoDb(req.user.id, req.params.subscriptionId, req.query);
+ sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find My Health Record",
+    data: result,
+  });
+
 })
 
 const nurseController={
@@ -66,7 +77,8 @@ const nurseController={
     findByAllHealthRecord,
     findBySpecificHealthRecord,
     updateSpecificHealthRecord,
-    deleteHealthRecord
+    deleteHealthRecord,
+    findBySpecificStudentHealthRecord
     
 };
 

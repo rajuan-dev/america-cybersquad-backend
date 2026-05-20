@@ -325,12 +325,86 @@ const updateSpecificHealthRecordIntoDb = async (
     );
   }
 };
+
+
+const findBySpecificStudentHealthRecordIntoDb = async (
+  studentId: string,
+  subscriptionId: string,
+  query: Record<string, any>
+) => {
+  try {
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+
+    const cacheKey = `healthRecords:${studentId}:${subscriptionId}:${page}:${limit}:${JSON.stringify(query)}`;
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData) {
+      return cachedData;
+    }
+
+
+    const qb = new PrismaQueryBuilder(query)
+      .paginate()
+      .sort()
+      .fields();
+
+    const { where, orderBy, skip, take, select } = qb.build();
+
+ 
+    const [data, total] = await Promise.all([
+      prisma.healthRecords.findMany({
+        where: {
+          ...where,
+          studentId,
+          subscriptionId,
+        },
+        orderBy,
+        skip,
+        take,
+        select: select || {
+          bloodType: true,
+          emergencyContact: true,
+          tipTapEditor: true,
+          createdAt: true,
+        },
+      }),
+
+      prisma.healthRecords.count({
+        where: {
+          ...where,
+          studentId,
+          subscriptionId,
+        },
+      }),
+    ]);
+
+    const result = {
+    
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+        data,
+    };
+
+
+    await setCache(cacheKey, result, 3600); 
+
+    return result;
+  } catch (error) {
+    return catchError(error);
+  }
+};
 const nurseServices = {
   healthRecordIntoDb,
   findByAllHealthRecordIntoDb,
   findBySpecificHealthRecordIntoDb,
   updateSpecificHealthRecordIntoDb,
-  deleteHealthRecordIntoDb
+  deleteHealthRecordIntoDb,
+  findBySpecificStudentHealthRecordIntoDb
 };
 
 export default nurseServices;

@@ -13,9 +13,13 @@ router.post("/create_health_record",
      validateRequest(HealthRecordValidation.HealthRecordSchema),
      nurseController.healthRecord);
 
-router.get("/find_by_all_health_record", auth(UserRole.NURSE), nurseController.findByAllHealthRecord);
+router.get("/find_by_all_health_record",
+     auth(UserRole.NURSE),
+     nurseController.findByAllHealthRecord);
 
-router.get("/find_by_specific_health_record/:id", auth(UserRole.NURSE), nurseController.findBySpecificHealthRecord);
+router.get("/find_by_specific_health_record/:id",
+     auth(UserRole.NURSE),
+     nurseController.findBySpecificHealthRecord);
 
 router.patch("/update_health_record/:id",
      auth(UserRole.NURSE),
@@ -25,7 +29,9 @@ router.patch("/update_health_record/:id",
 router.delete("/delete_health_record/:id",
      auth(UserRole.NURSE),
      nurseController.deleteHealthRecord
-)
+);
+
+router.get("/find_by_specific_student_health_record/:subscriptionId",   auth(UserRole.STUDENT), nurseController.findBySpecificStudentHealthRecord)
 
 
 
