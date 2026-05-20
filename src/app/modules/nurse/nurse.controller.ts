@@ -17,8 +17,57 @@ const healthRecord:RequestHandler=catchAsync(async(req , res)=>{
   });
 });
 
+const findByAllHealthRecord:RequestHandler=catchAsync(async(req , res)=>{
+
+    const result=await nurseServices.findByAllHealthRecordIntoDb(req.user.id, req.user.subscriptionId, req.query);
+           sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By All Health Record",
+    data: result,
+  });
+});
+
+
+const  findBySpecificHealthRecord:RequestHandler=catchAsync(async(req , res)=>{
+  const result=await  nurseServices.findBySpecificHealthRecordIntoDb(req.params.id);
+   sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By Specific Health Record",
+    data: result,
+  });
+});
+
+const updateSpecificHealthRecord:RequestHandler=catchAsync(async(req , res)=>{
+
+   const result=await nurseServices.updateSpecificHealthRecordIntoDb(req.params.id, req.body);
+    sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Specific Update Health Record",
+    data: result,
+  });
+});
+
+const deleteHealthRecord:RequestHandler=catchAsync(async(req , res)=>{
+
+  const result=await nurseServices.deleteHealthRecordIntoDb(req.params.id);
+      sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: result.message,
+    data: result,
+  });
+})
+
 const nurseController={
-    healthRecord
+    healthRecord,
+    findByAllHealthRecord,
+    findBySpecificHealthRecord,
+    updateSpecificHealthRecord,
+    deleteHealthRecord
+    
 };
 
 export default nurseController;

@@ -5,17 +5,34 @@ import validateRequest from '../../middlewares/validateRequest';
 import HealthRecordValidation from './nurse.validation';
 import nurseController from './nurse.controller';
 
-const router=express.Router();
+const router = express.Router();
 
 
 router.post("/create_health_record",
      auth(UserRole.NURSE),
-     validateRequest(HealthRecordValidation.HealthRecordSchema), 
-      nurseController.healthRecord );
+     validateRequest(HealthRecordValidation.HealthRecordSchema),
+     nurseController.healthRecord);
+
+router.get("/find_by_all_health_record", auth(UserRole.NURSE), nurseController.findByAllHealthRecord);
+
+router.get("/find_by_specific_health_record/:id", auth(UserRole.NURSE), nurseController.findBySpecificHealthRecord);
+
+router.patch("/update_health_record/:id",
+     auth(UserRole.NURSE),
+     validateRequest(HealthRecordValidation.updateHealthRecordSchema),
+     nurseController.updateSpecificHealthRecord);
+
+router.delete("/delete_health_record/:id",
+     auth(UserRole.NURSE),
+     nurseController.deleteHealthRecord
+)
 
 
-      const nurseRoute=router;
-      export default nurseRoute;
-      
-   
+
+
+
+const nurseRoute = router;
+export default nurseRoute;
+
+
 
