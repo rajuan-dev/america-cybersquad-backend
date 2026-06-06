@@ -54,9 +54,9 @@ const refreshToken: RequestHandler = catchAsync(async (req, res) => {
 
 
 const myProfile: RequestHandler = catchAsync(async (req, res) => {
-  const userId = req.user?.id;    
+  
 
-  const result = await AuthServices.myProfileIntoDb(userId);
+  const result = await AuthServices.myProfileIntoDb(req.user?.id, req.user.role);
    sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
@@ -67,8 +67,8 @@ const myProfile: RequestHandler = catchAsync(async (req, res) => {
 });
   
 const  changeMyProfile: RequestHandler = catchAsync(async (req, res) => {
-  const userId = req.user?.id;    
-  const result = await AuthServices.changeMyProfileIntoDb(req as any, userId);
+  const {id, role} = req.user;    
+  const result = await AuthServices.changeMyProfileIntoDb(req as any,id , role);
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
