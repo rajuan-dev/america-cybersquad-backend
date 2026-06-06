@@ -35,7 +35,7 @@ const  userVerification:RequestHandler =catchAsync(async(req, res)=>{
 
 const changePassword:RequestHandler=catchAsync(async(req , res)=>{
 
-  const result = await UserService.changePasswordIntoDb(req.body, req.user.id);
+  const result = await UserService.changePasswordIntoDb(req.body, req.user.id, req.user.role);
  sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

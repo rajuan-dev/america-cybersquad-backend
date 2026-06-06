@@ -8,10 +8,8 @@ import { generateOtp } from "../../../utils/generateOtp";
 import sendEmail from "../../../utils/sendEmail";
 import emailContext from "../../../utils/emailcontext/sendvarificationData";
 import { jwtHelpers } from "../../../helpars/jwtHelpers";
-import { UserStatus } from "@prisma/client";
+import { UserRole, UserStatus } from "@prisma/client";
 import { TUser } from "./user.interface";
-
-
 
 const createUserIntoDb = async (payload: TUser) => {
   try {
@@ -28,7 +26,7 @@ const createUserIntoDb = async (payload: TUser) => {
 
     const hashedPassword = await bcrypt.hash(
       payload.password,
-      Number(config.bcrypt_salt_rounds)
+      Number(config.bcrypt_salt_rounds),
     );
 
     const user = await prisma.user.create({
@@ -45,9 +43,9 @@ const createUserIntoDb = async (payload: TUser) => {
       emailContext.sendVerificationData(
         user.email,
         verificationCode,
-        "User Verification Email"
+        "User Verification Email",
       ),
-      "Verification OTP Code"
+      "Verification OTP Code",
     );
 
     return {
@@ -59,15 +57,13 @@ const createUserIntoDb = async (payload: TUser) => {
   }
 };
 
-
- const userVerificationIntoDb = async (verificationCode: number) => {
-
+const userVerificationIntoDb = async (verificationCode: number) => {
   try {
     if (!verificationCode) {
       throw new ApiError(
         httpStatus.BAD_REQUEST,
-        'Verification code is required',
-        ''
+        "Verification code is required",
+        "",
       );
     }
 
@@ -85,8 +81,8 @@ const createUserIntoDb = async (payload: TUser) => {
     if (!user || !user.isVerified) {
       throw new ApiError(
         httpStatus.SERVICE_UNAVAILABLE,
-        'Verification failed after update',
-        ''
+        "Verification failed after update",
+        "",
       );
     }
 
@@ -99,54 +95,165 @@ const createUserIntoDb = async (payload: TUser) => {
     const accessToken = jwtHelpers.generateToken(
       jwtPayload,
       config.jwt_access_secret as string,
-      config.expires_in as string
+      config.expires_in as string,
     );
 
     return {
-      message: 'User verification successful',
+      message: "User verification successful",
       accessToken,
     };
   } catch (error) {
-     catchError(error);
+    catchError(error);
   }
 };
 
 const changePasswordIntoDb = async (
   payload: { oldpassword: string; newpassword: string },
-  id: string
+  id: string,
+  role: string,
 ) => {
   try {
-    // 1️⃣ Find user by id and check active status
-    const user = await prisma.user.findFirst({
-      where: {
-        id,
-        isVerified: true,
-        status: UserStatus.ACTIVE,
+    let user: any = null;
 
-      },
-      select: {
-        password: true,
-      },
-    });
+    switch (role) {
+      case UserRole.INSTITUTIONAL_OWNER:
+      case UserRole.ADMIN: {
+        user = await prisma.user.findFirst({
+          where: {
+            id,
+            isVerified: true,
+            status: UserStatus.ACTIVE,
+          },
+          select: {
+            password: true,
+          },
+        });
+        break;
+      }
 
+      case UserRole.BRANCH_ADMIN: {
+        user = await prisma.branchAdmin.findFirst({
+          where: {
+            id,
+            isVerified: true,
+            status: UserStatus.ACTIVE,
+          },
+          select: {
+            password: true,
+          },
+        });
+        break;
+      }
+
+      case UserRole.STUDENT: {
+        user = await prisma.student.findFirst({
+          where: {
+            id,
+            isVerified: true,
+            status: UserStatus.ACTIVE,
+          },
+          select: {
+            password: true,
+          },
+        });
+        break;
+      }
+
+      case UserRole.TEACHER: {
+        user = await prisma.teacher.findFirst({
+          where: {
+            id,
+            isVerified: true,
+            status: UserStatus.ACTIVE,
+          },
+          select: {
+            password: true,
+          },
+        });
+        break;
+      }
+      case UserRole.parent:
+      case UserRole.NURSE: {
+        user = await prisma.staff.findFirst({
+          where: {
+            id,
+            isVerified: true,
+            status: UserStatus.ACTIVE,
+          },
+          select: {
+            password: true,
+          },
+        });
+        break;
+      }
+
+      default: {
+        throw new ApiError(httpStatus.FORBIDDEN, "Invalid user role", "");
+      }
+    }
     if (!user) {
       throw new ApiError(httpStatus.NOT_FOUND, "User not found", "");
     }
 
-    // 2️⃣ Compare old password
+    // 2️⃣ Check old password
     const isMatch = await bcrypt.compare(payload.oldpassword, user.password);
+
     if (!isMatch) {
-      throw new ApiError(httpStatus.FORBIDDEN, "Old password does not match", "");
+      throw new ApiError(
+        httpStatus.FORBIDDEN,
+        "Old password does not match",
+        "",
+      );
     }
 
-    // 3️⃣ Hash new password
-    const hashedPassword = await bcrypt.hash(payload.newpassword, Number(config.bcrypt_salt_rounds));
 
-    // 4️⃣ Update password in DB
-    await prisma.user.update({
-      where: { id },
-      data: { password: hashedPassword },
-    });
+    const hashedPassword = await bcrypt.hash(
+      payload.newpassword,
+      Number(config.bcrypt_salt_rounds),
+    );
+
+
+    switch (role) {
+      case UserRole.INSTITUTIONAL_OWNER:
+      case UserRole.ADMIN:
+        await prisma.user.update({
+          where: { id },
+          data: { password: hashedPassword },
+        });
+        break;
+
+      case UserRole.BRANCH_ADMIN:
+        await prisma.branchAdmin.update({
+          where: { id },
+          data: { password: hashedPassword },
+        });
+        break;
+
+      case UserRole.STUDENT:
+        await prisma.student.update({
+          where: { id },
+          data: { password: hashedPassword },
+        });
+        break;
+
+      case UserRole.TEACHER:
+        await prisma.teacher.update({
+          where: { id },
+          data: { password: hashedPassword },
+        });
+        break;
+
+      case UserRole.parent:
+      case UserRole.NURSE:
+        await prisma.staff.update({
+          where: { id },
+          data: { password: hashedPassword },
+        });
+        break;
+
+      default:
+        throw new ApiError(httpStatus.FORBIDDEN, "Invalid user role", "");
+    }
 
     return {
       success: true,
@@ -154,6 +261,7 @@ const changePasswordIntoDb = async (
     };
   } catch (error) {
     catchError(error);
+    throw error;
   }
 };
 
@@ -161,35 +269,31 @@ const forgotPasswordIntoDb = async (payload: string | { email: string }) => {
   try {
     let emailString: string;
 
-    if (typeof payload === 'string') {
+    if (typeof payload === "string") {
       emailString = payload;
-    } else if (payload && typeof payload === 'object' && 'email' in payload) {
+    } else if (payload && typeof payload === "object" && "email" in payload) {
       emailString = payload.email;
     } else {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid email format', '');
+      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid email format", "");
     }
 
     const result = await prisma.$transaction(async (tx) => {
-
       const isExistUser = await tx.user.findFirst({
         where: {
           email: emailString,
           isVerified: true,
           status: UserStatus.ACTIVE,
-         
         },
         select: {
-          id: true
-          
+          id: true,
         },
       });
 
       if (!isExistUser) {
-        throw new ApiError(httpStatus.NOT_FOUND, 'User not found', '');
+        throw new ApiError(httpStatus.NOT_FOUND, "User not found", "");
       }
 
-       const otp = Number(generateOtp());
-
+      const otp = Number(generateOtp());
 
       const updatedUser = await tx.user.update({
         where: {
@@ -207,8 +311,8 @@ const forgotPasswordIntoDb = async (payload: string | { email: string }) => {
       if (!updatedUser) {
         throw new ApiError(
           httpStatus.NOT_FOUND,
-          'OTP forgot section issues',
-          '',
+          "OTP forgot section issues",
+          "",
         );
       }
 
@@ -218,19 +322,19 @@ const forgotPasswordIntoDb = async (payload: string | { email: string }) => {
           emailContext.sendVerificationData(
             emailString,
             otp,
-            ' Forgot Password Email',
+            " Forgot Password Email",
           ),
-          'Forgot Password Verification OTP Code',
+          "Forgot Password Verification OTP Code",
         );
       } catch (emailError: any) {
         throw new ApiError(
           httpStatus.SERVICE_UNAVAILABLE,
-          'Failed to send verification email',
+          "Failed to send verification email",
           emailError,
         );
       }
 
-      return { status: true, message: 'Checked Your Email' };
+      return { status: true, message: "Checked Your Email" };
     });
 
     return result;
@@ -239,19 +343,18 @@ const forgotPasswordIntoDb = async (payload: string | { email: string }) => {
   }
 };
 
-
 const verificationForgotUserIntoDb = async (
   otp: number | { verificationCode: number },
 ) => {
   try {
     let code: number;
 
-    if (typeof otp === 'object' && typeof otp.verificationCode === 'number') {
+    if (typeof otp === "object" && typeof otp.verificationCode === "number") {
       code = otp.verificationCode;
-    } else if (typeof otp === 'number') {
+    } else if (typeof otp === "number") {
       code = otp;
     } else {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid OTP format', '');
+      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid OTP format", "");
     }
 
     const isExistOtp: any = await prisma.user.findFirst({
@@ -269,7 +372,7 @@ const verificationForgotUserIntoDb = async (
     });
 
     if (!isExistOtp) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'OTP not found', '');
+      throw new ApiError(httpStatus.NOT_FOUND, "OTP not found", "");
     }
 
     const updatedAt =
@@ -283,8 +386,8 @@ const verificationForgotUserIntoDb = async (
     if (now - updatedAt > FIVE_MINUTES) {
       throw new ApiError(
         httpStatus.FORBIDDEN,
-        'OTP has expired. Please request a new one.',
-        '',
+        "OTP has expired. Please request a new one.",
+        "",
       );
     }
 
@@ -307,12 +410,9 @@ const verificationForgotUserIntoDb = async (
 
     return accessToken;
   } catch (error) {
-   
-
-      catchError(error);
+    catchError(error);
   }
 };
-
 
 const resetPasswordIntoDb = async (payload: {
   userId: string;
@@ -333,8 +433,8 @@ const resetPasswordIntoDb = async (payload: {
     if (!isExistUser) {
       throw new ApiError(
         httpStatus.NOT_FOUND,
-        'some issues by the reset password section',
-        '',
+        "some issues by the reset password section",
+        "",
       );
     }
 
@@ -352,18 +452,15 @@ const resetPasswordIntoDb = async (payload: {
       },
     });
 
-    return result && { status: true, message: 'successfully reset password' };
+    return result && { status: true, message: "successfully reset password" };
   } catch (error: any) {
     throw new ApiError(
       httpStatus.SERVICE_UNAVAILABLE,
-      'server unavailable reset password into db function',
+      "server unavailable reset password into db function",
       error,
     );
   }
 };
-
-
-
 
 const getUserGrowthIntoDb = async (query: { year?: string }) => {
   try {
@@ -379,7 +476,7 @@ const getUserGrowthIntoDb = async (query: { year?: string }) => {
     const currentYearUsers = await prisma.user.findMany({
       where: {
         isVerified: true,
-         status: UserStatus.ACTIVE,
+        status: UserStatus.ACTIVE,
         createdAt: {
           gte: startOfYear,
           lte: endOfYear,
@@ -392,15 +489,14 @@ const getUserGrowthIntoDb = async (query: { year?: string }) => {
 
     const previousYearTotal = await prisma.user.count({
       where: {
-         isVerified: true,
-         status: UserStatus.ACTIVE,
+        isVerified: true,
+        status: UserStatus.ACTIVE,
         createdAt: {
           gte: startOfPrevYear,
           lte: endOfPrevYear,
         },
       },
     });
-
 
     const monthlyStats = Array.from({ length: 12 }, (_, i) => ({
       year,
@@ -430,10 +526,9 @@ const getUserGrowthIntoDb = async (query: { year?: string }) => {
       year,
     };
   } catch (error) {
-   catchError(error);
+    catchError(error);
   }
 };
-
 
 const resendVerificationOtpIntoDb = async (email: string) => {
   try {
@@ -451,7 +546,7 @@ const resendVerificationOtpIntoDb = async (email: string) => {
     if (!user) {
       throw new ApiError(
         httpStatus.NOT_FOUND,
-        "This user does not exist in our database."
+        "This user does not exist in our database.",
       );
     }
 
@@ -467,7 +562,6 @@ const resendVerificationOtpIntoDb = async (email: string) => {
     const updatedUser = await prisma.user.update({
       where: {
         id: user.id,
-       
       },
       data: {
         verificationCode: otp,
@@ -476,43 +570,36 @@ const resendVerificationOtpIntoDb = async (email: string) => {
         id: true,
         email: true,
       },
-     
     });
 
     if (!updatedUser) {
       throw new ApiError(
         httpStatus.INTERNAL_SERVER_ERROR,
-        "Failed to update verification code."
+        "Failed to update verification code.",
       );
     }
 
     await sendEmail(
       email,
-      emailContext.sendVerificationData(
-        email,
-        otp,
-        "User Verification Email"
-      ),
-      "Verification OTP Code"
+      emailContext.sendVerificationData(email, otp, "User Verification Email"),
+      "Verification OTP Code",
     );
 
     return { status: true, message: "successfully send email" };
   } catch (error) {
     catchError(error);
-    
   }
 };
 
- const UserService = {
+const UserService = {
   createUserIntoDb,
-   userVerificationIntoDb,
-   changePasswordIntoDb,
-   forgotPasswordIntoDb,
-   verificationForgotUserIntoDb,
-   resetPasswordIntoDb,
-   getUserGrowthIntoDb,
-   resendVerificationOtpIntoDb
-  
+  userVerificationIntoDb,
+  changePasswordIntoDb,
+  forgotPasswordIntoDb,
+  verificationForgotUserIntoDb,
+  resetPasswordIntoDb,
+  getUserGrowthIntoDb,
+  resendVerificationOtpIntoDb,
 };
 
 export default UserService;
