@@ -10,6 +10,7 @@ import emailContext from "../../../utils/emailcontext/sendvarificationData";
 import { jwtHelpers } from "../../../helpars/jwtHelpers";
 import { UserRole, UserStatus } from "@prisma/client";
 import { TUser } from "./user.interface";
+import { collaborateDatabase, collaborateVerificationDatabase } from "../../../utils/collaborateDatabase";
 
 const createUserIntoDb = async (payload: TUser) => {
   try {
@@ -67,41 +68,43 @@ const userVerificationIntoDb = async (verificationCode: number) => {
       );
     }
 
-    const user = await prisma.user.update({
-      where: { verificationCode },
-      data: { isVerified: true },
-      select: {
-        id: true,
-        role: true,
-        email: true,
-        isVerified: true,
-      },
-    });
+    return verificationCode
 
-    if (!user || !user.isVerified) {
-      throw new ApiError(
-        httpStatus.SERVICE_UNAVAILABLE,
-        "Verification failed after update",
-        "",
-      );
-    }
+    // const user = await prisma.user.update({
+    //   where: { verificationCode },
+    //   data: { isVerified: true },
+    //   select: {
+    //     id: true,
+    //     role: true,
+    //     email: true,
+    //     isVerified: true,
+    //   },
+    // });
 
-    const jwtPayload = {
-      id: user.id,
-      role: user.role,
-      email: user.email,
-    };
+    // if (!user || !user.isVerified) {
+    //   throw new ApiError(
+    //     httpStatus.SERVICE_UNAVAILABLE,
+    //     "Verification failed after update",
+    //     "",
+    //   );
+    // }
 
-    const accessToken = jwtHelpers.generateToken(
-      jwtPayload,
-      config.jwt_access_secret as string,
-      config.expires_in as string,
-    );
+    // const jwtPayload = {
+    //   id: user.id,
+    //   role: user.role,
+    //   email: user.email,
+    // };
 
-    return {
-      message: "User verification successful",
-      accessToken,
-    };
+    // const accessToken = jwtHelpers.generateToken(
+    //   jwtPayload,
+    //   config.jwt_access_secret as string,
+    //   config.expires_in as string,
+    // );
+
+    // return {
+    //   message: "User verification successful",
+    //   accessToken,
+    // };
   } catch (error) {
     catchError(error);
   }
@@ -265,8 +268,11 @@ const changePasswordIntoDb = async (
   }
 };
 
-const forgotPasswordIntoDb = async (payload: string | { email: string }) => {
+const forgotPasswordIntoDb = async (
+  payload: string | { email: string }
+) => {
   try {
+    // 1️⃣ Normalize email
     let emailString: string;
 
     if (typeof payload === "string") {
@@ -277,72 +283,122 @@ const forgotPasswordIntoDb = async (payload: string | { email: string }) => {
       throw new ApiError(httpStatus.BAD_REQUEST, "Invalid email format", "");
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      const isExistUser = await tx.user.findFirst({
-        where: {
-          email: emailString,
-          isVerified: true,
-          status: UserStatus.ACTIVE,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (!isExistUser) {
-        throw new ApiError(httpStatus.NOT_FOUND, "User not found", "");
+    const isExistUser = await collaborateDatabase(emailString) as any;
+    const otp = Number(generateOtp());
+    let updatedUser: any;
+    switch (isExistUser.role) {
+      case UserRole.INSTITUTIONAL_OWNER:
+      case UserRole.ADMIN: {
+        updatedUser = await prisma.user.update({
+          where: { id: isExistUser.id },
+          data: {
+            verificationCode: otp,
+          },
+          select: {
+            id: true,
+            email: true,
+          },
+        });
+        break;
       }
 
-      const otp = Number(generateOtp());
-
-      const updatedUser = await tx.user.update({
-        where: {
-          id: isExistUser.id,
-        },
-        data: {
-          verificationCode: otp,
-        },
-        select: {
-          id: true,
-          email: true,
-        },
-      });
-
-      if (!updatedUser) {
-        throw new ApiError(
-          httpStatus.NOT_FOUND,
-          "OTP forgot section issues",
-          "",
-        );
+      case UserRole.BRANCH_ADMIN: {
+        updatedUser = await prisma.branchAdmin.update({
+          where: { id: isExistUser.id },
+          data: {
+            verificationCode: otp,
+          },
+          select: {
+            id: true,
+            emailAddress: true,
+          },
+        });
+        break;
       }
 
-      try {
-        await sendEmail(
-          emailString,
-          emailContext.sendVerificationData(
-            emailString,
-            otp,
-            " Forgot Password Email",
-          ),
-          "Forgot Password Verification OTP Code",
-        );
-      } catch (emailError: any) {
-        throw new ApiError(
-          httpStatus.SERVICE_UNAVAILABLE,
-          "Failed to send verification email",
-          emailError,
-        );
+      case UserRole.STUDENT: {
+        updatedUser = await prisma.student.update({
+          where: { id: isExistUser.id },
+          data: {
+            verificationCode: otp,
+          },
+          select: {
+            id: true,
+            email: true,
+          },
+        });
+        break;
       }
 
-      return { status: true, message: "Checked Your Email" };
-    });
+      case UserRole.TEACHER: {
+        updatedUser = await prisma.teacher.update({
+          where: { id: isExistUser.id },
+          data: {
+            verificationCode: otp,
+          },
+          select: {
+            id: true,
+            email: true,
+          },
+        });
+        break;
+      }
 
-    return result;
+  
+      case UserRole.parent:
+      case UserRole.NURSE: {
+        updatedUser = await prisma.staff.update({
+          where: { id: isExistUser.id },
+          data: {
+            verificationCode: otp,
+          },
+          select: {
+            id: true,
+            email: true,
+          },
+        });
+        break;
+      }
+
+      default: {
+        throw new ApiError(httpStatus.FORBIDDEN, "Invalid user role", "");
+      }
+    }
+
+    // 5️⃣ Safety check
+    if (!updatedUser) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        "Failed to update OTP",
+        ""
+      );
+    }
+
+    // 6️⃣ Send email (safe email selection)
+    const userEmail =
+      isExistUser.email || isExistUser.emailAddress;
+
+    await sendEmail(
+      userEmail,
+      emailContext.sendVerificationData(
+        userEmail,
+        otp,
+        "User Verification Email"
+      ),
+      "Verification OTP Code"
+    );
+
+    // 7️⃣ Response
+    return {
+      success: true,
+      message: "OTP sent successfully",
+      data: updatedUser,
+    };
   } catch (error) {
     catchError(error);
+    throw error;
   }
 };
-
 const verificationForgotUserIntoDb = async (
   otp: number | { verificationCode: number },
 ) => {
@@ -357,23 +413,13 @@ const verificationForgotUserIntoDb = async (
       throw new ApiError(httpStatus.BAD_REQUEST, "Invalid OTP format", "");
     }
 
-    const isExistOtp: any = await prisma.user.findFirst({
-      where: {
-        verificationCode: code,
-        isVerified: true,
-        status: UserStatus.ACTIVE,
-      },
-      select: {
-        id: true,
-        updatedAt: true,
-        email: true,
-        role: true,
-      },
-    });
+    const isExistOtp=await collaborateVerificationDatabase(code)
 
     if (!isExistOtp) {
       throw new ApiError(httpStatus.NOT_FOUND, "OTP not found", "");
     }
+
+   
 
     const updatedAt =
       isExistOtp.updatedAt instanceof Date
@@ -405,7 +451,7 @@ const verificationForgotUserIntoDb = async (
 
     await prisma.user.update({
       where: { id: isExistOtp.id },
-      data: { verificationCode: null }, // same as $unset
+      data: { verificationCode: null }, 
     });
 
     return accessToken;
