@@ -10,7 +10,7 @@ import emailContext from "../../../utils/emailcontext/sendvarificationData";
 import { jwtHelpers } from "../../../helpars/jwtHelpers";
 import { UserRole, UserStatus } from "@prisma/client";
 import { TUser } from "./user.interface";
-import { collaborateDatabase, collaborateVerificationDatabase } from "../../../utils/collaborateDatabase";
+import { collaborateDatabase, collaborateDatabaseId, collaborateVerificationDatabase } from "../../../utils/collaborateDatabase";
 
 const createUserIntoDb = async (payload: TUser) => {
   try {
@@ -399,6 +399,7 @@ const forgotPasswordIntoDb = async (
     throw error;
   }
 };
+
 const verificationForgotUserIntoDb = async (
   otp: number | { verificationCode: number },
 ) => {
@@ -418,6 +419,8 @@ const verificationForgotUserIntoDb = async (
     if (!isExistOtp) {
       throw new ApiError(httpStatus.NOT_FOUND, "OTP not found", "");
     }
+
+    
 
    
 
@@ -449,10 +452,7 @@ const verificationForgotUserIntoDb = async (
       config.expires_in as string,
     );
 
-    await prisma.user.update({
-      where: { id: isExistOtp.id },
-      data: { verificationCode: null }, 
-    });
+   
 
     return accessToken;
   } catch (error) {
@@ -465,45 +465,108 @@ const resetPasswordIntoDb = async (payload: {
   password: string;
 }) => {
   try {
-    const isExistUser = await prisma.user.findFirst({
-      where: {
-        id: payload.userId,
-        isVerified: true,
-        status: UserStatus.ACTIVE,
-      },
-      select: {
-        id: true,
-      },
-    });
+    // 1️⃣ Find user across all role tables (same idea as collaborateDatabase)
+
+    console.log(payload.userId)
+    const isExistUser = await collaborateDatabaseId(payload.userId);
 
     if (!isExistUser) {
       throw new ApiError(
         httpStatus.NOT_FOUND,
-        "some issues by the reset password section",
-        "",
+        "User not found",
+        ""
       );
     }
 
-    payload.password = await bcrypt.hash(
+    console.log(isExistUser)
+
+    // 2️⃣ Hash password
+    const hashedPassword = await bcrypt.hash(
       payload.password,
-      Number(config.bcrypt_salt_rounds),
+      Number(config.bcrypt_salt_rounds)
     );
 
-    const result = await prisma.user.update({
-      where: {
-        id: isExistUser.id,
-      },
-      data: {
-        password: payload.password,
-      },
-    });
+    let updatedUser: any;
 
-    return result && { status: true, message: "successfully reset password" };
+    // 3️⃣ Role-based update
+    switch (isExistUser.role) {
+      case UserRole.INSTITUTIONAL_OWNER:
+      case UserRole.ADMIN: {
+        updatedUser = await prisma.user.update({
+          where: { id: isExistUser.id },
+          data: { password: hashedPassword },
+          select: { id: true, email: true },
+        });
+        break;
+      }
+
+      case UserRole.BRANCH_ADMIN: {
+        updatedUser = await prisma.branchAdmin.update({
+          where: { id: isExistUser.id },
+          data: { password: hashedPassword },
+          select: { id: true, emailAddress: true },
+        });
+        break;
+      }
+
+      case UserRole.STUDENT: {
+        updatedUser = await prisma.student.update({
+          where: { id: isExistUser.id },
+          data: { password: hashedPassword },
+          select: { id: true, email: true },
+        });
+        break;
+      }
+
+      case UserRole.TEACHER: {
+        updatedUser = await prisma.teacher.update({
+          where: { id: isExistUser.id },
+          data: { password: hashedPassword },
+          select: { id: true, email: true },
+        });
+        break;
+      }
+
+      case UserRole.parent:
+      case UserRole.NURSE: {
+        updatedUser = await prisma.staff.update({
+          where: { id: isExistUser.id },
+          data: { password: hashedPassword },
+          select: { id: true, email: true },
+        });
+        break;
+      }
+
+      default: {
+        throw new ApiError(
+          httpStatus.FORBIDDEN,
+          "Invalid user role",
+          ""
+        );
+      }
+    }
+
+    // 4️⃣ Safety check
+    if (!updatedUser) {
+      throw new ApiError(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        "Password update failed",
+        ""
+      );
+    }
+
+    // 5️⃣ Response
+    return {
+      success: true,
+      message: "Password reset successfully",
+      data: updatedUser,
+    };
+
   } catch (error: any) {
     throw new ApiError(
       httpStatus.SERVICE_UNAVAILABLE,
-      "server unavailable reset password into db function",
-      error,
+      "Server error during password reset",
+      error?.message || error
     );
   }
 };

@@ -738,6 +738,7 @@ interface ProfileUpdatePayload {
   city?: string;
   country?: string;
   photo?: string; // URL or file path
+  address?: string
 }
 
 interface ProfileUpdateResponse {
@@ -762,6 +763,7 @@ const changeMyProfileIntoDb = async (req: RequestWithFile, id: string, role: str
       location,
       city,
       country,
+      address,
     } = req.body as ProfileUpdatePayload;
 
     let updateData: any = {};
@@ -772,6 +774,9 @@ const changeMyProfileIntoDb = async (req: RequestWithFile, id: string, role: str
     if (location) updateData.location = location;
     if (city) updateData.city = city;
     if (country) updateData.country = country;
+    if(address) updateData.address=address
+
+  
 
     // upload file safely
     if (file) {
@@ -848,11 +853,16 @@ const changeMyProfileIntoDb = async (req: RequestWithFile, id: string, role: str
         break;
 
       case UserRole.TEACHER:
-        updatedUser = await prisma.teacher.update({
+      {
+         
+          updateData.teacherName=name;
+          delete updateData.name;
+           console.log("update date", updateData);
+          updatedUser = await prisma.teacher.update({
           where: { id },
           data: updateData,
           select: {
-            teacherName: true,
+            teacherName: true, 
             email: true,
             phoneNumber: true,
             branchName: true,
@@ -866,6 +876,7 @@ const changeMyProfileIntoDb = async (req: RequestWithFile, id: string, role: str
           },
         });
         break;
+      }
 
       case UserRole.NURSE:
         updatedUser = await prisma.staff.update({

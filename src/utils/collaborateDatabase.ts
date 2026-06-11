@@ -164,3 +164,78 @@ export const collaborateVerificationDatabase = async (
 
   return results[0] ?? null;
 };
+
+export const collaborateDatabaseId = async (id: string) => {
+  const collaborate = await prisma.$queryRaw<
+    {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      type: string;
+      verificationCode: number | null;
+    }[]
+  >`
+    SELECT
+      id,
+      name,
+      email,
+      role::text AS role,
+      'USER'::text AS type,
+      "verificationCode"
+    FROM users
+    WHERE id = ${id}
+      AND "isVerified" = true
+      AND status = 'ACTIVE'
+
+    UNION ALL
+
+    SELECT
+      id,
+      "teacherName" AS name,
+      email,
+      role::text AS role,
+      'TEACHER'::text AS type,
+      NULL::int AS "verificationCode"
+    FROM teachers
+    WHERE id = ${id}
+
+    UNION ALL
+
+    SELECT
+      id,
+      name,
+      email,
+      role::text AS role,
+      'STUDENT'::text AS type,
+      NULL::int AS "verificationCode"
+    FROM students
+    WHERE id = ${id}
+
+    UNION ALL
+
+    SELECT
+      id,
+      name,
+      email,
+      role::text AS role,
+      'STAFF'::text AS type,
+      NULL::int AS "verificationCode"
+    FROM staffs
+    WHERE id = ${id}
+
+    UNION ALL
+
+    SELECT
+      id,
+      "fullName" AS name,
+      "emailAddress" AS email,
+      role::text AS role,
+      'BRANCH_ADMIN'::text AS type,
+      "verificationCode"
+    FROM branchadmins
+    WHERE id = ${id};
+  `;
+
+  return collaborate[0] ?? null;
+};

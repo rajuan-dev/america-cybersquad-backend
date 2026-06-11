@@ -30,6 +30,8 @@ import { UserRole } from "@prisma/client";
     role: z.nativeEnum(UserRole).optional(),
     country: z.string().optional(),
     city: z.string().optional(),
+    address: z.string().optional(),
+    phoneNumber: z.string().optional(),
     photo: z.string().optional(),
   }),
 });
