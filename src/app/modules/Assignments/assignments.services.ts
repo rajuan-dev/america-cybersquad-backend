@@ -117,13 +117,12 @@ const createAssignmentsIntoDb = async (
 };
 
 const findBySpecificTeacherAssignmentIntoDb = async (
-  classDistributionId: string,
   teacherId: string,
   query: Record<string, unknown>
 ) => {
   try {
 
-    const cacheKey = `teacher-assignments:${teacherId}:${classDistributionId}:${JSON.stringify(
+    const cacheKey = `teacher-assignments:${teacherId}:${JSON.stringify(
       query
     )}`;
 
@@ -183,7 +182,6 @@ const findBySpecificTeacherAssignmentIntoDb = async (
     // ✅ Main Query
     const result = await prisma.classAssignment.findMany({
       where: {
-        classDistributionId,
 
         classDistributions: {
           teacherId,
@@ -222,8 +220,7 @@ const findBySpecificTeacherAssignmentIntoDb = async (
     const totalAssignments =
       await prisma.classAssignment.count({
         where: {
-          classDistributionId,
-
+         
           classDistributions: {
             teacherId,
           },

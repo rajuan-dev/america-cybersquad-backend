@@ -45,7 +45,7 @@ router.post(
   AssignmentsController.createAssignments
 );
 
-router.get("/find_by_specific_teacher_assignment/:classDistributionId", auth(UserRole.TEACHER), AssignmentsController.findBySpecificTeacherAssignment);
+router.get("/find_by_specific_teacher_assignment", auth(UserRole.TEACHER), AssignmentsController.findBySpecificTeacherAssignment);
 router.get("/find_by_specific_assignment/:id", auth(UserRole.TEACHER), AssignmentsController.findBySpecificAssignment);
 router.patch("/update_teacher_assignment/:id", auth(UserRole.TEACHER),uploadFile.attachmentFiles,
 
