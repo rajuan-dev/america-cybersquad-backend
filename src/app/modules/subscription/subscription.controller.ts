@@ -1,4 +1,4 @@
-import { RequestHandler } from "express";
+import { query, RequestHandler } from "express";
 import catchAsync from "../../../shared/catchAsync";
 import subscriptionServices from "./subscription.services";
 import sendResponse from "../../../shared/sendResponse";
@@ -55,6 +55,16 @@ const findMyAllSubscriptions:RequestHandler=catchAsync(async(req , res)=>{
     data: result,
   });
 
+});
+
+const allCountryList:RequestHandler=catchAsync(async(req , res)=>{
+   const result=await subscriptionServices.allCountryListIntoDb(req.query);
+   sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By All Country",
+    data: result,
+  });
 })
 
 
@@ -64,7 +74,8 @@ const subscriptionController={
     saveUserSubscription,
      findByAllSubscriptionsAdmin,
      hardDeleteSubscriptionById,
-     findMyAllSubscriptions
+     findMyAllSubscriptions,
+     allCountryList
 };
 
 export default subscriptionController;

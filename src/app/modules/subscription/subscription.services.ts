@@ -5,6 +5,7 @@ import prisma from "../../../shared/prisma";
 import { ISubscriptionDetails, ISubscriptions } from "./subscription.interface";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { nestedFields } from "./subscription.constant";
+import { getCache, setCache } from "../../../config/redis";
 
 
 
@@ -285,7 +286,62 @@ const findMyAllSubscriptionsIntoDb = async (
   }
 };
 
+const allCountryListIntoDb = async (
+  query: Record<string, any>
+) => {
+  try {
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+    const skip = (page - 1) * limit;
 
+    const cacheKey = `all_country_list_${page}_${limit}`;
+
+    const cachedData = await getCache(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+
+    const totalCountries = await prisma.subscriptionDetails.groupBy({
+      by: ["country"],
+    });
+
+    const result = await prisma.subscriptionDetails.groupBy({
+      by: ["country"],
+      _count: {
+        country: true,
+      },
+      orderBy: {
+        _count: {
+          country: "desc",
+        },
+      },
+      skip,
+      take: limit,
+    });
+
+    const data = result.map((item) => ({
+      country: item.country,
+      count: item._count.country,
+    }));
+
+    const response = {
+      meta: {
+        page,
+        limit,
+        total: totalCountries.length,
+        totalPage: Math.ceil(totalCountries.length / limit),
+      },
+      data,
+    };
+
+  
+    await setCache(cacheKey, response, 60 * 60);
+
+    return response;
+  } catch (error) {
+    throw catchError(error);
+  }
+};;
 
 
 
@@ -297,7 +353,8 @@ const subscriptionServices = {
   saveUserSubscriptionIntoDb,
   findByAllSubscriptionsAdminIntoDb,
    hardDeleteSubscriptionByIdIntoDb,
-   findMyAllSubscriptionsIntoDb
+   findMyAllSubscriptionsIntoDb,
+   allCountryListIntoDb
 };
 
 export default subscriptionServices;
