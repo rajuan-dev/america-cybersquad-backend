@@ -1006,9 +1006,7 @@ const storeClassRecordingLinkOfTeachersIntoDb = async (
   try {
     const { subscriptionId, classDistributionId, recordingUrl } = payload;
 
-    // =========================
-    // 1️⃣ VALIDATION
-    // =========================
+    
     if (!subscriptionId || !classDistributionId || !recordingUrl) {
       throw new ApiError(
         httpStatus.BAD_REQUEST,
@@ -1016,9 +1014,7 @@ const storeClassRecordingLinkOfTeachersIntoDb = async (
       );
     }
 
-    // =========================
-    // 2️⃣ CHECK SUBSCRIPTION
-    // =========================
+   
     const isExistSubscription = await prisma.subscriptions.findUnique({
       where: { id: subscriptionId },
       select: { id: true },
@@ -1028,9 +1024,7 @@ const storeClassRecordingLinkOfTeachersIntoDb = async (
       throw new ApiError(httpStatus.NOT_FOUND, "Subscription not found");
     }
 
-    // =========================
-    // 3️⃣ GET CLASS DATA
-    // =========================
+    
     const classData = await prisma.classDistribution.findUnique({
       where: { id: classDistributionId },
       select: {
@@ -1049,9 +1043,7 @@ const storeClassRecordingLinkOfTeachersIntoDb = async (
       );
     }
 
-    // =========================
-    // 4️⃣ BUSINESS VALIDATION
-    // =========================
+    
     if (!classData.isOnline) {
       throw new ApiError(
         httpStatus.BAD_REQUEST,
@@ -1059,9 +1051,7 @@ const storeClassRecordingLinkOfTeachersIntoDb = async (
       );
     }
 
-    // =========================
-    // 5️⃣ TRANSACTION (DB WRITE)
-    // =========================
+    
     await prisma.$transaction(async (tx) => {
       // Save recording
       await tx.classRecording.create({
@@ -1072,7 +1062,7 @@ const storeClassRecordingLinkOfTeachersIntoDb = async (
         },
       });
 
-      // Create notifications (ONLY schema-valid fields)
+     
       if (classData.students?.length) {
         await tx.notification.createMany({
           data: classData.students.map((student) => ({
@@ -1097,13 +1087,13 @@ const storeClassRecordingLinkOfTeachersIntoDb = async (
       classDistributionId,
     };
 
-    // Class room emit
+  
     io.to(`class::${classDistributionId}`).emit(
       "notification",
       notificationPayload
     );
 
-    // Individual student emit
+   
     if (classData.students?.length) {
       classData.students.forEach((student) => {
         io.to(`user::${student.id}`).emit(
@@ -1125,7 +1115,6 @@ const storeClassRecordingLinkOfTeachersIntoDb = async (
 
 const findBySpecificStudentClassRecordingOfTeachersIntoDb = async (
   teacherId: string,
-  subscriptionId: string,
   query: Record<string, unknown>
 ) => {
   try {
@@ -1145,7 +1134,6 @@ const findBySpecificStudentClassRecordingOfTeachersIntoDb = async (
 
     const whereCondition = {
       ...where,
-      subscriptionId,
       classDistribution: {
         teacherId,
         ...(Object.keys(extraFilters).length ? extraFilters : {}),
@@ -1156,7 +1144,7 @@ const findBySpecificStudentClassRecordingOfTeachersIntoDb = async (
     const limit = Number(query.limit) || 10;
 
     
-    const cacheKey = `class-recordings:${teacherId}:${subscriptionId}:${JSON.stringify(
+    const cacheKey = `class-recordings:${teacherId}:${JSON.stringify(
       query
     )}`;
 

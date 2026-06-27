@@ -5,17 +5,12 @@ import { UserRole } from "@prisma/client";
  const createUserZodSchema = z.object({
   body: z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
-
     email: z.string().email("Invalid email address"),
     schoolName: z.string({required_error:"school name is required"}),
     password: z.string().min(6, "Password must be at least 6 characters"),
-
     role: z.nativeEnum(UserRole).default(UserRole.STUDENT),
-
     country: z.string().min(1, "Country is required"),
-
     city: z.string().min(1, "City is required"),
-
     state : z.string({required_error:"state is required"}),
     branches : z.number({required_error:"branches is not required"}).optional()
 

@@ -4,6 +4,7 @@ import prisma from "../../../shared/prisma";
 import { IClassDistribution } from "./class_distribution.interface";
 import catchError from "../../../errors/catchError";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
+import { getCache, setCache } from "../../../config/redis";
 const recordedClassDistributionIntoDb = async (
   payload: IClassDistribution
 ) => {
@@ -477,6 +478,39 @@ const classScheduleIntoDb = async (
     return catchError(error);
   }
 };
+const findByAllDistributedClassIntoDb = async (teacherId: string) => {
+  try {
+    const cacheKey = `distributed_class_${teacherId}`;
+
+
+    const cachedData = await getCache(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+
+
+    const result = await prisma.classDistribution.findMany({
+      where: {
+        teacherId,
+      },
+      select: {
+        id: true,
+        classLevel: true,
+        subscriptionId: true ,
+        assignableSubject: true,
+      },
+    });
+
+    // Save to cache for 1 hour
+    if (result) {
+      await setCache(cacheKey, result, 60 * 60);
+    }
+
+    return result;
+  } catch (error) {
+    return catchError(error);
+  }
+};
 
 
 
@@ -487,7 +521,8 @@ const ClassDistributionServices = {
   updateClassDistributionIntoDb,
   deleteClassDistributionIntoDb,
   findByBranchAdminClassScheduleIntoDb,
-  classScheduleIntoDb
+  classScheduleIntoDb,
+  findByAllDistributedClassIntoDb
   
 };
 

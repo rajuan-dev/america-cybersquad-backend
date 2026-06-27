@@ -79,7 +79,10 @@ const auth = (...roles: string[]) => {
 
           user=await prisma.teacher.findUnique({
             where:{id:verifiedUser.id, isVerified:true, status:UserStatus.ACTIVE},
-            select:{id:true}
+            
+            select:{id:true,subscriptionId: true ,subscriptions:{
+              
+            }}
           }); 
           break;
         }

@@ -176,12 +176,12 @@ const createTeacher:RequestHandler = catchAsync(async (req, res) => {
                     message:"Successfully Store Class Recording Link Of Teacher",
                     data: result,
                 });
-                } );
+                });
 
 
                 const  findBySpecificStudentClassRecordingOfTeachers:RequestHandler = catchAsync(async (req, res) => {
 
-                  const result = await TeacherService.findBySpecificStudentClassRecordingOfTeachersIntoDb(req.user.id, req.params.subscriptionId, req.query);
+                  const result = await TeacherService.findBySpecificStudentClassRecordingOfTeachersIntoDb(req.user.id, req.query);
                     sendResponse(res, { 
                         statusCode: httpStatus.OK,
                         success: true,

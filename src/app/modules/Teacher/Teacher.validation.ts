@@ -151,10 +151,10 @@ const storeClassRecordingLinkOfTeachersSchema=z.object({
   body: z.object({
     subscriptionId: z.string({
       required_error: "subscriptionId is required",
-    }),
+    }).optional(),
     classDistributionId: z.string({
       required_error: "classDistributionId is required",
-    }),
+    }).optional(),
     recordingUrl: z.string({
       required_error: "recordingUrl is required",
     }).url("Invalid URL format"),

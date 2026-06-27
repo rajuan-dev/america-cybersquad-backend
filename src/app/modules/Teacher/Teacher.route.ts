@@ -56,8 +56,7 @@ router.patch("/update_student_attendance_of_teacher", auth(UserRole.TEACHER), va
 router.get("/teacher_attendance_data/:subscriptionId", auth(UserRole.TEACHER), TeacherController.teacherAttendanceData);
 router.post("/online_class_recorded_of_teacher", auth(UserRole.TEACHER), validateRequest(teacherValidation.onlineClassRecordedOfTeachersSchema), TeacherController.onlineClassRecordedOfTeachers);  
 router.post("/store_class_recording_link_of_teacher", auth(UserRole.TEACHER), validateRequest(teacherValidation.storeClassRecordingLinkOfTeachersSchema), TeacherController.storeClassRecordingLinkOfTeachers);
-router.get("/find_by_specific_student_class_recording_of_teacher/:subscriptionId", auth(UserRole.TEACHER), TeacherController.findBySpecificStudentClassRecordingOfTeachers);
-    
+router.get("/find_by_specific_student_class_recording_of_teacher", auth(UserRole.TEACHER), TeacherController.findBySpecificStudentClassRecordingOfTeachers); 
 router.delete("/delete_class_recording_link_of_teacher/:recordingId" ,auth(UserRole.TEACHER), TeacherController.deleteClassRecordingLinkOfTeachers);
 
 
