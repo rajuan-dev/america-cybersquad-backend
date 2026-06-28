@@ -685,6 +685,18 @@ model vision {
   @@map("vision")
 }
 
+model team {
+    id          String   @id @default(uuid())
+    name        String 
+    designation String
+    linkedinUrl   String
+    whatsAppNumber  String
+    photo   String
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    @@map("teams")
+}
+
 enum PaymentMethod {
   ONLINE
   MANUAL

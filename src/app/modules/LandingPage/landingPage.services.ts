@@ -1,6 +1,9 @@
+import httpStatus from "http-status";
+import ApiError from "../../../errors/ApiErrors";
 import catchError from "../../../errors/catchError";
 import prisma from "../../../shared/prisma";
-import { TMission, TVision } from "./landingPage.interface";
+import { TMission, TTeam, TVision } from "./landingPage.interface";
+import PrismaRelationQueryBuilder from "../../builder/PrismaQueryBuilder";
 
 const missionIntoDb = async (payload: TMission) => {
   try {
@@ -121,11 +124,160 @@ const findByVisionIntoDb = async () => {
   }
 };
 
+const createTeamIntoDb=async(payload: TTeam)=>{
+
+   try{
+
+      const result=await prisma.team.create({
+        data: payload
+      });
+      if(!result){
+        throw new ApiError(httpStatus.NOT_EXTENDED, "ISSUES BY THE TEAM SECTION", "")
+      }
+      return {
+        success: true ,
+        message:"successfully create a team"
+      }
+
+   }
+catch (error) {
+    throw catchError(error);
+  }
+   
+};
+
+const findByAllTeamsIntoDb = async (
+  query: Record<string, unknown>
+) => {
+  try {
+    const queryBuilder = new PrismaRelationQueryBuilder(query)
+      .search(["name", "designation"])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const { where, orderBy, skip, take, select } = queryBuilder.build();
+
+    const [result, total] = await Promise.all([
+      prisma.team.findMany({
+        where,
+        orderBy,
+        skip,
+        take,
+        ...(select ? { select } : {}),
+      }),
+
+      prisma.team.count({
+        where,
+      }),
+    ]);
+
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
+      result,
+    };
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
+const findBySpecificTeamIntoDb=async(id: string)=>{
+
+   try{
+
+     const result=await prisma.team.findFirst({where:{id}});
+     return result
+
+   }
+   catch (error) {
+    throw catchError(error);
+  }
+};
+
+const updateTeamIntoDb = async (
+  id: string,
+  payload: Partial<TTeam>
+) => {
+  try {
+    const team = await prisma.team.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!team) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Team Not Found");
+    }
+
+    // Remove undefined fields
+    const updateData = Object.fromEntries(
+      Object.entries(payload).filter(
+        ([_, value]) => value !== undefined
+      )
+    );
+
+    const result = await prisma.team.update({
+      where: {
+        id,
+      },
+      data: updateData,
+    });
+
+    return result;
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
+const deleteTeamIntoDb = async (id: string) => {
+  try {
+    // Check if team exists
+    const team = await prisma.team.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!team) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        "Team not found"
+      );
+    }
+
+    // Delete team
+    const result = await prisma.team.delete({
+      where: {
+        id,
+      },
+    });
+
+    return result;
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
+
 const   LandingPageServices= {
   missionIntoDb,
   findByMissionIntoDb,
   visionIntoDb, 
-  findByVisionIntoDb
+  findByVisionIntoDb,
+  createTeamIntoDb,
+  findByAllTeamsIntoDb,
+  findBySpecificTeamIntoDb,
+  updateTeamIntoDb,
+  deleteTeamIntoDb
 
 };
 export default LandingPageServices

@@ -49,10 +49,70 @@ const findByVision: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const createTeam:RequestHandler=catchAsync(async(req , res)=>{
+   const result=await LandingPageServices.createTeamIntoDb(req.body);
+    sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.CREATED,
+    message: "Successfully Create Team",
+    data: result,
+  });
+});
+
+const findByAllTeams:RequestHandler=catchAsync(async(req , res)=>{
+
+   const result=await LandingPageServices.findByAllTeamsIntoDb(req.query);
+    sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.CREATED,
+    message: "Successfully Find By Team",
+    data: result,
+  });
+});
+
+const findBySpecificTeam:RequestHandler=catchAsync(async(req , res)=>{
+   const result=await LandingPageServices.findBySpecificTeamIntoDb(req.params.id);
+sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.CREATED,
+    message: "Successfully Find By Specific Team",
+    data: result,
+  });
+})
+const updateTeam = catchAsync(async (req, res) => {
+  const result = await LandingPageServices.updateTeamIntoDb(
+    req.params.id,
+    req.body
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Successfully Updated Team",
+    data: result,
+  });
+});
+const deleteTeam = catchAsync(async (req, res) => {
+  const result = await LandingPageServices.deleteTeamIntoDb(req.params.id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Successfully Deleted Team",
+    data: result,
+  });
+});
+
 const LandingPageController={
       mission, 
       findByMission,
       vision,
-      findByVision
+      findByVision,
+      createTeam,
+      findByAllTeams,
+      findBySpecificTeam,
+      updateTeam,
+      deleteTeam
+      
 };
 export default LandingPageController;

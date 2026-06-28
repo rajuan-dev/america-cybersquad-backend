@@ -1,11 +1,14 @@
 import { UserRole } from '@prisma/client';
 import auth from '../../middlewares/auth';
 
-import  express from 'express';
+import  express, { NextFunction, Response, Request } from 'express';
 import validateRequest from '../../middlewares/validateRequest';
 import landingPageValidation from './landingPage.validation';
 import LandingPageController from './landingPage.controller';
-
+import { uploadFile } from '../../../utils/uploadToS3';
+import ApiError from '../../../errors/ApiErrors';
+import httpStatus from 'http-status';
+import path from "path";
 
 const router=express.Router();
 
@@ -30,5 +33,91 @@ router.get(
   "/find_by_vision",
   LandingPageController.findByVision
 );
+
+router.post(
+  "/create_team",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  uploadFile.profileImage,
+
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // Parse JSON
+      if (req.body.data && typeof req.body.data === "string") {
+        req.body = JSON.parse(req.body.data);
+      }
+
+      // Save only relative image path
+      if (req.file?.path) {
+        req.body.photo = path
+          .relative(process.cwd(), req.file.path)
+          .replace(/\\/g, "/");
+      }
+
+      next();
+    } catch (error) {
+      next(
+        new ApiError(
+          httpStatus.BAD_REQUEST,
+          "Invalid JSON data",
+          ""
+        )
+      );
+    }
+  },
+
+  validateRequest(landingPageValidation.teamSchema),
+
+  LandingPageController.createTeam
+);
+
+router.get("/find_by_team", 
+ 
+LandingPageController.findByAllTeams);
+router.get("/find_by_specific_team/:id", 
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  LandingPageController.findBySpecificTeam
+
+);
+
+router.patch(
+  "/update_team/:id",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  uploadFile.profileImage,
+
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (req.body.data && typeof req.body.data === "string") {
+        req.body = JSON.parse(req.body.data);
+      }
+
+      // Save uploaded image path
+      if (req.file?.path) {
+        req.body.photo = path
+          .relative(process.cwd(), req.file.path)
+          .replace(/\\/g, "/");
+      }
+
+      next();
+    } catch (error) {
+      next(
+        new ApiError(
+          httpStatus.BAD_REQUEST,
+          "Invalid JSON Data",
+          ""
+        )
+      );
+    }
+  },
+
+  validateRequest(landingPageValidation.updateTeamSchema),
+
+  LandingPageController.updateTeam
+);
+router.delete(
+  "/delete_team/:id",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  LandingPageController.deleteTeam
+);
+
 const LandingPageRouter= router;
 export default LandingPageRouter;
