@@ -697,6 +697,16 @@ model team {
     @@map("teams")
 }
 
+model FAQ {
+   id          String   @id @default(uuid())
+  question   String
+  answer     String
+  isDelete   Boolean
+   createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    @@map("faqs")
+}
+
 enum PaymentMethod {
   ONLINE
   MANUAL

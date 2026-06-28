@@ -103,6 +103,29 @@ const deleteTeam = catchAsync(async (req, res) => {
   });
 });
 
+
+const createFaq = catchAsync(async (req, res) => {
+  const result = await LandingPageServices.createFaqIntoDb(req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Successfully Created FAQ",
+    data: result,
+  });
+});
+
+
+const findByAllFAQ:RequestHandler=catchAsync(async(req , res)=>{
+   const result=await LandingPageServices.findByAllFAQIntoDb(req.query);
+    sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Successfully find My All FAQ",
+    data: result,
+  });
+})
+
 const LandingPageController={
       mission, 
       findByMission,
@@ -112,7 +135,9 @@ const LandingPageController={
       findByAllTeams,
       findBySpecificTeam,
       updateTeam,
-      deleteTeam
+      deleteTeam,
+      createFaq,
+      findByAllFAQ
       
 };
 export default LandingPageController;

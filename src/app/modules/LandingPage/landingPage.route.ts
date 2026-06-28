@@ -119,5 +119,14 @@ router.delete(
   LandingPageController.deleteTeam
 );
 
+router.post(
+  "/create_faq",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  validateRequest(landingPageValidation.faqSchema),
+  LandingPageController.createFaq
+);
+
+router.get("/find_by_all_faq", LandingPageController.findByAllFAQ)
+
 const LandingPageRouter= router;
 export default LandingPageRouter;

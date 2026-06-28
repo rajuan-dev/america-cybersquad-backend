@@ -34,11 +34,27 @@ const updateTeamSchema = z.object({
     })
     .partial(),
 });
+const faqSchema = z.object({
+  body: z.object({
+    question: z
+      .string({
+        required_error: "Question is required",
+      })
+      .min(1, "Question cannot be empty"),
+
+    answer: z
+      .string({
+        required_error: "Answer is required",
+      })
+      .min(1, "Answer cannot be empty"),
+  }),
+});
 
 const landingPageValidation={
    missionSchema,
    visionSchema, 
    teamSchema,
-   updateTeamSchema
+   updateTeamSchema,
+   faqSchema
 };
 export default landingPageValidation

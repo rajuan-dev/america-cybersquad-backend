@@ -268,6 +268,76 @@ const deleteTeamIntoDb = async (id: string) => {
 };
 
 
+const createFaqIntoDb = async (
+  payload: {
+    question: string;
+    answer: string;
+  }
+) => {
+  try {
+   
+
+    const result = await prisma.fAQ.create({
+      data: {
+        question: payload.question,
+        answer: payload.answer,
+        isDelete: false,
+      },
+    });
+
+    return result;
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
+const findByAllFAQIntoDb = async (
+  query: Record<string, unknown>
+) => {
+  try {
+    const queryBuilder = new PrismaRelationQueryBuilder(query)
+      .search([])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const { where, orderBy, skip, take, select } = queryBuilder.build();
+
+    const [result, total] = await Promise.all([
+      prisma.fAQ.findMany({
+        where,
+        orderBy,
+        skip,
+        take,
+        ...(select ? { select } : {}),
+      }),
+
+      prisma.fAQ.count({
+        where,
+      }),
+    ]);
+
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
+      result,
+    };
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
+
+
+
 const   LandingPageServices= {
   missionIntoDb,
   findByMissionIntoDb,
@@ -277,7 +347,9 @@ const   LandingPageServices= {
   findByAllTeamsIntoDb,
   findBySpecificTeamIntoDb,
   updateTeamIntoDb,
-  deleteTeamIntoDb
+  deleteTeamIntoDb,
+  createFaqIntoDb,
+  findByAllFAQIntoDb
 
 };
 export default LandingPageServices
