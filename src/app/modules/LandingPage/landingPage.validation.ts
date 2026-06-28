@@ -50,11 +50,49 @@ const faqSchema = z.object({
   }),
 });
 
+const blogSchema = z.object({
+  body: z.object({
+    blogCategory: z
+      .string({
+        required_error: "Blog category is required",
+      })
+      .min(1),
+
+    title: z
+      .string({
+        required_error: "Title is required",
+      })
+      .min(1),
+
+    description: z
+      .string({
+        required_error: "Description is required",
+      })
+      .min(1),
+
+    photo: z.string().optional(),
+  }),
+});
+
+const newsletterSchema = z.object({
+  body: z.object({
+    email: z
+      .string({
+        required_error: "Email is required",
+      })
+      .email("Please provide a valid email address"),
+  }),
+});
+
+
+
 const landingPageValidation={
    missionSchema,
    visionSchema, 
    teamSchema,
    updateTeamSchema,
-   faqSchema
+   faqSchema,
+   blogSchema,
+   newsletterSchema
 };
 export default landingPageValidation

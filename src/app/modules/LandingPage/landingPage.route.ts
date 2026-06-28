@@ -126,7 +126,49 @@ router.post(
   LandingPageController.createFaq
 );
 
-router.get("/find_by_all_faq", LandingPageController.findByAllFAQ)
+router.get("/find_by_all_faq", LandingPageController.findByAllFAQ);
+
+router.post(
+  "/create_blog",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  uploadFile.profileImage,
+
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (req.body.data && typeof req.body.data === "string") {
+        req.body = JSON.parse(req.body.data);
+      }
+
+      if (req.file?.path) {
+        req.body.photo = path
+          .relative(process.cwd(), req.file.path)
+          .replace(/\\/g, "/");
+      }
+
+      next();
+    } catch (error) {
+      next(
+        new ApiError(
+          httpStatus.BAD_REQUEST,
+          "Invalid JSON Data",
+          ""
+        )
+      );
+    }
+  },
+
+  validateRequest(landingPageValidation.blogSchema),
+
+  LandingPageController.createBlog
+);
+
+router.get("/find_by_all_blogs", LandingPageController.findByAllBlogs)
+
+router.post(
+  "/create_newsletter",
+  validateRequest(landingPageValidation.newsletterSchema),
+  LandingPageController.createNewsletter
+);
 
 const LandingPageRouter= router;
 export default LandingPageRouter;

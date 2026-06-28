@@ -124,7 +124,41 @@ const findByAllFAQ:RequestHandler=catchAsync(async(req , res)=>{
     message: "Successfully find My All FAQ",
     data: result,
   });
-})
+});
+
+const createBlog = catchAsync(async (req, res) => {
+  const result = await LandingPageServices.createBlogIntoDb(req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Successfully Created Blog",
+    data: result,
+  });
+});
+
+const findByAllBlogs:RequestHandler=catchAsync(async(req ,  res)=>{
+   const result=await LandingPageServices.findByAllBlogsIntoDb(req.query);
+    sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "SuccessfullyFind By Blog",
+    data: result,
+  });
+});
+
+const createNewsletter = catchAsync(async (req, res) => {
+  const result = await LandingPageServices.createNewsletterIntoDb(req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Newsletter subscribed successfully",
+    data: result,
+  });
+});
+
+
 
 const LandingPageController={
       mission, 
@@ -137,7 +171,10 @@ const LandingPageController={
       updateTeam,
       deleteTeam,
       createFaq,
-      findByAllFAQ
+      findByAllFAQ,
+      createBlog,
+      findByAllBlogs,
+      createNewsletter
       
 };
 export default LandingPageController;

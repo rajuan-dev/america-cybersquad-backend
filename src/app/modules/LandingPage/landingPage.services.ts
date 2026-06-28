@@ -336,6 +336,107 @@ const findByAllFAQIntoDb = async (
 };
 
 
+const createBlogIntoDb = async (
+  payload: {
+    blogCategory: string;
+    photo: string;
+    title: string;
+    description: string;
+  }
+) => {
+  try {
+    const result = await prisma.blog.create({
+      data: {
+        blogCategory: payload.blogCategory,
+        photo: payload.photo,
+        title: payload.title,
+        description: payload.description,
+      },
+    });
+
+    return result;
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
+const findByAllBlogsIntoDb = async (
+  query: Record<string, unknown>
+) => {
+  try {
+    const queryBuilder = new PrismaRelationQueryBuilder(query)
+      .search([])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const { where, orderBy, skip, take, select } = queryBuilder.build();
+
+    const [result, total] = await Promise.all([
+      prisma.blog.findMany({
+        where,
+        orderBy,
+        skip,
+        take,
+        ...(select ? { select } : {}),
+      }),
+
+      prisma.blog.count({
+        where,
+      }),
+    ]);
+
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
+      result,
+    };
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
+const createNewsletterIntoDb = async (
+  payload: {
+    email: string;
+  }
+) => {
+  try {
+    const isExist = await prisma.newsletter.findFirst({
+      where: {
+        email: payload.email,
+      },
+    });
+
+    if (isExist) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Email already subscribed"
+      );
+    }
+
+    const result = await prisma.newsletter.create({
+      data: {
+        email: payload.email,
+      },
+    });
+
+    return result;
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
+
+
 
 
 const   LandingPageServices= {
@@ -349,7 +450,10 @@ const   LandingPageServices= {
   updateTeamIntoDb,
   deleteTeamIntoDb,
   createFaqIntoDb,
-  findByAllFAQIntoDb
+  findByAllFAQIntoDb,
+  createBlogIntoDb,
+  findByAllBlogsIntoDb,
+  createNewsletterIntoDb
 
 };
 export default LandingPageServices
