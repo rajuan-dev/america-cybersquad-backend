@@ -65,7 +65,19 @@ const allCountryList:RequestHandler=catchAsync(async(req , res)=>{
     message: "Successfully Find By All Country",
     data: result,
   });
+});
+
+const allSchoolList:RequestHandler=catchAsync(async(req , res)=>{
+
+   const result=await subscriptionServices.allSchoolListIntoDb();
+   sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find By All School List",
+    data: result,
+  });
 })
+
 
 
 
@@ -75,7 +87,8 @@ const subscriptionController={
      findByAllSubscriptionsAdmin,
      hardDeleteSubscriptionById,
      findMyAllSubscriptions,
-     allCountryList
+     allCountryList,
+     allSchoolList
 };
 
 export default subscriptionController;

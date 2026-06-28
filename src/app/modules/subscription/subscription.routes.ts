@@ -16,7 +16,7 @@ route.get("/find_by_all_subscription", auth(UserRole.ADMIN, UserRole.INSTITUTION
 route.delete("/delete_subscription/:subscriptionId", auth(UserRole.ADMIN, UserRole.INSTITUTIONAL_OWNER), subscriptionController.hardDeleteSubscriptionById );
 route.get("/find_my_all_subscription", auth(UserRole.INSTITUTIONAL_OWNER), subscriptionController.findMyAllSubscriptions )
 route.get("/find_by_all_country_list",subscriptionController.allCountryList);
-
+route.get("/all_school_list", subscriptionController.allSchoolList)
 const subscriptionRoute=route;
 
 export default subscriptionRoute

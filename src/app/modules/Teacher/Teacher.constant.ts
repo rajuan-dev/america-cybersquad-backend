@@ -8,7 +8,7 @@ export const searchableTeacherFields = ["teacherName", "email", "phoneNumber", "
       "day",
     ];
 
-    export const teacherFilterableFields =["name", "email", "studentId", "className"];
+    export const teacherFilterableFields =["classDistribution.classLevel","classDistribution.assignableSubject"];
 
 
     export const attendanceStatus={

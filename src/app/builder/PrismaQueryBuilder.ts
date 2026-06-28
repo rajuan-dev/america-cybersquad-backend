@@ -1,56 +1,123 @@
-class PrismaQueryBuilder {
+class PrismaRelationQueryBuilder {
   public query: Record<string, any>;
   public where: any = {};
   public orderBy: any = {};
-  public skip: number = 0;
-  public take: number = 10;
+  public skip = 0;
+  public take = 10;
   public select: any = undefined;
 
   constructor(query: Record<string, any>) {
     this.query = query;
   }
 
-  // 🔍 SEARCH
+  // ==========================
+  // SEARCH
+  // ==========================
   search(searchableFields: string[]) {
     const searchTerm = this.query?.searchTerm;
 
-    if (searchTerm) {
-      this.where.OR = searchableFields.map((field) => ({
+    if (!searchTerm) return this;
+
+    this.where.OR = searchableFields.map((field) => {
+      if (field.includes(".")) {
+        const [relation, relationField] = field.split(".");
+
+        // One-to-many relation
+        if (relation === "classDistributions") {
+          return {
+            classDistributions: {
+              some: {
+                [relationField]: {
+                  contains: searchTerm,
+                  mode: "insensitive",
+                },
+              },
+            },
+          };
+        }
+
+        // One-to-one relation
+        return {
+          [relation]: {
+            [relationField]: {
+              contains: searchTerm,
+              mode: "insensitive",
+            },
+          },
+        };
+      }
+
+      return {
         [field]: {
           contains: searchTerm,
           mode: "insensitive",
         },
-      }));
-    }
+      };
+    });
 
     return this;
   }
 
-  // 🎯 FILTER (DYNAMIC)
+  // ==========================
+  // FILTER
+  // ==========================
   filter() {
     const queryObject = { ...this.query };
 
-    const excludeField = [
+    [
       "searchTerm",
       "sort",
       "limit",
       "page",
       "fields",
-      "joinDateFrom",
-      "joinDateTo",
-      "branchName",
-    ];
-
-    excludeField.forEach((el) => delete queryObject[el]);
+    ].forEach((field) => delete queryObject[field]);
 
     Object.entries(queryObject).forEach(([key, value]) => {
       if (!value) return;
 
-      // exact match fields
-      if (["id", "userId", "role"].includes(key)) {
+      if (key.includes(".")) {
+        const [relation, relationField] = key.split(".");
+
+        if (relation === "classDistributions") {
+          this.where.classDistributions = {
+            some: {
+              [relationField]:
+                typeof value === "string"
+                  ? {
+                      contains: value,
+                      mode: "insensitive",
+                    }
+                  : value,
+            },
+          };
+        } else {
+          this.where[relation] = {
+            [relationField]:
+              typeof value === "string"
+                ? {
+                    contains: value,
+                    mode: "insensitive",
+                  }
+                : value,
+          };
+        }
+
+        return;
+      }
+
+      if (
+        [
+          "id",
+          "teacherId",
+          "userId",
+          "role",
+          "status",
+          "day",
+          "classLevel",
+        ].includes(key)
+      ) {
         this.where[key] = value;
       } else {
-        // partial match
         this.where[key] = {
           contains: String(value),
           mode: "insensitive",
@@ -61,52 +128,66 @@ class PrismaQueryBuilder {
     return this;
   }
 
-  // 🔀 SORT
+  // ==========================
+  // SORT
+  // ==========================
   sort() {
     const sort = this.query?.sort;
 
-    if (sort) {
-      const fields = sort.split(",");
-
-      this.orderBy = fields.map((field: string) => {
-        if (field.startsWith("-")) {
-          return { [field.substring(1)]: "desc" };
-        }
-        return { [field]: "asc" };
-      });
-    } else {
-      this.orderBy = { createdAt: "desc" };
+    if (!sort) {
+      this.orderBy = {
+        createdAt: "desc",
+      };
+      return this;
     }
+
+    this.orderBy = sort.split(",").map((field: string) => {
+      if (field.startsWith("-")) {
+        return {
+          [field.substring(1)]: "desc",
+        };
+      }
+
+      return {
+        [field]: "asc",
+      };
+    });
 
     return this;
   }
 
-  // 📄 PAGINATION
+  // ==========================
+  // PAGINATION
+  // ==========================
   paginate() {
-    const limit = Math.max(Number(this.query.limit) || 10, 1);
     const page = Math.max(Number(this.query.page) || 1, 1);
+    const limit = Math.max(Number(this.query.limit) || 10, 1);
 
-    this.take = limit;
     this.skip = (page - 1) * limit;
+    this.take = limit;
 
     return this;
   }
 
-  // 🎯 SELECT FIELDS
+  // ==========================
+  // SELECT
+  // ==========================
   fields() {
-    if (this.query?.fields) {
-      const fields = this.query.fields.split(",");
+    if (!this.query.fields) return this;
 
-      this.select = fields.reduce((acc: any, field: string) => {
-        acc[field] = true;
-        return acc;
-      }, {});
-    }
+    const fields = this.query.fields.split(",");
+
+    this.select = fields.reduce((acc: any, field: string) => {
+      acc[field] = true;
+      return acc;
+    }, {});
 
     return this;
   }
 
-  // 🏗 BUILD
+  // ==========================
+  // BUILD
+  // ==========================
   build() {
     return {
       where: this.where,
@@ -118,4 +199,4 @@ class PrismaQueryBuilder {
   }
 }
 
-export default PrismaQueryBuilder;
+export default PrismaRelationQueryBuilder;

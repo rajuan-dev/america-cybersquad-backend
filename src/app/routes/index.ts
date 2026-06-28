@@ -18,6 +18,7 @@ import AssignmentRouter from "../modules/Assignments/assignments.route";
 import examAnnouncementRouter from "../modules/ExamAnnouncement/examAnnouncement.route";
 import ParentRouter from "../modules/Parent/parent.route";
 import nurseRoute from "../modules/nurse/nurse.route";
+import LandingPageRouter from "../modules/LandingPage/landingPage.route";
 
 
 
@@ -99,6 +100,10 @@ const moduleRoutes = [
    {
     path:"/nurse",
     route: nurseRoute
+   }, 
+   {
+    path:"/landing_page", 
+    route: LandingPageRouter
    }
  
 

@@ -14,6 +14,7 @@ import { AttendanceStatus, UserRole } from "@prisma/client";
 
 import { getCache,  setCache } from "../../../config/redis";
 import { getSocketIO } from "../../../socket/connectSocket";
+import PrismaRelationQueryBuilder from "../../builder/PrismaQueryBuilder";
 
 
 
@@ -467,92 +468,96 @@ const findBySpecificClassListOfTeachersIntoDb = async (
     );
   }
 };
+
 const findBySpecificStudentListOfTeachersIntoDb = async (
   teacherId: string,
-  subscriptionId: string,
   query: Record<string, unknown>
 ) => {
   try {
-    const queryBuilder = new PrismaQueryBuilder(query)
-      .search(teacherFilterableFields)
+    const queryBuilder = new PrismaRelationQueryBuilder(query)
+      .search([
+        "name",
+        "className",
+        "email",
+        "studentId",
+        "classDistributions.classLevel",
+        "classDistributions.assignableSubject",
+      ])
       .filter()
       .sort()
       .paginate();
 
-    const queryOptions = queryBuilder.build();
+    const { where, orderBy, skip, take } = queryBuilder.build();
 
     const { classLevel, day } = query;
+
     const extraFilter: Record<string, any> = {};
 
     if (classLevel) extraFilter.classLevel = classLevel;
     if (day) extraFilter.day = day;
 
-    // ✅ SINGLE QUERY (no ids.map)
-    const result = await prisma.student.findMany({
-      where: {
-        subscriptions: {
-          is: { id: subscriptionId },
-        },
-        classDistributions: {
-          some: {
-            teacherId,
-            ...extraFilter,
+    const whereCondition = {
+      AND: [
+        where,
+        {
+          classDistributions: {
+            some: {
+              teacherId,
+              ...extraFilter,
+            },
           },
         },
-        ...queryOptions.where,
-      },
-      orderBy: queryOptions.orderBy,
-      skip: queryOptions.skip,
-      take: queryOptions.take,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        studentId: true,
-        className: true,
-        photo: true,
-        classDistributions: {
-          where: {
-            teacherId,
-            ...extraFilter,
-          },
-          select: {
-            id: true,
-            classLevel: true,
-            day: true,
-            time: true,
-          },
-        },
-      },
-    });
+      ],
+    };
 
-
-    const total = await prisma.student.count({
-      where: {
-        subscriptions: {
-          is: { id: subscriptionId },
-        },
-        classDistributions: {
-          some: {
-            teacherId,
-            ...extraFilter,
+    const [students, total] = await Promise.all([
+      prisma.student.findMany({
+        where: whereCondition,
+        orderBy,
+        skip,
+        take,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          studentId: true,
+          className: true,
+          photo: true,
+          guardianPhone: true ,
+          classDistributions: {
+            where: {
+              teacherId,
+              ...extraFilter,
+            },
+            select: {
+              id: true,
+              classLevel: true,
+              assignableSubject: true,
+              day: true,
+              time: true,
+            },
           },
         },
-        ...queryOptions.where,
-      },
-    });
+      }),
+
+      prisma.student.count({
+        where: whereCondition,
+      }),
+    ]);
 
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
 
     return {
+      success: true,
+      message: "Student list fetched successfully",
       meta: {
         page,
         limit,
         total,
         totalPage: Math.ceil(total / limit),
       },
-      data: result,
+      data: students,
     };
   } catch (error) {
     return catchError(

@@ -492,16 +492,17 @@ const findByAllDistributedClassIntoDb = async (teacherId: string) => {
     const result = await prisma.classDistribution.findMany({
       where: {
         teacherId,
+        isOnline: true
       },
       select: {
         id: true,
         classLevel: true,
         subscriptionId: true ,
         assignableSubject: true,
+        isOnline: true
       },
     });
 
-    // Save to cache for 1 hour
     if (result) {
       await setCache(cacheKey, result, 60 * 60);
     }

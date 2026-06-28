@@ -341,7 +341,34 @@ const allCountryListIntoDb = async (
   } catch (error) {
     throw catchError(error);
   }
-};;
+};
+
+const allSchoolListIntoDb=async()=>{
+
+   try{
+
+    const result=await prisma.subscriptionDetails.findMany({
+      where:{},
+      select:{
+        schoolName: true , 
+        schoolType: true, 
+        country: true ,
+        area: true , 
+        city: true,
+        
+
+
+      }
+    },);
+
+    return result;
+
+
+   }
+   catch(error){
+    throw catchError(error);
+   }
+}
 
 
 
@@ -354,7 +381,9 @@ const subscriptionServices = {
   findByAllSubscriptionsAdminIntoDb,
    hardDeleteSubscriptionByIdIntoDb,
    findMyAllSubscriptionsIntoDb,
-   allCountryListIntoDb
+   allCountryListIntoDb,
+   allSchoolListIntoDb,
+   
 };
 
 export default subscriptionServices;

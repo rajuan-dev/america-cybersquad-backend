@@ -97,7 +97,7 @@ const createTeacher:RequestHandler = catchAsync(async (req, res) => {
 
          const findBySpecificStudentListOfTeachers:RequestHandler = catchAsync(async (req, res) => {
 
-           const result = await TeacherService.findBySpecificStudentListOfTeachersIntoDb(req.user.id, req.params.subscriptionId, req.query);
+           const result = await TeacherService.findBySpecificStudentListOfTeachersIntoDb(req.user.id, req.query);
 
           sendResponse(res, {
               statusCode: httpStatus.OK,

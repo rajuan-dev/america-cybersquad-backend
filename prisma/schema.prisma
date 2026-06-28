@@ -665,6 +665,16 @@ model Admin {
 
   @@map("admins")
 }
+model mission {
+   id          String   @id @default(uuid())
+   mission String 
+   isDelete         Boolean       @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+    @@map("mission")
+
+
+}
 
 enum PaymentMethod {
   ONLINE
