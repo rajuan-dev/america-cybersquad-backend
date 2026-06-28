@@ -676,6 +676,15 @@ model mission {
 
 }
 
+model vision {
+   id          String   @id @default(uuid())
+   vision String 
+   isDelete         Boolean       @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@map("vision")
+}
+
 enum PaymentMethod {
   ONLINE
   MANUAL

@@ -15,5 +15,20 @@ router.post("/mission",
        LandingPageController.mission
       );
 router.get("/find_by_mission", LandingPageController.findByMission)
+
+/**
+ * Vision
+ */
+router.post(
+  "/vision",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  validateRequest(landingPageValidation.visionSchema),
+  LandingPageController.vision
+);
+
+router.get(
+  "/find_by_vision",
+  LandingPageController.findByVision
+);
 const LandingPageRouter= router;
 export default LandingPageRouter;

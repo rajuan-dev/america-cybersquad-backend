@@ -25,10 +25,34 @@ const findByMission:RequestHandler=catchAsync(async(req , res)=>{
     message: "Successfully  Find My Mission Data ",
     data: result,
   });
-})
+});
+
+const vision: RequestHandler = catchAsync(async (req, res) => {
+  const result = await LandingPageServices.visionIntoDb(req.body);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.CREATED,
+    message: "Vision saved successfully",
+    data: result,
+  });
+});
+
+const findByVision: RequestHandler = catchAsync(async (req, res) => {
+  const result = await LandingPageServices.findByVisionIntoDb();
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully found vision data",
+    data: result,
+  });
+});
 
 const LandingPageController={
       mission, 
-      findByMission
+      findByMission,
+      vision,
+      findByVision
 };
 export default LandingPageController;

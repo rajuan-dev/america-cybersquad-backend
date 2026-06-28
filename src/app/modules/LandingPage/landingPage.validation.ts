@@ -7,7 +7,14 @@ const missionSchema=z.object({
       })
 });
 
+const visionSchema=z.object({
+      body: z.object({
+            vision: z.string({required_error:"vision is required"})
+      })
+})
+
 const landingPageValidation={
-missionSchema
+   missionSchema,
+   visionSchema
 };
 export default landingPageValidation
