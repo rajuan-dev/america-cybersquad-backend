@@ -5,6 +5,7 @@ import { IClassDistribution } from "./class_distribution.interface";
 import catchError from "../../../errors/catchError";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { getCache, setCache } from "../../../config/redis";
+import { UserStatus } from "@prisma/client";
 const recordedClassDistributionIntoDb = async (
   payload: IClassDistribution
 ) => {
@@ -513,6 +514,55 @@ const findByAllDistributedClassIntoDb = async (teacherId: string) => {
   }
 };
 
+const specificStudentDetailsIntoDb=async(id: string)=>{
+
+   try{
+
+    const  result=await prisma.student.findFirstOrThrow({
+      where:{id, isVerified: true , status:UserStatus.ACTIVE },
+      select:{
+        id: true ,
+        email: true , 
+        studentId: true ,
+        guardianName: true ,
+        guardianPhone: true , 
+        classDistributions:{
+          select:{
+            classLevel: true ,
+
+          }
+        },
+        examGrades:{
+          select:{
+            totalMarks: true ,
+            marks: true ,
+            instructions: true ,
+            createdAt: true 
+          }
+        },
+        healthRecords:{
+          select:{
+            bloodType: true ,
+            tipTapEditor: true ,
+            emergencyContact: true ,
+            createdAt: true
+          }
+        }
+
+
+      }
+    });
+
+    return result;
+
+    
+
+   }
+   catch (error) {
+    return catchError(error);
+  }
+}
+
 
 
 const ClassDistributionServices = {
@@ -523,7 +573,9 @@ const ClassDistributionServices = {
   deleteClassDistributionIntoDb,
   findByBranchAdminClassScheduleIntoDb,
   classScheduleIntoDb,
-  findByAllDistributedClassIntoDb
+  findByAllDistributedClassIntoDb,
+  specificStudentDetailsIntoDb
+  
   
 };
 

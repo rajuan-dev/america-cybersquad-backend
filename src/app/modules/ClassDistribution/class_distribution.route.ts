@@ -14,7 +14,12 @@ router.patch("/update_class_distribution/:id", branchAdminAuth(UserRole.BRANCH_A
 router.delete("/delete_class_distribution/:id", branchAdminAuth(UserRole.BRANCH_ADMIN),ClassDistributionController.deleteClassDistribution);
 router.get("/find_by_class_schedule/:subscriptionId", branchAdminAuth(UserRole.BRANCH_ADMIN), ClassDistributionController.findByBranchAdminClassSchedule);
 router.patch("/class_schedule/:classDistributionId", branchAdminAuth(UserRole.BRANCH_ADMIN),validateRequest(ClassDistributionValidation.classScheduleSchema), ClassDistributionController.classSchedule);
-router.get("/find_my_all_distributed_class", branchAdminAuth(UserRole.TEACHER), ClassDistributionController.findByAllDistributedClass);
+router.get("/find_my_all_distributed_class", branchAdminAuth(UserRole.TEACHER),
+ ClassDistributionController.findByAllDistributedClass);
+router.get("/find_by_student_details/:studentId", 
+      branchAdminAuth(UserRole.TEACHER),
+      ClassDistributionController.specificStudentDetails
+);
 
         
 const ClassDistributionRouter= router;

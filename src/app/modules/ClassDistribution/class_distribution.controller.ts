@@ -103,8 +103,19 @@ const findByAllDistributedClass:RequestHandler=catchAsync(async(req , res)=>{
     message: 'Successfully Find By All Subject',
     data: result,
   });
+});
+const specificStudentDetails:RequestHandler=catchAsync(async(req , res)=>{
 
+   const result=await ClassDistributionServices.specificStudentDetailsIntoDb(req.params.studentId);
+    sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Successfully Find  By Student Details',
+    data: result,
+  });
 })
+
+
 
 
 
@@ -116,7 +127,8 @@ const ClassDistributionController={
     deleteClassDistribution,
     findByBranchAdminClassSchedule,
      classSchedule,
-     findByAllDistributedClass
+     findByAllDistributedClass,
+     specificStudentDetails
 };
 
 export default ClassDistributionController;
