@@ -514,54 +514,73 @@ const findByAllDistributedClassIntoDb = async (teacherId: string) => {
   }
 };
 
-const specificStudentDetailsIntoDb=async(id: string)=>{
+const specificStudentDetailsIntoDb = async (id: string) => {
+  try {
+    const cacheKey = `student_details:${id}`;
 
-   try{
+    // ✅ Check Redis Cache
+    const cachedData = await getCache(cacheKey);
 
-    const  result=await prisma.student.findFirstOrThrow({
-      where:{id, isVerified: true , status:UserStatus.ACTIVE },
-      select:{
-        id: true ,
-        email: true , 
-        studentId: true ,
-        guardianName: true ,
-        guardianPhone: true , 
-        classDistributions:{
-          select:{
-            classLevel: true ,
+    if (cachedData) {
+      return cachedData;
+    }
 
-          }
+   
+    const result = await prisma.student.findFirstOrThrow({
+      where: {
+        id,
+        isVerified: true,
+        status: UserStatus.ACTIVE,
+      },
+      select: {
+        id: true,
+        email: true,
+        photo: true,
+        studentId: true,
+        guardianName: true,
+        guardianPhone: true,
+
+        classDistributions: {
+          select: {
+            classLevel: true,
+          },
         },
-        examGrades:{
-          select:{
-            totalMarks: true ,
-            marks: true ,
-            instructions: true ,
-            createdAt: true 
-          }
+
+        examGrades: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          select: {
+            totalMarks: true,
+            marks: true,
+            instructions: true,
+            createdAt: true,
+          },
         },
-        healthRecords:{
-          select:{
-            bloodType: true ,
-            tipTapEditor: true ,
-            emergencyContact: true ,
-            createdAt: true
-          }
-        }
 
-
-      }
+        healthRecords: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          select: {
+            bloodType: true,
+            tipTapEditor: true,
+            emergencyContact: true,
+            createdAt: true,
+          },
+        },
+      },
     });
 
+    // ✅ Save to Redis (1 Hour)
+    await setCache(cacheKey, result, 60 * 60);
+
     return result;
-
-    
-
-   }
-   catch (error) {
+  } catch (error) {
     return catchError(error);
   }
-}
+};
+
 
 
 
