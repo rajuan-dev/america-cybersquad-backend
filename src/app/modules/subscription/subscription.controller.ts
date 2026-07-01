@@ -57,6 +57,17 @@ const findMyAllSubscriptions:RequestHandler=catchAsync(async(req , res)=>{
 
 });
 
+const findMyPaymentStatus: RequestHandler = catchAsync(async (req, res) => {
+  const result = await subscriptionServices.findMyPaymentStatusIntoDb(req.user.id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully fetched my payment status",
+    data: result,
+  });
+});
+
 const allCountryList:RequestHandler=catchAsync(async(req , res)=>{
    const result=await subscriptionServices.allCountryListIntoDb(req.query);
    sendResponse(res, {
@@ -87,6 +98,7 @@ const subscriptionController={
      findByAllSubscriptionsAdmin,
      hardDeleteSubscriptionById,
      findMyAllSubscriptions,
+     findMyPaymentStatus,
      allCountryList,
      allSchoolList
 };

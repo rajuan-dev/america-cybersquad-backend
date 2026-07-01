@@ -286,6 +286,67 @@ const findMyAllSubscriptionsIntoDb = async (
   }
 };
 
+const findMyPaymentStatusIntoDb = async (userId: string) => {
+  try {
+    const latestSubscription = await prisma.subscriptions.findFirst({
+      where: {
+        userId,
+        isDeleted: false,
+      },
+      include: {
+        subscriptiondetails: {
+          where: {
+            isDeleted: false,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    const totalSubscriptions = await prisma.subscriptions.count({
+      where: {
+        userId,
+        isDeleted: false,
+      },
+    });
+
+    const hasPaidSubscription = Boolean(latestSubscription);
+
+    return {
+      isPaid: hasPaidSubscription,
+      status: hasPaidSubscription ? "paid" : "unpaid",
+      totalSubscriptions,
+      latestSubscription: latestSubscription
+        ? {
+            id: latestSubscription.id,
+            price: latestSubscription.price,
+            createdAt: latestSubscription.createdAt,
+            updatedAt: latestSubscription.updatedAt,
+            branchesCount: latestSubscription.subscriptiondetails.length,
+            schools: latestSubscription.subscriptiondetails.map((item) => ({
+              id: item.id,
+              schoolName: item.schoolName,
+              country: item.country,
+              state: item.state,
+              city: item.city,
+              area: item.area,
+              schoolType: item.schoolType,
+              studentLimit: item.studentLimit,
+              subscriptionType: item.subscriptionType,
+            })),
+          }
+        : null,
+    };
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
 const allCountryListIntoDb = async (
   query: Record<string, any>
 ) => {
@@ -381,6 +442,7 @@ const subscriptionServices = {
   findByAllSubscriptionsAdminIntoDb,
    hardDeleteSubscriptionByIdIntoDb,
    findMyAllSubscriptionsIntoDb,
+   findMyPaymentStatusIntoDb,
    allCountryListIntoDb,
    allSchoolListIntoDb,
    

@@ -15,6 +15,7 @@ route.post("/buy_the_subscription", auth(UserRole.ADMIN, UserRole.INSTITUTIONAL_
 route.get("/find_by_all_subscription", auth(UserRole.ADMIN, UserRole.INSTITUTIONAL_OWNER),subscriptionController.findByAllSubscriptionsAdmin );
 route.delete("/delete_subscription/:subscriptionId", auth(UserRole.ADMIN, UserRole.INSTITUTIONAL_OWNER), subscriptionController.hardDeleteSubscriptionById );
 route.get("/find_my_all_subscription", auth(UserRole.ADMIN, UserRole.INSTITUTIONAL_OWNER), subscriptionController.findMyAllSubscriptions )
+route.get("/my_payment_status", auth(UserRole.ADMIN, UserRole.INSTITUTIONAL_OWNER), subscriptionController.findMyPaymentStatus)
 route.get("/find_by_all_country_list",subscriptionController.allCountryList);
 route.get("/all_school_list", subscriptionController.allSchoolList)
 const subscriptionRoute=route;
