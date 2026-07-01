@@ -1,25 +1,38 @@
-import winston from "winston";
+import pino from "pino";
 import config from "./index";
 
-const { combine, timestamp, printf, colorize, errors } = winston.format;
+const isProduction = config.env === "production";
 
-const devFormat = combine(
-  colorize(),
-  timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
-  errors({ stack: true }),
-  printf(({ level, message, timestamp, stack }) =>
-    stack ? `${timestamp} ${level}: ${message}\n${stack}` : `${timestamp} ${level}: ${message}`
-  )
-);
-
-const prodFormat = combine(
-  timestamp(),
-  errors({ stack: true }),
-  winston.format.json()
-);
-
-export const logger = winston.createLogger({
-  level: config.env === "production" ? "warn" : "debug",
-  format: config.env === "production" ? prodFormat : devFormat,
-  transports: [new winston.transports.Console()],
+export const logger = pino({
+  level: isProduction ? "info" : "debug",
+  redact: {
+    paths: [
+      "req.headers.authorization",
+      "req.headers.cookie",
+      "req.body.password",
+      "req.body.confirmPassword",
+      "req.body.oldPassword",
+      "req.body.newPassword",
+      "req.body.oldpassword",
+      "req.body.newpassword",
+      "req.body.refreshToken",
+      "req.body.token",
+      "response.body.refreshToken",
+      "response.body.data.refreshToken",
+      "response.body.data.accessToken",
+      "err.stack",
+    ],
+    censor: "[REDACTED]",
+  },
+  transport: isProduction
+    ? undefined
+    : {
+        target: "pino-pretty",
+        options: {
+          colorize: true,
+          translateTime: "SYS:standard",
+          singleLine: false,
+          ignore: "pid,hostname",
+        },
+      },
 });

@@ -1,21 +1,22 @@
 import { Request } from "express";
+import { logger } from "../../config/logger";
 
 const logError = (err: Error, req: Request) => {
   const logerror = {
-    timestamps: new Date().toISOString(),
+    timestamp: new Date().toISOString(),
     error: {
       name: err.name,
       message: err.message,
-      stack: err.stack,
     },
     request: {
       method: req.method,
-      url: req.url,
-      headers: req.headers,
+      url: req.originalUrl,
       body: req.body,
+      params: req.params,
+      query: req.query,
     },
   };
-  console.log(logerror);
+  logger.error({ ...logerror, err }, "Request failed");
   return logerror;
 };
 

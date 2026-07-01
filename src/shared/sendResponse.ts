@@ -11,12 +11,15 @@ const sendResponse = <T>(res: Response, jsonData: {
     },
     data: T | null | undefined
 }) => {
-    res.status(jsonData.statusCode).json({
+    const payload = {
         success: jsonData.success,
         message: jsonData.message,
-        meta: jsonData.meta || null || undefined,
-        data: jsonData.data || null || undefined
-    })
+        meta: jsonData.meta ?? null,
+        data: jsonData.data ?? null
+    };
+
+    res.locals.responseBody = payload;
+    res.status(jsonData.statusCode).json(payload)
 }
 
 export default sendResponse;

@@ -11,6 +11,7 @@ import { jwtHelpers } from "../../../helpars/jwtHelpers";
 import { UserRole, UserStatus } from "@prisma/client";
 import { TUser } from "./user.interface";
 import { collaborateDatabase, collaborateDatabaseId, collaborateVerificationDatabase } from "../../../utils/collaborateDatabase";
+import { logger } from "../../../config/logger";
 
 const createUserIntoDb = async (payload: TUser) => {
   try {
@@ -34,24 +35,34 @@ const createUserIntoDb = async (payload: TUser) => {
       data: {
         ...payload,
         password: hashedPassword,
-        verificationCode,
-        isVerified: false,
+        verificationCode: null,
+        isVerified: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        schoolName: true,
+        country: true,
+        city: true,
+        state: true,
+        branches: true,
       },
     });
 
-    await sendEmail(
-      user.email,
-      emailContext.sendVerificationData(
-        user.email,
-        verificationCode,
-        "User Verification Email",
-      ),
-      "Verification OTP Code",
-    );
-
     return {
       status: true,
-      message: "Check your email",
+      message: "Account created successfully",
+      data: {
+        ...user,
+        uiRole:
+          user.role === UserRole.INSTITUTIONAL_OWNER
+            ? "institution_manager"
+            : user.role === UserRole.ADMIN
+              ? "branch_manager"
+              : user.role.toLowerCase(),
+      },
     };
   } catch (error) {
     throw catchError(error);
@@ -68,45 +79,114 @@ const userVerificationIntoDb = async (verificationCode: number) => {
       );
     }
 
-    return verificationCode
+    const account = await collaborateVerificationDatabase(verificationCode);
 
-    // const user = await prisma.user.update({
-    //   where: { verificationCode },
-    //   data: { isVerified: true },
-    //   select: {
-    //     id: true,
-    //     role: true,
-    //     email: true,
-    //     isVerified: true,
-    //   },
-    // });
+    if (!account) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Invalid verification code", "");
+    }
 
-    // if (!user || !user.isVerified) {
-    //   throw new ApiError(
-    //     httpStatus.SERVICE_UNAVAILABLE,
-    //     "Verification failed after update",
-    //     "",
-    //   );
-    // }
+    let verifiedUser: { id: string; role: string; email: string; isVerified: boolean } | null = null;
 
-    // const jwtPayload = {
-    //   id: user.id,
-    //   role: user.role,
-    //   email: user.email,
-    // };
+    switch (account.role) {
+      case UserRole.SUPER_ADMIN:
+      case UserRole.INSTITUTIONAL_OWNER:
+      case UserRole.ADMIN: {
+        verifiedUser = await prisma.user.update({
+          where: { id: account.id },
+          data: { isVerified: true, verificationCode: null },
+          select: {
+            id: true,
+            role: true,
+            email: true,
+            isVerified: true,
+          },
+        });
+        break;
+      }
+      case UserRole.BRANCH_ADMIN: {
+        const branchAdmin = await prisma.branchAdmin.update({
+          where: { id: account.id },
+          data: { isVerified: true, verificationCode: null },
+          select: {
+            id: true,
+            role: true,
+            emailAddress: true,
+            isVerified: true,
+          },
+        });
+        verifiedUser = {
+          id: branchAdmin.id,
+          role: branchAdmin.role,
+          email: branchAdmin.emailAddress,
+          isVerified: branchAdmin.isVerified,
+        };
+        break;
+      }
+      case UserRole.STUDENT: {
+        verifiedUser = await prisma.student.update({
+          where: { id: account.id },
+          data: { isVerified: true, verificationCode: null },
+          select: {
+            id: true,
+            role: true,
+            email: true,
+            isVerified: true,
+          },
+        });
+        break;
+      }
+      case UserRole.TEACHER: {
+        verifiedUser = await prisma.teacher.update({
+          where: { id: account.id },
+          data: { isVerified: true, verificationCode: null },
+          select: {
+            id: true,
+            role: true,
+            email: true,
+            isVerified: true,
+          },
+        });
+        break;
+      }
+      case UserRole.parent:
+      case UserRole.NURSE: {
+        verifiedUser = await prisma.staff.update({
+          where: { id: account.id },
+          data: { isVerified: true, verificationCode: null },
+          select: {
+            id: true,
+            role: true,
+            email: true,
+            isVerified: true,
+          },
+        });
+        break;
+      }
+      default:
+        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid user role", "");
+    }
 
-    // const accessToken = jwtHelpers.generateToken(
-    //   jwtPayload,
-    //   config.jwt_access_secret as string,
-    //   config.expires_in as string,
-    // );
+    if (!verifiedUser?.isVerified) {
+      throw new ApiError(httpStatus.SERVICE_UNAVAILABLE, "Verification failed after update", "");
+    }
 
-    // return {
-    //   message: "User verification successful",
-    //   accessToken,
-    // };
+    const accessToken = jwtHelpers.generateToken(
+      {
+        id: verifiedUser.id,
+        role: verifiedUser.role,
+        email: verifiedUser.email,
+      },
+      config.jwt_access_secret as string,
+      config.expires_in as string,
+    );
+
+    return {
+      message: "User verification successful",
+      accessToken,
+    };
   } catch (error) {
     catchError(error);
+    throw error;
   }
 };
 

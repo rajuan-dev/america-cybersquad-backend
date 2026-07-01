@@ -14,7 +14,7 @@ const router = express.Router();
 // login user
 router.post("/login",validateRequest(authValidation.LoginSchema), AuthController.loginUser);
 router.post("/refresh-token", validateRequest(authValidation.requestTokenValidationSchema), AuthController.refreshToken);
-router.get("/my-profile", auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STUDENT, UserRole.parent,UserRole.TEACHER), AuthController.myProfile);
+router.get("/my-profile", auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTITUTIONAL_OWNER, UserRole.BRANCH_ADMIN, UserRole.STUDENT, UserRole.parent,UserRole.TEACHER, UserRole.NURSE), AuthController.myProfile);
 //  updateUserZodSchema
 router.patch(
   "/update_my_profile",
@@ -23,7 +23,10 @@ router.patch(
     UserRole.ADMIN,
     UserRole.STUDENT,
     UserRole.parent,
-    UserRole.TEACHER  
+    UserRole.TEACHER,
+    UserRole.INSTITUTIONAL_OWNER,
+    UserRole.BRANCH_ADMIN,
+    UserRole.NURSE
   ),
   uploadFile.profileImage,
   (req: Request, res: Response, next: NextFunction) => {
@@ -46,7 +49,7 @@ router.get(
   AuthController.findByAllUsersAdmin
 );
 
-router.delete( `/delete_account`, auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STUDENT, UserRole.parent,UserRole.TEACHER), AuthController.deleteAccount);
+router.delete( `/delete_account`, auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTITUTIONAL_OWNER, UserRole.BRANCH_ADMIN, UserRole.STUDENT, UserRole.parent,UserRole.TEACHER, UserRole.NURSE), AuthController.deleteAccount);
 
 router.patch(
   "/block_unblock_user/:id",
@@ -70,7 +73,7 @@ router.patch(
 //change password
 router.put(
   "/change-password",
-  auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STUDENT, UserRole.parent,UserRole.TEACHER),
+  auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INSTITUTIONAL_OWNER, UserRole.BRANCH_ADMIN, UserRole.STUDENT, UserRole.parent,UserRole.TEACHER, UserRole.NURSE),
   validateRequest(authValidation.changePasswordValidationSchema),
   AuthController.changePassword
 );

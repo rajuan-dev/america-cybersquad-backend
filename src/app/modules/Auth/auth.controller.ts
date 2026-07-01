@@ -23,14 +23,12 @@ const loginUser :RequestHandler= catchAsync(async (req: Request, res: Response) 
     statusCode: httpStatus.OK,
     success: true,
     message: "User logged in successfully",
-    data: {
-      accessToken,
-    },
+    data: result,
   });
 });
 
 const refreshToken: RequestHandler = catchAsync(async (req, res) => {
-  const token = req.cookies.refreshToken;
+  const token = req.cookies.refreshToken || req.body.refreshToken;
 
   if (!token) {
     return sendResponse(res, {

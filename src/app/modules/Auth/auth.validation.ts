@@ -29,10 +29,9 @@ const resetPasswordSchema = z.object({
 const LoginSchema = z.object({
   body: z.object({
     email: z.string({ required_error: "email is required" }).email(),
-    role: z.enum([UserRole.INSTITUTIONAL_OWNER, UserRole.STUDENT,  UserRole.ADMIN, UserRole.BRANCH_ADMIN, UserRole.parent, UserRole.TEACHER,UserRole.NURSE ], {
-      required_error: "Role is required",
+    role: z.enum([UserRole.INSTITUTIONAL_OWNER, UserRole.STUDENT, UserRole.ADMIN, UserRole.BRANCH_ADMIN, UserRole.parent, UserRole.TEACHER, UserRole.NURSE, UserRole.SUPER_ADMIN], {
       invalid_type_error: "Invalid role value",
-    }),
+    }).optional(),
     password: z
       .string({  required_error: "password is required" })
       .min(6, { message: "min 6 character accepted" }),
@@ -40,11 +39,19 @@ const LoginSchema = z.object({
   fcm: z.string({ required_error: "fcm is not required" }).optional(),
 });
 
-const requestTokenValidationSchema = z.object({
-  cookies: z.object({
-    refreshToken: z.string({ required_error: "Refresh Token is Required" }),
-  }),
-});
+const requestTokenValidationSchema = z
+  .object({
+    cookies: z.object({
+      refreshToken: z.string().optional(),
+    }),
+    body: z.object({
+      refreshToken: z.string().optional(),
+    }),
+  })
+  .refine((data) => Boolean(data.cookies?.refreshToken || data.body?.refreshToken), {
+    message: "Refresh Token is Required",
+    path: ["cookies", "refreshToken"],
+  });
 
 
 const blockUserZodSchema = z.object({

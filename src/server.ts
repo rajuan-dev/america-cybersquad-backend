@@ -3,17 +3,22 @@ import app from "./app";
 
 import config from "./config";
 import { connectSocket } from "./socket/connectSocket";
-import { connectRedis, disconnectRedis } from "./config/redis";
+import { connectRedis, disconnectRedis, isRedisAlive } from "./config/redis";
 import { logger } from "./config/logger";
 
 let server: Server;
 
 async function main() {
   const port = Number(config.port) || 5000;
-   await connectRedis();
+  await connectRedis();
   server = app.listen(port, () => {
     console.log(`🚀 Server running on http://localhost:${port}`);
-    console.log(`✅ Redis connected successfully : ${config.redis.url}`);
+
+    if (isRedisAlive()) {
+      console.log(`✅ Redis connected successfully : ${config.redis.url}`);
+    } else {
+      console.log("⚠️ Redis unavailable. Falling back to in-memory cache.");
+    }
 
    
     connectSocket(server);

@@ -19,6 +19,7 @@ import examAnnouncementRouter from "../modules/ExamAnnouncement/examAnnouncement
 import ParentRouter from "../modules/Parent/parent.route";
 import nurseRoute from "../modules/nurse/nurse.route";
 import LandingPageRouter from "../modules/LandingPage/landingPage.route";
+import stripeRoute from "../modules/stripe/stripe.route";
 
 
 
@@ -104,6 +105,10 @@ const moduleRoutes = [
    {
     path:"/landing_page", 
     route: LandingPageRouter
+   },
+   {
+    path: "/stripe",
+    route: stripeRoute
    }
  
 

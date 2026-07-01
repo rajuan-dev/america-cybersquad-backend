@@ -11,10 +11,302 @@ import config from "../../../config";
 import { JwtPayload } from "jsonwebtoken";
 import catchError from "../../../errors/catchError";
 import { uploadFile } from "../../../helpars/fileUploader";
+import { logger } from "../../../config/logger";
 
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { TUser } from "../User/user.interface";
 import authConstants from "./auth.constant";
+
+type AuthAccountSummary = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  uiRole: string;
+  schoolName?: string | null;
+  country?: string | null;
+  city?: string | null;
+  state?: string | null;
+  branches?: number | null;
+  subscriptionId?: string | null;
+};
+
+type LoginCandidate = {
+  id: string;
+  password: string;
+  email: string;
+  role: string;
+  subscriptionId?: string | null;
+  profile: AuthAccountSummary;
+};
+
+const mapBackendRoleToUiRole = (role: string) => {
+  switch (role) {
+    case UserRole.INSTITUTIONAL_OWNER:
+      return "institution_manager";
+    case UserRole.ADMIN:
+      return "branch_manager";
+    case UserRole.BRANCH_ADMIN:
+      return "branch_admin";
+    case UserRole.TEACHER:
+      return "teacher";
+    case UserRole.STUDENT:
+      return "student";
+    case UserRole.parent:
+      return "parent";
+    case UserRole.NURSE:
+      return "nurse";
+    case UserRole.SUPER_ADMIN:
+      return "super_admin";
+    default:
+      return String(role).toLowerCase();
+  }
+};
+
+const buildTokenPayload = (candidate: LoginCandidate) => ({
+  id: candidate.id,
+  role: candidate.role,
+  email: candidate.email,
+  ...(candidate.subscriptionId ? { subscriptionId: candidate.subscriptionId } : {}),
+});
+
+const fetchLoginCandidate = async (
+  email: string,
+  role?: string
+): Promise<LoginCandidate | null> => {
+  const lookups = [
+    async (): Promise<LoginCandidate | null> => {
+      const user = await prisma.user.findFirst({
+        where: {
+          email,
+          isVerified: true,
+          status: UserStatus.ACTIVE,
+          ...(role && {
+            role: role as UserRole,
+          }),
+        },
+        select: {
+          id: true,
+          password: true,
+          email: true,
+          role: true,
+          name: true,
+          schoolName: true,
+          country: true,
+          city: true,
+          state: true,
+          branches: true,
+        },
+      });
+
+      if (!user) {
+        return null;
+      }
+
+      return {
+        id: user.id,
+        password: user.password,
+        email: user.email,
+        role: user.role,
+        profile: {
+          id: user.id,
+          name: user.name || user.schoolName || user.email,
+          email: user.email,
+          role: user.role,
+          uiRole: mapBackendRoleToUiRole(user.role),
+          schoolName: user.schoolName,
+          country: user.country,
+          city: user.city,
+          state: user.state,
+          branches: user.branches,
+        },
+      };
+    },
+    async (): Promise<LoginCandidate | null> => {
+      if (role && role !== UserRole.BRANCH_ADMIN) {
+        return null;
+      }
+
+      const user = await prisma.branchAdmin.findFirst({
+        where: {
+          emailAddress: email,
+          isVerified: true,
+          status: UserStatus.ACTIVE,
+        },
+        select: {
+          id: true,
+          password: true,
+          emailAddress: true,
+          role: true,
+          subscriptionId: true,
+          fullName: true,
+          assignBranch: true,
+        },
+      });
+
+      if (!user) {
+        return null;
+      }
+
+      return {
+        id: user.id,
+        password: user.password,
+        email: user.emailAddress,
+        role: user.role,
+        subscriptionId: user.subscriptionId,
+        profile: {
+          id: user.id,
+          name: user.fullName,
+          email: user.emailAddress,
+          role: user.role,
+          uiRole: mapBackendRoleToUiRole(user.role),
+          schoolName: user.assignBranch,
+          branches: 1,
+          subscriptionId: user.subscriptionId,
+        },
+      };
+    },
+    async (): Promise<LoginCandidate | null> => {
+      if (role && role !== UserRole.TEACHER) {
+        return null;
+      }
+
+      const user = await prisma.teacher.findFirst({
+        where: {
+          email,
+          isVerified: true,
+          status: UserStatus.ACTIVE,
+        },
+        select: {
+          id: true,
+          password: true,
+          email: true,
+          role: true,
+          subscriptionId: true,
+          teacherName: true,
+          branchName: true,
+        },
+      });
+
+      if (!user) {
+        return null;
+      }
+
+      return {
+        id: user.id,
+        password: user.password,
+        email: user.email,
+        role: user.role,
+        subscriptionId: user.subscriptionId,
+        profile: {
+          id: user.id,
+          name: user.teacherName,
+          email: user.email,
+          role: user.role,
+          uiRole: mapBackendRoleToUiRole(user.role),
+          schoolName: user.branchName,
+          subscriptionId: user.subscriptionId,
+        },
+      };
+    },
+    async (): Promise<LoginCandidate | null> => {
+      if (role && role !== UserRole.STUDENT) {
+        return null;
+      }
+
+      const user = await prisma.student.findFirst({
+        where: {
+          email,
+          isVerified: true,
+          status: UserStatus.ACTIVE,
+        },
+        select: {
+          id: true,
+          password: true,
+          email: true,
+          role: true,
+          subscriptionId: true,
+          name: true,
+          branchName: true,
+        },
+      });
+
+      if (!user) {
+        return null;
+      }
+
+      return {
+        id: user.id,
+        password: user.password,
+        email: user.email,
+        role: user.role,
+        subscriptionId: user.subscriptionId,
+        profile: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          uiRole: mapBackendRoleToUiRole(user.role),
+          schoolName: user.branchName,
+          subscriptionId: user.subscriptionId,
+        },
+      };
+    },
+    async (): Promise<LoginCandidate | null> => {
+      if (role && role !== UserRole.parent && role !== UserRole.NURSE) {
+        return null;
+      }
+
+      const user = await prisma.staff.findFirst({
+        where: {
+          email,
+          isVerified: true,
+          status: UserStatus.ACTIVE,
+          ...(role && {
+            role,
+          }),
+        },
+        select: {
+          id: true,
+          password: true,
+          email: true,
+          role: true,
+          subscriptionId: true,
+          name: true,
+        },
+      });
+
+      if (!user) {
+        return null;
+      }
+
+      return {
+        id: user.id,
+        password: user.password,
+        email: user.email,
+        role: user.role,
+        subscriptionId: user.subscriptionId,
+        profile: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          uiRole: mapBackendRoleToUiRole(user.role),
+          subscriptionId: user.subscriptionId,
+        },
+      };
+    },
+  ];
+
+  for (const lookup of lookups) {
+    const candidate = await lookup();
+    if (candidate) {
+      return candidate;
+    }
+  }
+
+  return null;
+};
 
 const loginUserIntoDb = async (payload: Partial<TUser>) => {
   try {
@@ -26,453 +318,58 @@ const loginUserIntoDb = async (payload: Partial<TUser>) => {
       );
     }
 
-    let result;
-
-    switch (payload?.role) {
-      case UserRole.INSTITUTIONAL_OWNER: {
-        const user = await prisma.user.findFirst({
-          where: {
-            email: payload.email,
-            isVerified: true,
-            status: UserStatus.ACTIVE,
-          },
-          select: {
-            id: true,
-            password: true,
-            email: true,
-            role: true,
-          },
-        });
-
-        if (!user) {
-          throw new ApiError(httpStatus.NOT_FOUND, "User not found", "");
-        }
-
-        if (payload.role && user.role !== payload.role) {
-          throw new ApiError(
-            httpStatus.FORBIDDEN,
-            "Invalid role for this user",
-            "",
-          );
-        }
-
-        const isPasswordMatched = await bcrypt.compare(
-          payload.password as string,
-          user.password,
-        );
-
-        if (!isPasswordMatched) {
-          throw new ApiError(httpStatus.FORBIDDEN, "Password not matched", "");
-        }
-
-        const jwtPayload = {
-          id: user.id,
-          role: user.role,
-          email: user.email,
-        };
-
-        const accessToken = jwtHelpers.generateToken(
-          jwtPayload,
-          config.jwt_access_secret as string,
-          config.expires_in as string,
-        );
-
-        const refreshToken = jwtHelpers.generateToken(
-          jwtPayload,
-          config.jwt_refresh_secret as string,
-          config.refresh_expires_in as string,
-        );
-
-        result = {
-          accessToken,
-          refreshToken,
-        };
-
-        break;
-      }
-      case UserRole.ADMIN:{
-
-        const user = await prisma.user.findFirst({
-          where: {
-            email: payload.email,
-            isVerified: true,
-            status: UserStatus.ACTIVE,
-          },
-          select: {
-            id: true,
-            password: true,
-            email: true,
-            role: true,
-          },
-        });
-
-        if (!user) {
-          throw new ApiError(httpStatus.NOT_FOUND, "User not found", "");
-        }
-
-        if (payload.role && user.role !== payload.role) {
-          throw new ApiError(
-            httpStatus.FORBIDDEN,
-            "Invalid role for this user",
-            "",
-          );
-        }
-
-        const isPasswordMatched = await bcrypt.compare(
-          payload.password as string,
-          user.password,
-        );
-
-        if (!isPasswordMatched) {
-          throw new ApiError(httpStatus.FORBIDDEN, "Password not matched", "");
-        }
-
-        const jwtPayload = {
-          id: user.id,
-          role: user.role,
-          email: user.email,
-        };
-
-        const accessToken = jwtHelpers.generateToken(
-          jwtPayload,
-          config.jwt_access_secret as string,
-          config.expires_in as string,
-        );
-
-        const refreshToken = jwtHelpers.generateToken(
-          jwtPayload,
-          config.jwt_refresh_secret as string,
-          config.refresh_expires_in as string,
-        );
-
-        result = {
-          accessToken,
-          refreshToken,
-        };
-
-        break;
-      }
-      case UserRole.TEACHER: {
-        const user = await prisma.teacher.findFirst({
-          where: {
-            email: payload.email,
-            isVerified: true,
-            status: UserStatus.ACTIVE,
-          },
-          select: {
-            id: true,
-            password: true,
-            email: true,
-            role: true,
-          },
-        });
-
-        if (!user) {
-          throw new ApiError(httpStatus.NOT_FOUND, "User not found", "");
-        }
-
-        if (payload.role && user.role !== payload.role) {
-          throw new ApiError(
-            httpStatus.FORBIDDEN,
-            "Invalid role for this user",
-            "",
-          );
-        }
-
-        const isPasswordMatched = await bcrypt.compare(
-          payload.password as string,
-          user.password,
-        );
-
-        if (!isPasswordMatched) {
-          throw new ApiError(httpStatus.FORBIDDEN, "Password not matched", "");
-        }
-
-        const jwtPayload = {
-          id: user.id,
-          role: user.role,
-          email: user.email,
-        };
-
-        const accessToken = jwtHelpers.generateToken(
-          jwtPayload,
-          config.jwt_access_secret as string,
-          config.expires_in as string,
-        );
-
-        const refreshToken = jwtHelpers.generateToken(
-          jwtPayload,
-          config.jwt_refresh_secret as string,
-          config.refresh_expires_in as string,
-        );
-
-        result = {
-          accessToken,
-          refreshToken,
-        };
-
-        break;
-      }
-
-      case UserRole.STUDENT: {
-        const user = await prisma.student.findFirst({
-          where: {
-            email: payload.email,
-            isVerified: true,
-            status: UserStatus.ACTIVE,
-          },
-          select: {
-            id: true,
-            password: true,
-            email: true,
-            role: true,
-            subscriptionId: true,
-          },
-        });
-
-        if (!user) {
-          throw new ApiError(httpStatus.NOT_FOUND, "User not found", "");
-        }
-
-        if (payload.role && user.role !== payload.role) {
-          throw new ApiError(
-            httpStatus.FORBIDDEN,
-            "Invalid role for this user",
-            "",
-          );
-        }
-
-        const isPasswordMatched = await bcrypt.compare(
-          payload.password as string,
-          user.password,
-        );
-
-        if (!isPasswordMatched) {
-          throw new ApiError(httpStatus.FORBIDDEN, "Password not matched", "");
-        }
-
-        const jwtPayload = {
-          id: user.id,
-          role: user.role,
-          email: user.email,
-          subscriptionId: user.subscriptionId,
-        };
-
-        const accessToken = jwtHelpers.generateToken(
-          jwtPayload,
-          config.jwt_access_secret as string,
-          config.expires_in as string,
-        );
-
-        const refreshToken = jwtHelpers.generateToken(
-          jwtPayload,
-          config.jwt_refresh_secret as string,
-          config.refresh_expires_in as string,
-        );
-
-        result = {
-          accessToken,
-          refreshToken,
-        };
-
-        break;
-      }
-      case UserRole.parent: {
-        const user = await prisma.staff.findFirst({
-          where: {
-            email: payload.email,
-            isVerified: true,
-            status: UserStatus.ACTIVE,
-          },
-          select: {
-            id: true,
-            password: true,
-            email: true,
-            role: true,
-          },
-        });
-
-        if (!user) {
-          throw new ApiError(httpStatus.NOT_FOUND, "User not found", "");
-        }
-
-        if (payload.role && user.role !== payload.role) {
-          throw new ApiError(
-            httpStatus.FORBIDDEN,
-            "Invalid role for this user",
-            "",
-          );
-        }
-
-        const isPasswordMatched = await bcrypt.compare(
-          payload.password as string,
-          user.password,
-        );
-
-        if (!isPasswordMatched) {
-          throw new ApiError(httpStatus.FORBIDDEN, "Password not matched", "");
-        }
-
-        const jwtPayload = {
-          id: user.id,
-          role: user.role,
-          email: user.email,
-        };
-
-        const accessToken = jwtHelpers.generateToken(
-          jwtPayload,
-          config.jwt_access_secret as string,
-          config.expires_in as string,
-        );
-
-        const refreshToken = jwtHelpers.generateToken(
-          jwtPayload,
-          config.jwt_refresh_secret as string,
-          config.refresh_expires_in as string,
-        );
-
-        result = {
-          accessToken,
-          refreshToken,
-        };
-
-        break;
-      }
-
-      case UserRole.NURSE: {
-        const user = await prisma.staff.findFirst({
-          where: {
-            email: payload.email,
-            isVerified: true,
-            status: UserStatus.ACTIVE,
-          },
-          select: {
-            id: true,
-            password: true,
-            email: true,
-            role: true,
-            subscriptionId: true,
-          },
-        });
-
-        if (!user) {
-          throw new ApiError(httpStatus.NOT_FOUND, "User not found", "");
-        }
-
-        if (payload.role && user.role !== payload.role) {
-          throw new ApiError(
-            httpStatus.FORBIDDEN,
-            "Invalid role for this user",
-            "",
-          );
-        }
-
-        const isPasswordMatched = await bcrypt.compare(
-          payload.password as string,
-          user.password,
-        );
-
-        if (!isPasswordMatched) {
-          throw new ApiError(httpStatus.FORBIDDEN, "Password not matched", "");
-        }
-
-        const jwtPayload = {
-          id: user.id,
-          role: user.role,
-          email: user.email,
-          subscriptionId: user.subscriptionId,
-        };
-
-        const accessToken = jwtHelpers.generateToken(
-          jwtPayload,
-          config.jwt_access_secret as string,
-          config.expires_in as string,
-        );
-
-        const refreshToken = jwtHelpers.generateToken(
-          jwtPayload,
-          config.jwt_refresh_secret as string,
-          config.refresh_expires_in as string,
-        );
-
-        result = {
-          accessToken,
-          refreshToken,
-        };
-
-        break;
-      }
-
-      case UserRole.BRANCH_ADMIN: {
-        const user = await prisma.branchAdmin.findFirst({
-          where: {
-            emailAddress: payload.email,
-            isVerified: true,
-            status: UserStatus.ACTIVE,
-          },
-          select: {
-            id: true,
-            password: true,
-            emailAddress: true,
-            role: true,
-            subscriptionId: true,
-          },
-        });
-
-        if (!user) {
-          throw new ApiError(httpStatus.NOT_FOUND, "User not found", "");
-        }
-
-        if (payload.role && user.role !== payload.role) {
-          throw new ApiError(
-            httpStatus.FORBIDDEN,
-            "Invalid role for this user",
-            "",
-          );
-        }
-
-        const isPasswordMatched = await bcrypt.compare(
-          payload.password as string,
-          user.password,
-        );
-
-        if (!isPasswordMatched) {
-          throw new ApiError(httpStatus.FORBIDDEN, "Password not matched", "");
-        }
-
-        const jwtPayload = {
-          id: user.id,
-          role: user.role,
-          email: user.emailAddress,
-          subscriptionId: user.subscriptionId,
-        };
-
-        const accessToken = jwtHelpers.generateToken(
-          jwtPayload,
-          config.jwt_access_secret as string,
-          config.expires_in as string,
-        );
-
-        const refreshToken = jwtHelpers.generateToken(
-          jwtPayload,
-          config.jwt_refresh_secret as string,
-          config.refresh_expires_in as string,
-        );
-
-        result = {
-          accessToken,
-          refreshToken,
-        };
-
-        break;
-      }
-
-      default: {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid user role", "");
-      }
+    const supportedRoles = new Set<string>([
+      UserRole.ADMIN,
+      UserRole.SUPER_ADMIN,
+      UserRole.INSTITUTIONAL_OWNER,
+      UserRole.BRANCH_ADMIN,
+      UserRole.TEACHER,
+      UserRole.STUDENT,
+      UserRole.parent,
+      UserRole.NURSE,
+    ]);
+
+    if (payload.role && !supportedRoles.has(String(payload.role))) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid user role", "");
     }
 
-    return result;
+    const candidate = await fetchLoginCandidate(
+      payload.email,
+      payload.role as string | undefined
+    );
+
+    if (!candidate) {
+      throw new ApiError(httpStatus.NOT_FOUND, "User not found", "");
+    }
+
+    const isPasswordMatched = await bcrypt.compare(
+      payload.password as string,
+      candidate.password
+    );
+
+    if (!isPasswordMatched) {
+      throw new ApiError(httpStatus.FORBIDDEN, "Password not matched", "");
+    }
+
+    const jwtPayload = buildTokenPayload(candidate);
+
+    const accessToken = jwtHelpers.generateToken(
+      jwtPayload,
+      config.jwt_access_secret as string,
+      config.expires_in as string
+    );
+
+    const refreshToken = jwtHelpers.generateToken(
+      jwtPayload,
+      config.jwt_refresh_secret as string,
+      config.refresh_expires_in as string
+    );
+
+    return {
+      accessToken,
+      refreshToken,
+      user: candidate.profile,
+    };
   } catch (error) {
     catchError(error);
     throw error;
@@ -501,6 +398,7 @@ const refreshTokenIntoDb = async (token: string) => {
 
     // 🔁 Fetch user based on role
     switch (role) {
+      case UserRole.SUPER_ADMIN:
       case UserRole.INSTITUTIONAL_OWNER:
       case UserRole.ADMIN:
         user = await prisma.user.findUnique({
@@ -559,6 +457,7 @@ const refreshTokenIntoDb = async (token: string) => {
         break;
 
       case UserRole.NURSE:
+      case UserRole.parent:
         user = await prisma.staff.findUnique({
           where: { id },
           select: {
@@ -616,6 +515,7 @@ const myProfileIntoDb = async (id: string, role: string) => {
     let user: any = null;
 
     switch (role) {
+      case UserRole.SUPER_ADMIN:
       case UserRole.INSTITUTIONAL_OWNER:
       case UserRole.ADMIN:
         user = await prisma.user.findUnique({
@@ -691,6 +591,7 @@ const myProfileIntoDb = async (id: string, role: string) => {
         break;
 
       case UserRole.NURSE:
+      case UserRole.parent:
         user = await prisma.staff.findUnique({
           where: { id },
           select: {
