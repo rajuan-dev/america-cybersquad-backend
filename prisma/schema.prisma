@@ -28,6 +28,7 @@ model User {
   branches         Int
   announcements    Announcement[]
   branchadmins     BranchAdmin[]
+  institutionBranches InstitutionBranch[]
   notification     Notification[]
   subscriptions    Subscriptions[]
   supports         Support[]
@@ -261,8 +262,34 @@ model Subscriptions {
   teacher             Teacher[]
   examAnnouncement    ExamAnnouncement[]
   healthRecords       HealthRecords[]
+  institutionBranches InstitutionBranch[]
 
   @@map("subscriptions")
+}
+
+model InstitutionBranch {
+  id                 String        @id @default(uuid())
+  userId             String
+  subscriptionId     String?
+  subscriptionDetailId String?     @unique
+  name               String
+  type               String
+  location           String
+  contact            String?
+  annualPriceUsd     Float         @default(0)
+  pricingRuleVersion String?
+  isOverridden       Boolean       @default(false)
+  overrideReason     String?
+  isDeleted          Boolean       @default(false)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  user               User          @relation(fields: [userId], references: [id])
+  subscription       Subscriptions? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([name])
+  @@map("institution_branches")
 }
 
 model StudentFees {

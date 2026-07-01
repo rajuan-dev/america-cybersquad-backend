@@ -183,7 +183,85 @@ const  resetPasswordBranchAdmin: RequestHandler = catchAsync( async (req, res) =
     message: "Password reset successfully.",
     data: result,
   });
+});
+
+const findInstitutionBranchOptions: RequestHandler = catchAsync(async (req, res) => {
+  const result = await BranchManagementServices.findInstitutionBranchOptionsIntoDb(req.user.id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully fetched institution branch options",
+    data: result,
   });
+});
+
+const findInstitutionBranchStats: RequestHandler = catchAsync(async (req, res) => {
+  const branchId = typeof req.query.branchId === "string" ? req.query.branchId : undefined;
+  const result = await BranchManagementServices.findInstitutionBranchStatsIntoDb(req.user.id, branchId);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully fetched institution branch stats",
+    data: result,
+  });
+});
+
+const findInstitutionBranches: RequestHandler = catchAsync(async (req, res) => {
+  const result = await BranchManagementServices.findInstitutionBranchesIntoDb(req.user.id, req.query);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully fetched institution branches",
+    data: result,
+  });
+});
+
+const createInstitutionBranch: RequestHandler = catchAsync(async (req, res) => {
+  const result = await BranchManagementServices.createInstitutionBranchIntoDb(req.user.id, req.body);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.CREATED,
+    message: "Institution branch created successfully",
+    data: result,
+  });
+});
+
+const updateInstitutionBranch: RequestHandler = catchAsync(async (req, res) => {
+  const result = await BranchManagementServices.updateInstitutionBranchIntoDb(req.user.id, req.params.id, req.body);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Institution branch updated successfully",
+    data: result,
+  });
+});
+
+const overrideInstitutionBranchPrice: RequestHandler = catchAsync(async (req, res) => {
+  const result = await BranchManagementServices.overrideInstitutionBranchPriceIntoDb(req.user.id, req.params.id, req.body);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Institution branch price updated successfully",
+    data: result,
+  });
+});
+
+const deleteInstitutionBranch: RequestHandler = catchAsync(async (req, res) => {
+  const result = await BranchManagementServices.deleteInstitutionBranchIntoDb(req.user.id, req.params.id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Institution branch deleted successfully",
+    data: result,
+  });
+});
 
   
             
@@ -203,7 +281,14 @@ const BranchManagementController={
     refreshTokenBranchAdmin,
     forgotPasswordBranchADmin,
     verificationForgotBranchAdmin,
-     resetPasswordBranchAdmin
+     resetPasswordBranchAdmin,
+     findInstitutionBranchOptions,
+     findInstitutionBranchStats,
+     findInstitutionBranches,
+     createInstitutionBranch,
+     updateInstitutionBranch,
+     overrideInstitutionBranchPrice,
+     deleteInstitutionBranch
 };
 
 export default BranchManagementController;

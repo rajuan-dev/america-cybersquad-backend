@@ -12,6 +12,182 @@ import { JwtPayload } from "jsonwebtoken";
 import { generateOtp } from "../../../utils/generateOtp";
 import sendEmail from "../../../utils/sendEmail";
 import emailContext from "../../../utils/emailcontext/sendvarificationData";
+import { AttendanceStatus } from "@prisma/client";
+
+const formatBranchType = (type: string) => {
+  const normalizedType = type.trim().toLowerCase();
+
+  if (
+    normalizedType.includes("primary") &&
+    (normalizedType.includes("secondary") || normalizedType.includes("high"))
+  ) {
+    return "Primary & Secondary";
+  }
+
+  if (normalizedType.includes("secondary") || normalizedType.includes("high")) {
+    return "Secondary School";
+  }
+
+  return "Primary School";
+};
+
+const buildLocation = (city?: string | null, state?: string | null, country?: string | null) =>
+  [city, state, country].filter(Boolean).join(", ");
+
+const roundCurrency = (value: number) => Math.round(value * 100) / 100;
+
+type InstitutionBranchMetrics = {
+  id: string;
+  name: string;
+  type: string;
+  students: number;
+  teachers: number;
+  attendance: number;
+  earnings: number;
+  location: string;
+  contact: string;
+  annualPriceUsd: number;
+  pricingRuleVersion: string | null;
+  isOverridden: boolean;
+  overrideReason: string | null;
+};
+
+const syncInstitutionBranchesFromSubscriptions = async (userId: string) => {
+  const subscriptions = await prisma.subscriptions.findMany({
+    where: {
+      userId,
+      isDeleted: false,
+    },
+    include: {
+      subscriptiondetails: {
+        where: {
+          isDeleted: false,
+        },
+      },
+    },
+  });
+
+  for (const subscription of subscriptions) {
+    const branchCount = subscription.subscriptiondetails.length || 1;
+    const perBranchAnnualPrice = roundCurrency(subscription.price / branchCount);
+
+    for (const detail of subscription.subscriptiondetails) {
+      const existingBranch = await prisma.institutionBranch.findFirst({
+        where: {
+          userId,
+          subscriptionDetailId: detail.id,
+        },
+      });
+
+      if (!existingBranch) {
+        await prisma.institutionBranch.create({
+          data: {
+            userId,
+            subscriptionId: subscription.id,
+            subscriptionDetailId: detail.id,
+            name: detail.schoolName,
+            type: formatBranchType(detail.schoolType),
+            location: buildLocation(detail.city, detail.state, detail.country),
+            contact: null,
+            annualPriceUsd: perBranchAnnualPrice,
+            pricingRuleVersion: "subscription-sync-v1",
+          },
+        });
+
+        continue;
+      }
+
+      if (!existingBranch.isOverridden) {
+        await prisma.institutionBranch.update({
+          where: {
+            id: existingBranch.id,
+          },
+          data: {
+            subscriptionId: subscription.id,
+            annualPriceUsd: perBranchAnnualPrice,
+          },
+        });
+      }
+    }
+  }
+};
+
+const getInstitutionBranchMetrics = async (branch: {
+  id: string;
+  name: string;
+  type: string;
+  location: string;
+  contact: string | null;
+  annualPriceUsd: number;
+  pricingRuleVersion: string | null;
+  isOverridden: boolean;
+  overrideReason: string | null;
+}): Promise<InstitutionBranchMetrics> => {
+  const [studentsCount, teachersCount, attendanceTotal, attendancePresent, earningsAggregate] =
+    await Promise.all([
+      prisma.student.count({
+        where: {
+          branchName: branch.name,
+          isDeleted: false,
+        },
+      }),
+      prisma.teacher.count({
+        where: {
+          branchName: branch.name,
+          isDeleted: false,
+        },
+      }),
+      prisma.attendanceSheet.count({
+        where: {
+          students: {
+            branchName: branch.name,
+          },
+          isDelete: false,
+        },
+      }),
+      prisma.attendanceSheet.count({
+        where: {
+          students: {
+            branchName: branch.name,
+          },
+          attendanceStatus: AttendanceStatus.PRESENT,
+          isDelete: false,
+        },
+      }),
+      prisma.studentFees.aggregate({
+        _sum: {
+          paidAmount: true,
+        },
+        where: {
+          isDelete: false,
+          student: {
+            branchName: branch.name,
+          },
+        },
+      }),
+    ]);
+
+  const attendanceRate = attendanceTotal
+    ? Number(((attendancePresent / attendanceTotal) * 100).toFixed(1))
+    : 0;
+  const earningsUsd = roundCurrency(earningsAggregate._sum.paidAmount || 0);
+
+  return {
+    id: branch.id,
+    name: branch.name,
+    type: branch.type,
+    students: studentsCount,
+    teachers: teachersCount,
+    attendance: attendanceRate,
+    earnings: earningsUsd,
+    location: branch.location,
+    contact: branch.contact || "Not available",
+    annualPriceUsd: branch.annualPriceUsd,
+    pricingRuleVersion: branch.pricingRuleVersion,
+    isOverridden: branch.isOverridden,
+    overrideReason: branch.overrideReason,
+  };
+};
 
 const create_branch_admin_IntoDb = async (
   userId: string,
@@ -784,6 +960,351 @@ const resetPasswordBranchAdminIntoDb = async (payload: {
   }
 };
 
+const findInstitutionBranchOptionsIntoDb = async (userId: string) => {
+  await syncInstitutionBranchesFromSubscriptions(userId);
+
+  const branches = await prisma.institutionBranch.findMany({
+    where: {
+      userId,
+      isDeleted: false,
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+
+  return branches;
+};
+
+const findInstitutionBranchStatsIntoDb = async (
+  userId: string,
+  branchId?: string
+) => {
+  await syncInstitutionBranchesFromSubscriptions(userId);
+
+  const branchFilter =
+    branchId && branchId !== "all"
+      ? {
+          id: branchId,
+        }
+      : {};
+
+  const branches = await prisma.institutionBranch.findMany({
+    where: {
+      userId,
+      isDeleted: false,
+      ...branchFilter,
+    },
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      location: true,
+      contact: true,
+      annualPriceUsd: true,
+      pricingRuleVersion: true,
+      isOverridden: true,
+      overrideReason: true,
+    },
+  });
+
+  const metrics: InstitutionBranchMetrics[] = await Promise.all(branches.map(getInstitutionBranchMetrics));
+
+  const totalStudents = metrics.reduce((sum: number, item: InstitutionBranchMetrics) => sum + item.students, 0);
+  const totalTeachers = metrics.reduce((sum: number, item: InstitutionBranchMetrics) => sum + item.teachers, 0);
+  const totalEarnings = metrics.reduce((sum: number, item: InstitutionBranchMetrics) => sum + item.earnings, 0);
+  const averageAttendance = metrics.length
+    ? Number(
+        (
+          metrics.reduce((sum: number, item: InstitutionBranchMetrics) => sum + item.attendance, 0) / metrics.length
+        ).toFixed(1)
+      )
+    : 0;
+
+  return {
+    totalStudents,
+    totalTeachers,
+    averageAttendance,
+    totalEarnings: roundCurrency(totalEarnings),
+    studentChange: "+0%",
+    teacherChange: "+0%",
+    attendanceChange: "+0%",
+    earningsChange: "+0%",
+  };
+};
+
+const findInstitutionBranchesIntoDb = async (
+  userId: string,
+  query: Record<string, unknown>
+) => {
+  await syncInstitutionBranchesFromSubscriptions(userId);
+
+  const page = Math.max(Number(query.page) || 1, 1);
+  const limit = Math.max(Number(query.limit) || 8, 1);
+  const skip = (page - 1) * limit;
+  const search = typeof query.search === "string" ? query.search.trim() : "";
+  const branchId =
+    typeof query.branchId === "string" && query.branchId !== "all"
+      ? query.branchId
+      : undefined;
+
+  const whereClause: any = {
+    userId,
+    isDeleted: false,
+  };
+
+  if (branchId) {
+    whereClause.id = branchId;
+  }
+
+  if (search) {
+    whereClause.OR = [
+      {
+        name: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
+      {
+        type: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
+      {
+        location: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
+    ];
+  }
+
+  const [branches, total] = await Promise.all([
+    prisma.institutionBranch.findMany({
+      where: whereClause,
+      orderBy: {
+        createdAt: "asc",
+      },
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        location: true,
+        contact: true,
+        annualPriceUsd: true,
+        pricingRuleVersion: true,
+        isOverridden: true,
+        overrideReason: true,
+      },
+    }),
+    prisma.institutionBranch.count({
+      where: whereClause,
+    }),
+  ]);
+
+  const data = await Promise.all(branches.map(getInstitutionBranchMetrics));
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage: Math.ceil(total / limit),
+    },
+    data,
+  };
+};
+
+const createInstitutionBranchIntoDb = async (
+  userId: string,
+  payload: {
+    name: string;
+    type: string;
+    location: string;
+    contact: string;
+  }
+) => {
+  const existingBranch = await prisma.institutionBranch.findFirst({
+    where: {
+      userId,
+      name: payload.name,
+      isDeleted: false,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (existingBranch) {
+    throw new ApiError(httpStatus.CONFLICT, "Branch name already exists");
+  }
+
+  const branch = await prisma.institutionBranch.create({
+    data: {
+      userId,
+      name: payload.name,
+      type: payload.type,
+      location: payload.location,
+      contact: payload.contact,
+      annualPriceUsd: 0,
+      pricingRuleVersion: "manual-v1",
+    },
+  });
+
+  return branch;
+};
+
+const updateInstitutionBranchIntoDb = async (
+  userId: string,
+  branchId: string,
+  payload: Partial<{
+    name: string;
+    type: string;
+    location: string;
+    contact: string;
+  }>
+) => {
+  const branch = await prisma.institutionBranch.findFirst({
+    where: {
+      id: branchId,
+      userId,
+      isDeleted: false,
+    },
+  });
+
+  if (!branch) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Institution branch not found");
+  }
+
+  const oldBranchName = branch.name;
+  const nextBranchName = payload.name?.trim();
+
+  await prisma.institutionBranch.update({
+    where: {
+      id: branchId,
+    },
+    data: payload,
+  });
+
+  if (nextBranchName && nextBranchName !== oldBranchName) {
+    if (branch.subscriptionId) {
+      await Promise.all([
+        prisma.branchAdmin.updateMany({
+          where: {
+            subscriptionId: branch.subscriptionId,
+            assignBranch: oldBranchName,
+          },
+          data: {
+            assignBranch: nextBranchName,
+          },
+        }),
+        prisma.student.updateMany({
+          where: {
+            subscriptionId: branch.subscriptionId,
+            branchName: oldBranchName,
+          },
+          data: {
+            branchName: nextBranchName,
+          },
+        }),
+        prisma.teacher.updateMany({
+          where: {
+            subscriptionId: branch.subscriptionId,
+            branchName: oldBranchName,
+          },
+          data: {
+            branchName: nextBranchName,
+          },
+        }),
+      ]);
+    }
+  }
+
+  return {
+    status: true,
+    message: "Institution branch updated successfully",
+  };
+};
+
+const overrideInstitutionBranchPriceIntoDb = async (
+  userId: string,
+  branchId: string,
+  payload: {
+    annualPriceUsd: number;
+    overrideReason: string;
+  }
+) => {
+  const branch = await prisma.institutionBranch.findFirst({
+    where: {
+      id: branchId,
+      userId,
+      isDeleted: false,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!branch) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Institution branch not found");
+  }
+
+  await prisma.institutionBranch.update({
+    where: {
+      id: branchId,
+    },
+    data: {
+      annualPriceUsd: payload.annualPriceUsd,
+      isOverridden: true,
+      overrideReason: payload.overrideReason,
+      pricingRuleVersion: "manual-override-v1",
+    },
+  });
+
+  return {
+    status: true,
+    message: "Institution branch pricing updated successfully",
+  };
+};
+
+const deleteInstitutionBranchIntoDb = async (userId: string, branchId: string) => {
+  const branch = await prisma.institutionBranch.findFirst({
+    where: {
+      id: branchId,
+      userId,
+      isDeleted: false,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!branch) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Institution branch not found");
+  }
+
+  await prisma.institutionBranch.update({
+    where: {
+      id: branchId,
+    },
+    data: {
+      isDeleted: true,
+    },
+  });
+
+  return {
+    status: true,
+    message: "Institution branch deleted successfully",
+  };
+};
+
 
 const BranchManagementServices = {
   create_branch_admin_IntoDb,
@@ -797,7 +1318,14 @@ const BranchManagementServices = {
       refreshTokenBranchAdminIntoDb,
       forgotPasswordBranchADminIntoDb,
       verificationForgotBranchAdminIntoDb,
-       resetPasswordBranchAdminIntoDb
+       resetPasswordBranchAdminIntoDb,
+       findInstitutionBranchOptionsIntoDb,
+       findInstitutionBranchStatsIntoDb,
+       findInstitutionBranchesIntoDb,
+       createInstitutionBranchIntoDb,
+       updateInstitutionBranchIntoDb,
+       overrideInstitutionBranchPriceIntoDb,
+       deleteInstitutionBranchIntoDb
 };
 
 export default BranchManagementServices;

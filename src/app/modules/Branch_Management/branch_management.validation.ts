@@ -75,6 +75,31 @@ const  resetPasswordBrachAdminSchema= z.object({
 
    })
 
+const createInstitutionBranchValidation = z.object({
+  body: z.object({
+    name: z.string().min(1),
+    type: z.string().min(1),
+    location: z.string().min(1),
+    contact: z.string().min(1),
+  }),
+});
+
+const updateInstitutionBranchValidation = z.object({
+  body: z.object({
+    name: z.string().min(1).optional(),
+    type: z.string().min(1).optional(),
+    location: z.string().min(1).optional(),
+    contact: z.string().min(1).optional(),
+  }),
+});
+
+const overrideInstitutionBranchPriceValidation = z.object({
+  body: z.object({
+    annualPriceUsd: z.number().nonnegative(),
+    overrideReason: z.string().min(1),
+  }),
+});
+
 
 const branchManagementValidation={
     createBranchAdminValidation,
@@ -84,7 +109,10 @@ const branchManagementValidation={
      requestTokenValidationSchema,
      branchAdminForgotPasswordValidationSchema,
      branchAdminVerificationCodeSchema,
-     resetPasswordBrachAdminSchema
+     resetPasswordBrachAdminSchema,
+     createInstitutionBranchValidation,
+     updateInstitutionBranchValidation,
+     overrideInstitutionBranchPriceValidation
 };
 
 export default branchManagementValidation;

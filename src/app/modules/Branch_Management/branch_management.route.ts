@@ -22,6 +22,13 @@ route.post("/refresh_token_branch_admin", validateRequest( branchManagementValid
 route.post("/forgot_password_branch_admin", validateRequest( branchManagementValidation. branchAdminForgotPasswordValidationSchema), BranchManagementController.forgotPasswordBranchADmin); 
 route.post("/verification_forgot_branch_admin", validateRequest( branchManagementValidation.branchAdminVerificationCodeSchema), BranchManagementController.verificationForgotBranchAdmin);  
 route.post("/reset_password_branch_admin", validateRequest( branchManagementValidation.resetPasswordBrachAdminSchema), BranchManagementController.resetPasswordBranchAdmin);     
+route.get("/institution_branch_options", auth(UserRole.INSTITUTIONAL_OWNER), BranchManagementController.findInstitutionBranchOptions);
+route.get("/institution_branch_stats", auth(UserRole.INSTITUTIONAL_OWNER), BranchManagementController.findInstitutionBranchStats);
+route.get("/institution_branches", auth(UserRole.INSTITUTIONAL_OWNER), BranchManagementController.findInstitutionBranches);
+route.post("/institution_branches", auth(UserRole.INSTITUTIONAL_OWNER), validateRequest(branchManagementValidation.createInstitutionBranchValidation), BranchManagementController.createInstitutionBranch);
+route.patch("/institution_branches/:id", auth(UserRole.INSTITUTIONAL_OWNER), validateRequest(branchManagementValidation.updateInstitutionBranchValidation), BranchManagementController.updateInstitutionBranch);
+route.patch("/institution_branches/:id/override_price", auth(UserRole.INSTITUTIONAL_OWNER), validateRequest(branchManagementValidation.overrideInstitutionBranchPriceValidation), BranchManagementController.overrideInstitutionBranchPrice);
+route.delete("/institution_branches/:id", auth(UserRole.INSTITUTIONAL_OWNER), BranchManagementController.deleteInstitutionBranch);
 const branchManagement=route;
 
 export default  branchManagement;
