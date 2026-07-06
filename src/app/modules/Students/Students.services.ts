@@ -40,6 +40,26 @@ const createStudentIntoDb = async (
       );
     }
 
+    const branchAdmin = await prisma.branchAdmin.findUnique({
+      where: { id: branchAdminId },
+      select: {
+        id: true,
+        assignBranch: true,
+        subscriptionId: true,
+      },
+    });
+
+    if (!branchAdmin) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Branch admin not found");
+    }
+
+    if (!branchAdmin.subscriptionId) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Assigned branch subscription is missing for this branch admin"
+      );
+    }
+
        
     
         const hashedPassword = await bcrypt.hash(
@@ -52,12 +72,14 @@ const createStudentIntoDb = async (
     // ✅ remove unsafe override possibility
     const { branchAdminId: _ignored, ...safePayload } = payload as CreateStudentDto;
 
-   const result= await prisma.student.create({
+    const result= await prisma.student.create({
       data: {
         branchAdminId,
         role: UserRole.STUDENT,
         studentId: await generateStudentId(UserRole.STUDENT),
         ...safePayload,
+        branchName: branchAdmin.assignBranch,
+        subscriptionId: branchAdmin.subscriptionId,
       },
     });
     if(!result){

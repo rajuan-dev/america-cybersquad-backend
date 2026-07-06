@@ -96,6 +96,15 @@ const auth = (...roles: string[]) => {
 
          break;
         }
+
+        case UserRole.BURSAR: {
+          user = await prisma.staff.findUnique({
+            where: { id: verifiedUser.id, isVerified: true, status: UserStatus.ACTIVE },
+            select: { id: true },
+          });
+
+          break;
+        }
         
         default: {
           throw new ApiError(httpStatus.FORBIDDEN, "Invalid role!");
