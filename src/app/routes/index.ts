@@ -75,6 +75,10 @@ const moduleRoutes = [
     route: StaffManagementRouter
    },
    {
+    path:"/staff_management",
+    route: StaffManagementRouter
+   },
+   {
     path:"/subject",
     route: SubjectRouter
    },
