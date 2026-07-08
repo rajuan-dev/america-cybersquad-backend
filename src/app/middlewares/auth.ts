@@ -81,7 +81,9 @@ const auth = (...roles: string[]) => {
             where:{id:verifiedUser.id, isVerified:true, status:UserStatus.ACTIVE},
             
             select:{id:true,subscriptionId: true ,subscriptions:{
-              
+              select: {
+                id: true
+              }
             }}
           }); 
           break;

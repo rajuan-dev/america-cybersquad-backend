@@ -110,7 +110,7 @@ const createTeacher:RequestHandler = catchAsync(async (req, res) => {
 
           const findBySpecificStudentAttendanceOfTeachers:RequestHandler = catchAsync(async (req, res) => {
 
-           const result = await TeacherService.findBySpecificStudentAttendanceOfTeachersIntoDb(req.user.id, req.params.subscriptionId, req.query);
+           const result = await TeacherService.findBySpecificStudentAttendanceOfTeachersIntoDb(req.user.id, req.params.classDistributionId, req.query);
           sendResponse(res, {
               statusCode: httpStatus.OK,
               success: true,
@@ -132,7 +132,7 @@ const createTeacher:RequestHandler = catchAsync(async (req, res) => {
 
           const  updateStudentAttendanceOfTeachers:RequestHandler = catchAsync(async (req, res) => {
 
-           const result = await TeacherService.updateStudentAttendanceOfTeachersIntoDb(req.user.id, req.body);  
+           const result = await TeacherService.updateStudentAttendanceOfTeachersIntoDb(req.user.id, req.user.subscriptionId, req.body);  
           sendResponse(res, {
               statusCode: httpStatus.OK,
               success: true,

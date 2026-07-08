@@ -263,6 +263,40 @@ const deleteInstitutionBranch: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+
+const branchManagementTotalCount:RequestHandler=catchAsync(async(req , res)=>{
+  const result=await BranchManagementServices.branchManagementTotalCountIntoDb(req.params.subscriptionId);
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find All Information",
+    data: result,
+  });
+});
+
+const studentGrowth:RequestHandler=catchAsync(async(req , res)=>{
+   const result=await BranchManagementServices.studentGrowthIntoDb(req.params.subscriptionId, req.query);
+    sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find  By Student Growth",
+    data: result,
+  });
+});
+
+const earningGrowth:RequestHandler=catchAsync(async(req , res)=>{
+
+   const result=await BranchManagementServices.earningGrowthIntoDb(req.params.subscriptionId, req.query);
+   sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully Find  By earning growth Growth",
+    data: result,
+  });
+})
+
+
+
   
             
 
@@ -288,7 +322,10 @@ const BranchManagementController={
      createInstitutionBranch,
      updateInstitutionBranch,
      overrideInstitutionBranchPrice,
-     deleteInstitutionBranch
+     deleteInstitutionBranch,
+     branchManagementTotalCount,
+     studentGrowth,
+     earningGrowth
 };
 
 export default BranchManagementController;

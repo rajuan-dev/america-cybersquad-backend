@@ -28,7 +28,23 @@ route.get("/institution_branches", auth(UserRole.INSTITUTIONAL_OWNER), BranchMan
 route.post("/institution_branches", auth(UserRole.INSTITUTIONAL_OWNER), validateRequest(branchManagementValidation.createInstitutionBranchValidation), BranchManagementController.createInstitutionBranch);
 route.patch("/institution_branches/:id", auth(UserRole.INSTITUTIONAL_OWNER), validateRequest(branchManagementValidation.updateInstitutionBranchValidation), BranchManagementController.updateInstitutionBranch);
 route.patch("/institution_branches/:id/override_price", auth(UserRole.INSTITUTIONAL_OWNER), validateRequest(branchManagementValidation.overrideInstitutionBranchPriceValidation), BranchManagementController.overrideInstitutionBranchPrice);
+
 route.delete("/institution_branches/:id", auth(UserRole.INSTITUTIONAL_OWNER), BranchManagementController.deleteInstitutionBranch);
+
+
+route.get("/branch_management_total_count/:subscriptionId",
+       auth(UserRole.BRANCH_ADMIN, UserRole.INSTITUTIONAL_OWNER),
+      BranchManagementController.branchManagementTotalCount);
+
+      route.get("/student_growth", 
+              auth(UserRole.BRANCH_ADMIN, UserRole.INSTITUTIONAL_OWNER),
+            BranchManagementController.studentGrowth);
+
+      route.get("/earning_growth",
+             auth(UserRole.BRANCH_ADMIN, UserRole.INSTITUTIONAL_OWNER),
+            BranchManagementController.earningGrowth);
+
+            
 const branchManagement=route;
 
 export default  branchManagement;

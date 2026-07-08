@@ -115,14 +115,6 @@ import { attendanceStatus } from "./Teacher.constant";
         message: "Invalid date format",
       }),
 
-    
-
-    subscriptionId: z
-      .string({
-        required_error: "subscriptionId is required",
-      })
-     ,
-
     students: z
       .array(studentAttendanceSchema, {
         required_error: "students array is required",

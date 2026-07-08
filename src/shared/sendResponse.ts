@@ -1,25 +1,32 @@
-import { Response } from "express"
+import { Response } from "express";
 
-const sendResponse = <T>(res: Response, jsonData: {
-    statusCode: number,
-    success: boolean,
-    message: string,
-    meta?: {
-        page: number,
-        limit: number,
-        total: number
-    },
-    data: T | null | undefined
-}) => {
-    const payload = {
-        success: jsonData.success,
-        message: jsonData.message,
-        meta: jsonData.meta ?? null,
-        data: jsonData.data ?? null
-    };
+type TMeta = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPage: number;
+};
 
-    res.locals.responseBody = payload;
-    res.status(jsonData.statusCode).json(payload)
-}
+const sendResponse = <T>(
+  res: Response,
+  jsonData: {
+    statusCode: number;
+    success: boolean;
+    message: string;
+    meta?: TMeta;
+    data: T | null;
+  }
+) => {
+  const payload = {
+    success: jsonData.success,
+    message: jsonData.message,
+    meta: jsonData.meta ,
+    data: jsonData.data ?? null,
+  };
+
+  res.locals.responseBody = payload;
+
+  return res.status(jsonData.statusCode).json(payload);
+};
 
 export default sendResponse;

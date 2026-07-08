@@ -569,88 +569,194 @@ const findBySpecificStudentListOfTeachersIntoDb = async (
 
 const findBySpecificStudentAttendanceOfTeachersIntoDb = async (
   teacherId: string,
-  subscriptionId: string,
+  classDistributionId: string,
   query: Record<string, unknown>
 ) => {
   try {
-    const queryBuilder = new PrismaQueryBuilder(query)
-      .search(teacherFilterableFields)
+    // attendanceDate-কে QueryBuilder থেকে আলাদা করে নাও
+    const {
+      attendanceDate,
+      classLevel,
+      day,
+      ...studentQuery
+    } = query;
+
+    // const cacheKey = `teacher_attendance_students:${teacherId}:${classDistributionId}:${
+    //   attendanceDate || "today"
+    // }:${JSON.stringify(studentQuery)}`;
+
+    // const cachedData = await getCache(cacheKey);
+
+    // if (cachedData) {
+    //   return cachedData;
+    // }
+
+    // attendanceDate আর QueryBuilder-এ যাবে না
+    const queryBuilder = new PrismaQueryBuilder(studentQuery)
+      .search(["name", "studentId", "className"])
       .filter()
       .sort()
       .paginate();
 
     const queryOptions = queryBuilder.build();
 
-    const { classLevel, day } = query;
-    const extraFilter: Record<string, any> = {};
-
-    if (classLevel) extraFilter.classLevel = classLevel;
-    if (day) extraFilter.day = day;
-
-    // ✅ SINGLE QUERY (no ids.map)
-    const result = await prisma.student.findMany({
+    const classDistribution = await prisma.classDistribution.findFirst({
       where: {
-        subscriptions: {
-          is: { id: subscriptionId },
-        },
-        classDistributions: {
-          some: {
-            teacherId,
-            ...extraFilter,
-          },
-        },
-        ...queryOptions.where,
+        id: classDistributionId,
+        teacherId,
+        ...(classLevel ? { classLevel: String(classLevel) } : {}),
+        ...(day ? { day: String(day) } : {}),
       },
-      orderBy: queryOptions.orderBy,
-      skip: queryOptions.skip,
-      take: queryOptions.take,
       select: {
         id: true,
-        name: true,
-        studentId: true,
-        className: true,
-        photo: true,
-        staffs:{
-          select:{
-            name: true,
-            role: true,
-            generateId: true,
-            phoneNumber: true,
-            
-          }
-        },
-        
       },
     });
 
-
-    const total = await prisma.student.count({
-      where: {
-        subscriptions: {
-          is: { id: subscriptionId },
+    if (!classDistribution) {
+      return {
+        meta: {
+          page: 1,
+          limit: Number(studentQuery.limit) || 10,
+          total: 0,
+          totalPage: 0,
         },
-        classDistributions: {
-          some: {
-            teacherId,
-            ...extraFilter,
+        data: [],
+      };
+    }
+
+    /**
+     * Attendance Date Filter
+     * - Strips accidental quotes/whitespace (e.g. `"2026-05-03"` sent as-is in a URL).
+     * - Validates strict YYYY-MM-DD format before parsing.
+     * - Always builds the day window in UTC (setUTCHours), matching how
+     *   Prisma's DateTime is stored, so the filter doesn't drift by
+     *   several hours depending on the server's local timezone.
+     */
+    let filterDate: Date;
+
+    if (attendanceDate) {
+      const rawValue = Array.isArray(attendanceDate)
+        ? attendanceDate[0]
+        : attendanceDate;
+
+      // strip stray quotes / whitespace: `"2026-05-03"` -> `2026-05-03`
+      const cleanedDate = String(rawValue).trim().replace(/^["']|["']$/g, "");
+
+      const isValidFormat = /^\d{4}-\d{2}-\d{2}$/.test(cleanedDate);
+
+      if (!isValidFormat) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Invalid attendanceDate: "${cleanedDate}". Expected format YYYY-MM-DD.`
+        );
+      }
+
+      const parsed = new Date(`${cleanedDate}T00:00:00.000Z`);
+
+      if (isNaN(parsed.getTime())) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Invalid attendanceDate: "${cleanedDate}". Could not parse as a valid date.`
+        );
+      }
+
+      filterDate = parsed;
+    } else {
+      filterDate = new Date();
+      filterDate.setUTCHours(0, 0, 0, 0);
+    }
+
+    const nextDay = new Date(filterDate);
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+
+    const whereCondition = {
+      classDistributions: {
+        some: {
+          id: classDistributionId,
+        },
+      },
+      ...(queryOptions.where || {}),
+    };
+
+    const [students, total] = await Promise.all([
+      prisma.student.findMany({
+        where: whereCondition,
+        orderBy: queryOptions.orderBy,
+        skip: queryOptions.skip,
+        take: queryOptions.take,
+        select: {
+          id: true,
+          name: true,
+          studentId: true,
+          className: true,
+          photo: true,
+          staffs: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phoneNumber: true,
+            },
+          },
+          attendanceSheets: {
+            where: {
+              teacherId,
+              AttendanceDate: {
+                gte: filterDate,
+                lt: nextDay,
+              },
+            },
+            select: {
+              id: true,
+              AttendanceDate: true,
+              attendanceStatus: true,
+            },
+            orderBy: {
+              AttendanceDate: "desc",
+            },
+            take: 1,
           },
         },
-        ...queryOptions.where,
-      },
-    });
+      }),
 
-    const page = Number(query.page) || 1;
-    const limit = Number(query.limit) || 10;
+      prisma.student.count({
+        where: whereCondition,
+      }),
+    ]);
 
-    return {
+    const formattedStudents = students.map((student) => ({
+      id: student.id,
+      name: student.name,
+      studentId: student.studentId,
+      className: student.className,
+      photo: student.photo,
+      staffs: student.staffs,
+      attendanceStatus:
+        student.attendanceSheets.length > 0
+          ? student.attendanceSheets[0].attendanceStatus
+          : "ABSENT",
+      attendanceDate:
+        student.attendanceSheets.length > 0
+          ? student.attendanceSheets[0].AttendanceDate
+          : filterDate,
+    }));
+
+    const page = Number(studentQuery.page) || 1;
+    const limit = Number(studentQuery.limit) || 10;
+
+    const result = {
       meta: {
         page,
         limit,
         total,
         totalPage: Math.ceil(total / limit),
       },
-      data: result,
+      data: formattedStudents,
     };
+
+    // await setCache(cacheKey, result, 60 * 60);
+
+    return result;
   } catch (error) {
     return catchError(
       error,
@@ -672,7 +778,7 @@ const recordedStudentAttendanceOfTeachersIntoDb = async (
     const existingStudents = await prisma.student.findMany({
       where: {
         studentId: { in: students.map((s) => s.studentId) },
-        subscriptionId: subscriptionId, // 🔥 simplify
+        subscriptionId: subscriptionId, 
       },
       select: {
         id: true,
@@ -746,10 +852,12 @@ const recordedStudentAttendanceOfTeachersIntoDb = async (
 
 const updateStudentAttendanceOfTeachersIntoDb = async (
   teacherId: string,
+  subscriptionId: string,
+
   payload: RecordAttendancePayload
 ) => {
   try {
-    const { attendanceDate, subscriptionId, students } = payload;
+    const { attendanceDate,  students } = payload;
 
    
     const date = new Date(attendanceDate);
@@ -1263,6 +1371,21 @@ const deleteClassRecordingLinkOfTeachersIntoDb = async (
   }
 };
 
+const deleteAllAttendanceIntoDb = async () => {
+  try {
+    console.log("api call")
+    const result = await prisma.attendanceSheet.deleteMany({});
+    console.log("result",result)
+
+    return {
+      success: true,
+      message: "All attendance records deleted successfully.",
+      deletedCount: result.count,
+    };
+  } catch (error) {
+    throw catchError(error);
+  }
+}
 
 
 const TeacherService = {
@@ -1281,7 +1404,8 @@ const TeacherService = {
    onlineClassRecordedOfTeachersIntoDb,
    storeClassRecordingLinkOfTeachersIntoDb,
    findBySpecificStudentClassRecordingOfTeachersIntoDb ,
-   deleteClassRecordingLinkOfTeachersIntoDb
+   deleteClassRecordingLinkOfTeachersIntoDb,
+   deleteAllAttendanceIntoDb
 };
 
 

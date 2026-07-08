@@ -13,6 +13,7 @@ import { generateOtp } from "../../../utils/generateOtp";
 import sendEmail from "../../../utils/sendEmail";
 import emailContext from "../../../utils/emailcontext/sendvarificationData";
 import { AttendanceStatus } from "@prisma/client";
+import { getCache, setCache } from "../../../config/redis";
 
 const formatBranchType = (type: string) => {
   const normalizedType = type.trim().toLowerCase();
@@ -1306,6 +1307,292 @@ const deleteInstitutionBranchIntoDb = async (userId: string, branchId: string) =
 };
 
 
+const CACHE_TTL = 60 * 5; 
+
+ const branchManagementTotalCountIntoDb = async (
+  subscriptionId: string
+) => {
+  try {
+    const cacheKey = `dashboard:branch-total-count:${subscriptionId}`;
+    const cachedData = await getCache(cacheKey);
+
+    if (cachedData) {
+      return cachedData;
+    }
+
+    const [
+      totalTeacher,
+      totalBranch,
+      totalStudent,
+      totalFees,
+      studentFeesSummary,
+    ] = await Promise.all([
+      prisma.teacher.count({
+        where: {
+          subscriptionId,
+        },
+      }),
+
+      prisma.branchAdmin.count({
+        where: {
+          subscriptionId,
+        },
+      }),
+
+      prisma.student.count({
+        where: {
+          subscriptionId,
+        },
+      }),
+
+      prisma.feesManagement.aggregate({
+        where: {
+          subscriptionId,
+          isDelete: false,
+        },
+        _sum: {
+          totalFees: true,
+        },
+      }),
+
+      prisma.studentFees.aggregate({
+        where: {
+          isDelete: false,
+          feesManagement: {
+            subscriptionId,
+          },
+        },
+        _sum: {
+          paidAmount: true,
+          unpaidAmount: true,
+        },
+      }),
+    ]);
+
+    const result = {
+      totalTeacher,
+      totalBranch,
+      totalStudent,
+      totalFees: totalFees._sum.totalFees ?? 0,
+      totalPaidAmount: studentFeesSummary._sum.paidAmount ?? 0,
+      totalUnpaidAmount: studentFeesSummary._sum.unpaidAmount ?? 0,
+    };
+
+    // Save Cache
+    await setCache(cacheKey, result, CACHE_TTL);
+
+    return result;
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
+const studentGrowthIntoDb = async (
+  subscriptionId: string,
+  query: { year?: string }
+) => {
+  try {
+
+    const year = query.year
+      ? parseInt(query.year)
+      : new Date().getFullYear();
+
+    const cacheKey = `student-growth:${subscriptionId}:${year}`;
+
+    const cachedData = await getCache(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+
+    const previousYear = year - 1;
+
+    const currentYearStart = new Date(`${year}-01-01T00:00:00.000Z`);
+    const currentYearEnd = new Date(`${year}-12-31T23:59:59.999Z`);
+
+    const previousYearStart = new Date(
+      `${previousYear}-01-01T00:00:00.000Z`
+    );
+    const previousYearEnd = new Date(
+      `${previousYear}-12-31T23:59:59.999Z`
+    );
+
+    const [currentYearStudents, previousYearTotal] = await Promise.all([
+      prisma.student.findMany({
+        where: {
+          subscriptionId,
+          createdAt: {
+            gte: currentYearStart,
+            lte: currentYearEnd,
+          },
+        },
+        select: {
+          createdAt: true,
+        },
+      }),
+
+      prisma.student.count({
+        where: {
+          subscriptionId,
+          createdAt: {
+            gte: previousYearStart,
+            lte: previousYearEnd,
+          },
+        },
+      }),
+    ]);
+
+    const monthCounts = Array.from({ length: 12 }, (_, index) => ({
+      year,
+      month: index + 1,
+      count: 0,
+    }));
+
+    currentYearStudents.forEach((student) => {
+      const month = student.createdAt.getMonth(); 
+      monthCounts[month].count++;
+    });
+
+    const currentYearTotal = currentYearStudents.length;
+
+    let yearlyGrowth = 0;
+
+    if (previousYearTotal > 0) {
+      yearlyGrowth =
+        ((currentYearTotal - previousYearTotal) / previousYearTotal) * 100;
+    } else if (currentYearTotal > 0) {
+      yearlyGrowth = 100;
+    }
+
+    const result = {
+      monthlyStats: monthCounts,
+      yearlyGrowth: Number(yearlyGrowth.toFixed(2)),
+      year,
+      totalStudents: currentYearTotal,
+      previousYearTotal,
+    };
+
+    
+    await setCache(cacheKey, result, CACHE_TTL);
+
+    return result;
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
+const earningGrowthIntoDb = async (
+  subscriptionId: string,
+  query: { year?: string }
+) => {
+  try {
+    const year = query.year
+      ? parseInt(query.year)
+      : new Date().getFullYear();
+
+    const cacheKey = `earning-growth:${subscriptionId}:${year}`;
+
+    // Check Cache
+    const cachedData = await getCache(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+
+    const previousYear = year - 1;
+
+    const currentYearStart = new Date(`${year}-01-01T00:00:00.000Z`);
+    const currentYearEnd = new Date(`${year}-12-31T23:59:59.999Z`);
+
+    const previousYearStart = new Date(
+      `${previousYear}-01-01T00:00:00.000Z`
+    );
+    const previousYearEnd = new Date(
+      `${previousYear}-12-31T23:59:59.999Z`
+    );
+
+    const [currentYearPayments, previousYearEarning] = await Promise.all([
+      prisma.studentFees.findMany({
+        where: {
+          createdAt: {
+            gte: currentYearStart,
+            lte: currentYearEnd,
+          },
+          feesManagement: {
+            subscriptionId,
+          },
+        },
+        select: {
+          createdAt: true,
+          paidAmount: true,
+        },
+      }),
+
+      prisma.studentFees.aggregate({
+        where: {
+          createdAt: {
+            gte: previousYearStart,
+            lte: previousYearEnd,
+          },
+          feesManagement: {
+            subscriptionId,
+          },
+        },
+        _sum: {
+          paidAmount: true,
+        },
+      }),
+    ]);
+
+    const monthlyStats = Array.from({ length: 12 }, (_, index) => ({
+      year,
+      month: index + 1,
+      amount: 0,
+    }));
+
+    currentYearPayments.forEach((payment) => {
+      const month = payment.createdAt.getMonth();
+      monthlyStats[month].amount += payment.paidAmount;
+    });
+
+    
+    monthlyStats.forEach((item) => {
+      item.amount = Number(item.amount.toFixed(2));
+    });
+
+    const currentYearTotal = monthlyStats.reduce(
+      (sum, item) => sum + item.amount,
+      0
+    );
+
+    const previousYearTotal =
+      previousYearEarning._sum.paidAmount ?? 0;
+
+    let yearlyGrowth = 0;
+
+    if (previousYearTotal > 0) {
+      yearlyGrowth =
+        ((currentYearTotal - previousYearTotal) / previousYearTotal) * 100;
+    } else if (currentYearTotal > 0) {
+      yearlyGrowth = 100;
+    }
+
+    const result = {
+      monthlyStats,
+      yearlyGrowth: Number(yearlyGrowth.toFixed(2)),
+      year,
+      totalEarning: Number(currentYearTotal.toFixed(2)),
+      previousYearTotal: Number(previousYearTotal.toFixed(2)),
+    };
+
+    await setCache(cacheKey, result, CACHE_TTL);
+
+    return result;
+  } catch (error) {
+    throw catchError(error);
+  }
+};
+
+
+
 const BranchManagementServices = {
   create_branch_admin_IntoDb,
    findSubscriptionBranchByIdIntoDb,
@@ -1325,7 +1612,11 @@ const BranchManagementServices = {
        createInstitutionBranchIntoDb,
        updateInstitutionBranchIntoDb,
        overrideInstitutionBranchPriceIntoDb,
-       deleteInstitutionBranchIntoDb
+       deleteInstitutionBranchIntoDb,
+       branchManagementTotalCountIntoDb,
+       studentGrowthIntoDb,
+       earningGrowthIntoDb
+
 };
 
 export default BranchManagementServices;

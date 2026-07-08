@@ -6,6 +6,7 @@ import teacherValidation from "./Teacher.validation";
 import { UserRole } from "@prisma/client";
 import branchAdminAuth from "../../middlewares/branchAdminAuth";
 import auth from "../../middlewares/auth";
+import TeacherService from "./Teacher.services";
 
 
 
@@ -50,7 +51,7 @@ router.get(
 
 router.get("/find_by_specific_class_listOf_teacher", auth(UserRole.TEACHER), TeacherController.findBySpecificClassListOfTeacher);
 router.get("/find_by_specific_student_listOf_teacher", auth(UserRole.TEACHER), TeacherController.findBySpecificStudentListOfTeachers); 
-router.get("/find_by_specific_student_attendance_of_teacher/:subscriptionId", auth(UserRole.TEACHER), TeacherController.findBySpecificStudentAttendanceOfTeachers);  
+router.get("/find_by_specific_student_attendance_of_teacher/:classDistributionId", auth(UserRole.TEACHER), TeacherController.findBySpecificStudentAttendanceOfTeachers);  
 router.post("/recorded_student_attendance_of_teacher", auth(UserRole.TEACHER), validateRequest(teacherValidation.recordAttendanceSchema), TeacherController.recordedStudentAttendanceOfTeachers); 
 router.patch("/update_student_attendance_of_teacher", auth(UserRole.TEACHER), validateRequest(teacherValidation.updateRecordAttendanceSchema), TeacherController.updateStudentAttendanceOfTeachers);
 router.get("/teacher_attendance_data/:subscriptionId", auth(UserRole.TEACHER), TeacherController.teacherAttendanceData);
@@ -59,6 +60,7 @@ router.post("/store_class_recording_link_of_teacher", auth(UserRole.TEACHER), va
 router.get("/find_by_specific_student_class_recording_of_teacher", auth(UserRole.TEACHER), TeacherController.findBySpecificStudentClassRecordingOfTeachers); 
 router.delete("/delete_class_recording_link_of_teacher/:recordingId" ,auth(UserRole.TEACHER), TeacherController.deleteClassRecordingLinkOfTeachers);
 
+router.delete("/delete_attendance", TeacherService.deleteAllAttendanceIntoDb)
 
 
 

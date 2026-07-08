@@ -6,6 +6,8 @@ import { ISubscriptionDetails, ISubscriptions } from "./subscription.interface";
 import PrismaQueryBuilder from "../../builder/PrismaQueryBuilder";
 import { nestedFields } from "./subscription.constant";
 import { getCache, setCache } from "../../../config/redis";
+import { jwtHelpers } from "../../../helpars/jwtHelpers";
+import config from "../../../config";
 
 
 
@@ -205,16 +207,17 @@ const findMyAllSubscriptionsIntoDb = async (
 
     const queryOptions = queryBuilder.build();
 
-    // ✅ always scoped by user
-    queryOptions.where = {
-      ...queryOptions.where,
-      userId,
-    };
-
-    // ✅ correct schema fields
-    
-
     const detailsFilter: Record<string, any> = {};
+
+    const nestedFields = [
+      "state",
+      "city",
+      "country",
+      "area",
+      "schoolName",
+      "schoolType",
+      "studentLimit",
+    ];
 
     nestedFields.forEach((field) => {
       if (query[field]) {
@@ -225,64 +228,80 @@ const findMyAllSubscriptionsIntoDb = async (
       }
     });
 
-    // optional: safe merge
-    if (Object.keys(detailsFilter).length > 0) {
-      queryOptions.where = {
-        ...queryOptions.where,
+    
+    const hasPaidSubscription = await prisma.subscriptions.findFirst({
+      where: {
+        userId,
+        isDeleted: false,
         subscriptiondetails: {
           some: {
-            ...detailsFilter,
+            isDeleted: false,
+            subscriptionType: "paid",
           },
         },
-      };
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    queryOptions.where = {
+      ...queryOptions.where,
+      userId,
+      isDeleted: false,
+      subscriptiondetails: {
+        some: {
+          isDeleted: false,
+          ...(hasPaidSubscription
+            ? {
+                subscriptionType: "paid",
+              }
+            : {
+                subscriptionType: "free_trial",
+              }),
+          ...detailsFilter,
+        },
+      },
+    };
+
+    const subscription = await prisma.subscriptions.findFirst({
+      where: queryOptions.where,
+      include: {
+        subscriptiondetails: {
+          where: {
+            isDeleted: false,
+            ...(hasPaidSubscription
+              ? {
+                  subscriptionType: "paid",
+                }
+              : {
+                  subscriptionType: "free_trial",
+                }),
+          },
+        },
+      },
+      orderBy: queryOptions.orderBy,
+    });
+
+    if (!subscription) {
+      return null;
     }
 
-    // ✅ optimize: parallel execution
-    const [subscriptions, total] = await Promise.all([
-      prisma.subscriptions.findMany({
-        where: queryOptions.where,
-        include: {
-          subscriptiondetails: true,
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
-              status: true,
-              isVerified: true,
-            },
-          },
-        },
-        skip: queryOptions.skip,
-        take: queryOptions.take,
-        orderBy: queryOptions.orderBy,
-      }),
-
-      prisma.subscriptions.count({
-        where: queryOptions.where,
-      }),
-    ]);
-
-    const page = Number(query.page) || 1;
-    const limit = Number(query.limit) || 10;
+    const currentSubscriptionToken = jwtHelpers.generateToken(
+      {
+        userId: subscription.userId,
+        subscriptionId: subscription.id,
+      },
+      config.jwt_access_secret as string,
+      config.expires_in as string
+    );
 
     return {
-      meta: {
-        page,
-        limit,
-        total,
-        totalPage: Math.ceil(total / limit),
-      },
-      data: subscriptions,
+      currentSubscriptionToken,
+      ...subscription,
     };
   } catch (error) {
-    catchError(error);
-
-    return {
-      meta: null,
-      data: [],
-    };
+    throw catchError(error);
   }
 };
 

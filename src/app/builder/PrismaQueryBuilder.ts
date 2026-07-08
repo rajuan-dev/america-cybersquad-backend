@@ -10,9 +10,7 @@ class PrismaRelationQueryBuilder {
     this.query = query;
   }
 
-  // ==========================
-  // SEARCH
-  // ==========================
+
   search(searchableFields: string[]) {
     const searchTerm = this.query?.searchTerm;
 
