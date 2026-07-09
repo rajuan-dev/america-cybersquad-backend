@@ -79,6 +79,7 @@ model SubscriptionDetails {
   isDeleted        Boolean          @default(false)
   schoolName       String           @db.VarChar(100)
   schoolType       String           @db.VarChar(100)
+  schoolPhoto      String ?
   studentLimit     String           @db.VarChar(100)
   subscriptionType SubscriptionType
   subscriptions    Subscriptions    @relation(fields: [subscriptionId], references: [id])
@@ -602,7 +603,12 @@ model AttendanceSheet {
 model ExamAnnouncement {
   id           String   @id @default(uuid())
   examDate     DateTime
-  tipTapEditor String
+  // tipTapEditor String
+  examName     String?
+  topic        String?
+  totalMarks   String?
+  duration     String?
+  instruction  String?
 
   subscriptionId      String @db.VarChar(255)
   classDistributionId String @db.VarChar(255)
@@ -611,6 +617,7 @@ model ExamAnnouncement {
   classDistribution ClassDistribution @relation(fields: [classDistributionId], references: [id])
 
   examGrades ExamGrades[]
+  isCompleted     Boolean  @default(false)
   isDelete   Boolean      @default(false)
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt

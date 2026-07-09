@@ -74,13 +74,18 @@ const branchAdminAuth = (...roles: string[]) => {
         }break; 
 
         
-        case UserRole.TEACHER: {
+       case UserRole.TEACHER: {
 
           user=await prisma.teacher.findUnique({
             where:{id:verifiedUser.id, isVerified:true, status:UserStatus.ACTIVE},
-            select:{id:true}
+            
+            select:{id:true,subscriptionId: true ,subscriptions:{
+              select: {
+                id: true
+              }
+            }}
           }); 
-        break;
+          break;
         }
         
         

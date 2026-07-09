@@ -6,18 +6,11 @@ const createAnnouncementValidationSchema = z.object({
       required_error: "Exam date is required",
       invalid_type_error: "Invalid exam date",
     }),
-
-    tipTapEditor: z
-      .string({
-        required_error: "Exam announcement content is required",
-      })
-      .min(1, "TipTap editor content cannot be empty"),
-
-    subscriptionId: z
-      .string({
-        required_error: "Subscription ID is required",
-      })
-      .min(1, "Subscription ID cannot be empty"),
+    examName: z.string({required_error:"exam name is required"}),
+    topic: z.string({required_error:"topic is required"}),
+    totalMarks: z.string({required_error:"total marks is required"}),
+    duration: z.string({required_error:"duration is required"}),
+    instruction: z.string({required_error:"instruction is required"}),
 
     classDistributionId: z
       .string({
@@ -27,19 +20,24 @@ const createAnnouncementValidationSchema = z.object({
   }),
 });
 
-
-const  updateAnnouncementExamSchema=z.object({
+const updateAnnouncementExamSchema = z.object({
   body: z.object({
-    examDate: z.coerce.date({
-      required_error: "Exam date is required",
-      invalid_type_error: "Invalid exam date",
-    }).optional(),
+    examDate: z.coerce
+      .date({
+        invalid_type_error: "Invalid exam date",
+      })
+      .optional(),
 
     tipTapEditor: z
-      .string({
-        required_error: "Exam announcement content is required",
-      })
-      .min(1, "TipTap editor content cannot be empty").optional()
+      .string()
+      .min(1, "TipTap editor content cannot be empty")
+      .optional(),
+
+    examName: z.string().optional(),
+    topic: z.string().optional(),
+    totalMarks: z.string().optional(),
+    duration: z.string().optional(),
+    instruction: z.string().optional(),
   }),
 });
 

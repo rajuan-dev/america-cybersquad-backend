@@ -12,6 +12,7 @@ export interface ISubscriptionDetails {
   area: SchoolArea;
   schoolType: string;
   studentLimit: string;
+  schoolPhoto?: string
 }
 
 export interface ISubscriptions {

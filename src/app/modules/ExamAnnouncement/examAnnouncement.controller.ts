@@ -9,7 +9,7 @@ import httpStatus from "http-status";
 const examAnnouncementService:RequestHandler=catchAsync(async(req , res)=>{
 
 
-      const result=await ExamAnnouncementServices.examAnnouncementServiceIntoDb(req.body);
+      const result=await ExamAnnouncementServices.examAnnouncementServiceIntoDb(req.body, req.user.subscriptionId);
     sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
@@ -22,7 +22,7 @@ const examAnnouncementService:RequestHandler=catchAsync(async(req , res)=>{
 
 const  findMyAnnouncementExamList:RequestHandler=catchAsync(async(req , res)=>{
 
-    const result=await ExamAnnouncementServices.findMyAnnouncementExamListIntoDb(req.params.subscriptionId, req.user.id, req.query)
+    const result=await ExamAnnouncementServices.findMyAnnouncementExamListIntoDb(req.user.subscriptionId, req.user.id, req.query)
    sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,

@@ -198,9 +198,7 @@ const findByAllStudents_Institutional_OwnerIntoDb = async (
       .paginate()
       .fields();
 
-    const queryOptions = queryBuilder.build();
-
-    // ✅ safe extraction (no conflict)
+    const queryOptions = queryBuilder.build();// ✅ safe extraction (no conflict)
     const className = query.className;
     const branchName = query.branchName;
 

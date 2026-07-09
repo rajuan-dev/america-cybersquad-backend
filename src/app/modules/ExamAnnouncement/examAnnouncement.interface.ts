@@ -2,6 +2,11 @@ export interface TExamAnnouncement{
 
      examDate: Date,
      tipTapEditor : string;
+      examName : string
+      topic : string
+      totalMarks: string     
+      duration : string        
+      instruction    : string    
      subscriptionId: string;
      classDistributionId: string;
      isDelete:boolean;

@@ -80,7 +80,7 @@ const allCountryList:RequestHandler=catchAsync(async(req , res)=>{
 
 const allSchoolList:RequestHandler=catchAsync(async(req , res)=>{
 
-   const result=await subscriptionServices.allSchoolListIntoDb();
+   const result=await subscriptionServices.allSchoolListIntoDb(req.query);
    sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,

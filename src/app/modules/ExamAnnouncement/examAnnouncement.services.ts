@@ -14,10 +14,19 @@ import {
 
 const examAnnouncementServiceIntoDb = async (
   payload: TExamAnnouncement,
+  subscriptionId: string
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    const { examDate, tipTapEditor, classDistributionId, subscriptionId } =
-      payload;
+   
+    const { 
+      examDate, 
+      classDistributionId,
+      examName,      
+      topic,           
+      totalMarks,      
+      duration,        
+      instruction     
+    } = payload;
 
     const { students } = await prisma.$transaction(async (tx) => {
       const classDistribution = await tx.classDistribution.findUnique({
@@ -36,12 +45,17 @@ const examAnnouncementServiceIntoDb = async (
         );
       }
 
+      // ২. ডাটাবেজে ক্রিয়েট করার সময় নতুন ফিল্ডগুলো পাস করা হলো
       const announcement = await tx.examAnnouncement.create({
         data: {
           examDate,
-          tipTapEditor,
           classDistributionId,
           subscriptionId,
+          examName,        // <-- ডাটাবেজে সেভ হবে
+          topic,           // <-- ডাটাবেজে সেভ হবে
+          totalMarks,      // <-- ডাটাবেজে সেভ হবে
+          duration,        // <-- ডাটাবেজে সেভ হবে
+          instruction,     // <-- ডাটাবেজে সেভ হবে
         },
       });
 
@@ -87,17 +101,24 @@ const findMyAnnouncementExamListIntoDb = async (
   query: Record<string, unknown>,
 ) => {
   try {
-    const cacheKey = `exam-announcement:${subscriptionId}:${teacherId}:${JSON.stringify(
-      query,
-    )}`;
+    // const cacheKey = `exam-announcement:${subscriptionId}:${teacherId}:${JSON.stringify(
+    //   query,
+    // )}`;
 
-    const cachedData = await getCache(cacheKey);
+    // const cachedData = await getCache(cacheKey);
+    // if (cachedData) {
+    //   return cachedData;
+    // }
 
-    if (cachedData) {
-      return cachedData;
-    }
+    const {
+      classLevel,
+      assignableSubject,
+      page,
+      limit,
+      ...restQuery
+    } = query;
 
-    const queryBuilder = new PrismaQueryBuilder(query)
+    const queryBuilder = new PrismaQueryBuilder(restQuery)
       .search(searchableTeacherField)
       .filter()
       .sort()
@@ -106,14 +127,35 @@ const findMyAnnouncementExamListIntoDb = async (
 
     const { where, orderBy, skip, take, select } = queryBuilder.build();
 
+    const classDistributionWhere: any = {
+      teacherId,
+    };
+
+    if (typeof classLevel === "string" && classLevel.trim()) {
+      classDistributionWhere.classLevel = classLevel;
+    }
+
+    if (
+      typeof assignableSubject === "string" &&
+      assignableSubject.trim()
+    ) {
+      classDistributionWhere.assignableSubject = {
+        contains: assignableSubject,
+        mode: "insensitive" as const,
+      };
+    }
+
     const baseWhere = {
       subscriptionId,
-      classDistribution: {
-        teacherId,
-      },
       ...where,
+      classDistribution: classDistributionWhere,
     };
-    const [data, total] = await prisma.$transaction([
+
+    const currentDate = new Date();
+
+  
+    const [data, total, completedCount, upcomingCount, pendingCount] = await prisma.$transaction([
+     
       prisma.examAnnouncement.findMany({
         where: baseWhere,
         orderBy,
@@ -121,20 +163,54 @@ const findMyAnnouncementExamListIntoDb = async (
         take,
         select: select ?? {
           id: true,
-          tipTapEditor: true,
+          examName: true,
+          topic: true,
+          totalMarks: true,
+          duration: true,
+          instruction: true,
           examDate: true,
           createdAt: true,
+          isCompleted: true,
           classDistribution: {
             select: {
+              id: true,
               classLevel: true,
               assignableSubject: true,
+              teacherId: true,
             },
           },
         },
       }),
 
+     
       prisma.examAnnouncement.count({
         where: baseWhere,
+      }),
+
+      
+      prisma.examAnnouncement.count({
+        where: {
+          ...baseWhere,
+          isCompleted: true,
+        },
+      }),
+
+     
+      prisma.examAnnouncement.count({
+        where: {
+          ...baseWhere,
+          isCompleted: false,
+          examDate: { gt: currentDate },
+        },
+      }),
+
+      
+      prisma.examAnnouncement.count({
+        where: {
+          ...baseWhere,
+          isCompleted: false,
+          examDate: { lte: currentDate },
+        },
       }),
     ]);
 
@@ -142,14 +218,19 @@ const findMyAnnouncementExamListIntoDb = async (
       success: true,
       meta: {
         total,
-        page: Number(query.page) || 1,
-        limit: Number(query.limit) || 10,
-        totalPages: Math.ceil(total / (Number(query.limit) || 10)),
+        page: Number(page) || 1,
+        limit: Number(limit) || 10,
+        totalPages: Math.ceil(total / (Number(limit) || 10)),
       },
-      data,
+      statusCount: {
+        completed: completedCount,
+        upcoming: upcomingCount,
+        pending: pendingCount,
+      },
+      data: data, 
     };
 
-    await setCache(cacheKey, result, 300);
+    // await setCache(cacheKey, result, 300);
 
     return result;
   } catch (error) {
@@ -165,7 +246,11 @@ const findBySpecificAnnouncementExamIntoDb = async (id: string) => {
       },
       select: {
         id: true,
-        tipTapEditor: true,
+        examName: true, 
+        duration: true , 
+        instruction: true ,
+        topic: true ,
+
         examDate: true,
         createdAt: true,
       },
@@ -183,6 +268,7 @@ const updateAnnouncementExamIntoDb = async (
   message: string;
 }> => {
   try {
+  
     const cleanPayload = Object.fromEntries(
       Object.entries(payload).filter(([_, value]) => value !== undefined),
     );
@@ -192,12 +278,11 @@ const updateAnnouncementExamIntoDb = async (
       data: cleanPayload,
     });
 
-    return (
-      result && {
-        success: true,
-        message: "Successfully updated announcement exam",
-      }
-    );
+
+    return {
+      success: true,
+      message: "Successfully updated announcement exam",
+    };
   } catch (error) {
     return catchError(error);
   }
@@ -214,11 +299,26 @@ const deleteAnnouncementExamIntoDb = async (id: string) => {
     });
 
     if (!announcement) {
-      throw new ApiError(httpStatus.NOT_FOUND, "Exam announcement not found");
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        "Exam announcement not found",
+      );
     }
 
-    await prisma.examAnnouncement.delete({
-      where: { id },
+    await prisma.$transaction(async (tx) => {
+      // Delete child records first
+      await tx.examGrades.deleteMany({
+        where: {
+          examAnnouncementId: id,
+        },
+      });
+
+      // Then delete parent
+      await tx.examAnnouncement.delete({
+        where: {
+          id,
+        },
+      });
     });
 
     await Promise.all([
@@ -644,8 +744,6 @@ const findByExamGradesSpecificTeacherIntoDb = async (
             select: {
               examDate: true,
 
-              tipTapEditor: true,
-
               classDistribution: {
                 select: {
                   classLevel: true,
@@ -921,7 +1019,7 @@ const findByExamGradesSpecificStudentIntoDb = async (
             select: {
               examDate: true,
 
-              tipTapEditor: true,
+             
 
               classDistribution: {
                 select: {

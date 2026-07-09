@@ -94,7 +94,7 @@ const findMyChildrenAllResultIntoDb = async (
                   examAnnouncement: {
                     select: {
                       examDate: true,
-                      tipTapEditor: true,
+                      examName: true,
                       classDistribution: {
                         select: {
                           classLevel: true,

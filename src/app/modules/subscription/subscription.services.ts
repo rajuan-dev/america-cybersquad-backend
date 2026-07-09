@@ -8,13 +8,14 @@ import { nestedFields } from "./subscription.constant";
 import { getCache, setCache } from "../../../config/redis";
 import { jwtHelpers } from "../../../helpars/jwtHelpers";
 import config from "../../../config";
+import { Prisma } from "@prisma/client";
 
 
 
 const saveUserSubscriptionIntoDb = async (
   userId: string,
   payload: ISubscriptions
-): Promise<{ status: boolean; message: string }> => {
+) => {
   try {
     const { price, subscriptiondetails } = payload;
 
@@ -69,6 +70,7 @@ const saveUserSubscriptionIntoDb = async (
     return {
       status: true,
       message: "Successfully Recorded",
+      price, subscriptiondetails
     };
   } catch (error) {
     catchError(error);
@@ -423,32 +425,52 @@ const allCountryListIntoDb = async (
   }
 };
 
-const allSchoolListIntoDb=async()=>{
+const allSchoolListIntoDb = async (
+  query: Record<string, any>
+) => {
+  try {
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-   try{
+    const where: Prisma.SubscriptionDetailsWhereInput = {};
 
-    const result=await prisma.subscriptionDetails.findMany({
-      where:{},
-      select:{
-        schoolName: true , 
-        schoolType: true, 
-        country: true ,
-        area: true , 
-        city: true,
-        
+    const [result, total] = await Promise.all([
+      prisma.subscriptionDetails.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: "desc",
+        },
+        select: {
+          schoolName: true,
+          schoolType: true,
+          country: true,
+          area: true,
+          city: true,
+          schoolPhoto: true,
+        },
+      }),
 
+      prisma.subscriptionDetails.count({
+        where,
+      }),
+    ]);
 
-      }
-    },);
-
-    return result;
-
-
-   }
-   catch(error){
+    return {
+      meta: {
+        total,
+        page,
+        limit,
+        totalPage: Math.ceil(total / limit),
+      },
+      data: result,
+    };
+  } catch (error) {
     throw catchError(error);
-   }
-}
+  }
+};
 
 
 

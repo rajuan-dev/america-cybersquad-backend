@@ -16,7 +16,7 @@ router.post(
   ExamAnnouncementController.examAnnouncementService,
 );
 router.get(
-  "/find_my_announcement_exam_list/:subscriptionId",
+  "/find_my_announcement_exam_list",
   auth(UserRole.TEACHER),
   ExamAnnouncementController.findMyAnnouncementExamList,
 );
@@ -80,3 +80,8 @@ router.get("/find_by_exam_grades_specific_student/:subscriptionId", auth(UserRol
 const examAnnouncementRouter = router;
 
 export default examAnnouncementRouter;
+
+// database password: 7s*n3BQN.Nb6jd4
+
+
+
