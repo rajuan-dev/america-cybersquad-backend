@@ -9,7 +9,7 @@ import httpStatus from "http-status";
 const createAssignments:RequestHandler=catchAsync(async(req , res)=>{
 
 
-      const  result=await AssignmentsServices.createAssignmentsIntoDb(req.user.id, req.body);
+      const  result=await AssignmentsServices.createAssignmentsIntoDb(req.user.id, req.user. subscriptionId, req.body);
           sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,

@@ -428,15 +428,15 @@ const findByParticipantStudentListIntoDb = async (
   query: Record<string, unknown>,
 ) => {
   try {
-    const cacheKey = `participant-students:${examAnnouncementId}:${JSON.stringify(
-      query,
-    )}`;
+    // const cacheKey = `participant-students:${examAnnouncementId}:${JSON.stringify(
+    //   query,
+    // )}`;
 
-    const cachedData = await getCache(cacheKey);
+    // const cachedData = await getCache(cacheKey);
 
-    if (cachedData) {
-      return cachedData;
-    }
+    // if (cachedData) {
+    //   return cachedData;
+    // }
 
     const queryBuilder = new PrismaQueryBuilder(query)
       .search(searchableAttendedStudent)
@@ -445,7 +445,7 @@ const findByParticipantStudentListIntoDb = async (
       .paginate()
       .fields();
 
-    const { where, orderBy, skip, take, select } = queryBuilder.build();
+    const { where, orderBy, skip, take } = queryBuilder.build();
 
     const examAnnouncement = await prisma.examAnnouncement.findUnique({
       where: {
@@ -464,6 +464,7 @@ const findByParticipantStudentListIntoDb = async (
       };
     }
 
+    // Only students who have NOT been graded
     const baseWhere = {
       classDistributions: {
         some: {
@@ -471,20 +472,22 @@ const findByParticipantStudentListIntoDb = async (
         },
       },
 
+      examGrades: {
+        none: {
+          examAnnouncementId,
+        },
+      },
+
       ...where,
     };
 
-    const [data, total] = await prisma.$transaction([
+    const [students, total] = await prisma.$transaction([
       prisma.student.findMany({
         where: baseWhere,
-
         orderBy,
-
         skip,
-
         take,
-
-        select: select ?? {
+        select: {
           id: true,
           name: true,
           studentId: true,
@@ -497,20 +500,26 @@ const findByParticipantStudentListIntoDb = async (
       }),
     ]);
 
+    const data = students.map((student) => ({
+      id: student.id,
+      name: student.name,
+      studentId: student.studentId,
+      createdAt: student.createdAt,
+      isGraded: false,
+    }));
+
     const result = {
       success: true,
-
       meta: {
         total,
         page: Number(query.page) || 1,
         limit: Number(query.limit) || 10,
         totalPages: Math.ceil(total / (Number(query.limit) || 10)),
       },
-
       data,
     };
 
-    await setCache(cacheKey, result, 300);
+    // await setCache(cacheKey, result, 300);
 
     return result;
   } catch (error) {
@@ -624,15 +633,7 @@ const findByExamGradesSpecificTeacherIntoDb = async (
 ) => {
   try {
 
-    const cacheKey = `teacher-exam-grades:${subscriptionId}:${teacherId}:${JSON.stringify(
-      query,
-    )}`;
-
-    const cachedData = await getCache(cacheKey);
-
-    if (cachedData) {
-      return cachedData;
-    }
+   
 
    
 
@@ -693,14 +694,6 @@ const findByExamGradesSpecificTeacherIntoDb = async (
           },
         },
 
-        {
-          examAnnouncement: {
-            tipTapEditor: {
-              contains: searchTerm,
-              mode: "insensitive",
-            },
-          },
-        },
 
         {
           examAnnouncement: {
@@ -743,6 +736,8 @@ const findByExamGradesSpecificTeacherIntoDb = async (
           examAnnouncement: {
             select: {
               examDate: true,
+              examName: true , 
+
 
               classDistribution: {
                 select: {
@@ -783,8 +778,7 @@ const findByExamGradesSpecificTeacherIntoDb = async (
     };
 
     
-    await setCache(cacheKey, result, 300);
-
+    
     return result;
   } catch (error) {
     return catchError(error);

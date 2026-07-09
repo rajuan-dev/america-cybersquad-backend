@@ -108,7 +108,7 @@ const  findMyAnnouncementExamList:RequestHandler=catchAsync(async(req , res)=>{
 
   const findByExamGradesSpecificTeacher:RequestHandler=catchAsync(async(req , res)=>{
 
-     const result=await ExamAnnouncementServices.findByExamGradesSpecificTeacherIntoDb(req.params.subscriptionId, req.user.id, req.query);
+     const result=await ExamAnnouncementServices.findByExamGradesSpecificTeacherIntoDb(req.user.subscriptionId, req.user.id, req.query);
          sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,

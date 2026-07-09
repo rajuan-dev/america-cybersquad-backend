@@ -13,49 +13,49 @@ import { deleteFileIfExists } from "../../../utils/deleteFiles/deleteFileIfExist
 
 const createAssignmentsIntoDb = async (
   teacherId: string,
+  subscriptionId: string,
   payload: TAssignments
-):Promise<{status: boolean, message: string}> => {
+): Promise<{ status: boolean; message: string }> => {
   try {
-   
     if (
       !payload.assignmentTitle ||
       !payload.assignmentType ||
       !payload.assignmentDueDate ||
       !payload.description ||
       !payload.classDistributionId ||
-      !payload.subscriptionId
+      !subscriptionId
     ) {
       throw new ApiError(
         httpStatus.BAD_REQUEST,
-        "Required fields missing"
+        "Required fields are missing"
       );
     }
-    const isExistClassDistributionId =
-      await prisma.classDistribution.findFirst({
-        where: {
-          id: payload.classDistributionId,
-          subscriptionId: payload.subscriptionId,
-          teacherId,
-        },
-        select: {
-          students: {
-            select: {
-              id: true,
-            },
+
+    const classDistribution = await prisma.classDistribution.findFirst({
+      where: {
+        id: payload.classDistributionId,
+        teacherId,
+        subscriptionId,
+      },
+      select: {
+        id: true,
+        students: {
+          select: {
+            id: true,
           },
         },
-      });
+      },
+    });
 
-    if (!isExistClassDistributionId) {
+    if (!classDistribution) {
       throw new ApiError(
         httpStatus.NOT_FOUND,
         "Class distribution not found"
       );
-    };
-    
+    }
 
-    const result = await prisma.$transaction(async (tx) => {
-      const assignment = await tx.classAssignment.create({
+    await prisma.$transaction(async (tx) => {
+      await tx.classAssignment.create({
         data: {
           assignmentTitle: payload.assignmentTitle,
           assignmentType: payload.assignmentType,
@@ -63,23 +63,20 @@ const createAssignmentsIntoDb = async (
           description: payload.description,
           attachmentFiles: payload.attachmentFiles ?? [],
           classDistributionId: payload.classDistributionId,
-          subscriptionId: payload.subscriptionId,
+          subscriptionId,
         },
       });
 
-     
-      if (isExistClassDistributionId.students?.length) {
+      if (classDistribution.students.length > 0) {
         await tx.notification.createMany({
-          data: isExistClassDistributionId.students.map((student) => ({
+          data: classDistribution.students.map((student) => ({
             title: "📚 New Assignment Added",
-            message: `A new assignment has been uploaded.`,
+            message: "A new assignment has been uploaded.",
             studentId: student.id,
-            subscriptionId: payload.subscriptionId!,
+            subscriptionId,
           })),
         });
       }
-
-      return assignment;
     });
 
     const io = getSocketIO() as any;
@@ -87,51 +84,58 @@ const createAssignmentsIntoDb = async (
     const notificationPayload = {
       id: Date.now(),
       title: "📚 New Assignment Added",
-      message: `A new assignment has been uploaded.`,
+      message: "A new assignment has been uploaded.",
       createdBy: UserRole.TEACHER,
       timestamp: new Date().toISOString(),
     };
 
-   
+    // Emit to whole class
     io.to(`class::${payload.classDistributionId}`).emit(
       "notification",
       notificationPayload
     );
 
-    if (isExistClassDistributionId.students?.length) {
-      isExistClassDistributionId.students.forEach((student) => {
-        io.to(`user::${student.id}`).emit(
-          "notification",
-          notificationPayload
-        );
-      });
-    }
+    // Emit to each student
+    classDistribution.students.forEach((student) => {
+      io.to(`user::${student.id}`).emit(
+        "notification",
+        notificationPayload
+      );
+    });
 
-    return result  && {
-        status: true , 
-        message:"A new assignment has been uploaded"
+    return {
+      status: true,
+      message: "A new assignment has been uploaded.",
     };
   } catch (error) {
     return catchError(error);
   }
 };
-
 const findBySpecificTeacherAssignmentIntoDb = async (
   teacherId: string,
   query: Record<string, unknown>
 ) => {
   try {
-
     const cacheKey = `teacher-assignments:${teacherId}:${JSON.stringify(
       query
     )}`;
 
     const cachedData = await getCache(cacheKey);
+
     if (cachedData) {
       return cachedData;
     }
 
-    const queryBuilder = new PrismaQueryBuilder(query)
+    // Remove custom query params before PrismaQueryBuilder
+    const {
+      status,
+      assignmentType,
+      fromDate,
+      toDate,
+      ...restQuery
+    } = query;
+
+    const queryBuilder = new PrismaQueryBuilder(restQuery)
       .search(searchableAssignment)
       .filter()
       .sort()
@@ -139,28 +143,30 @@ const findBySpecificTeacherAssignmentIntoDb = async (
 
     const queryOptions = queryBuilder.build();
 
-    
-    const {
-      assignmentType,
-      assessmentAvailable,
-      fromDate,
-      toDate,
-    } = query;
-
     const extraFilter: Record<string, any> = {};
 
-    // ✅ Assignment Type
+    // Assignment Type
     if (assignmentType) {
       extraFilter.assignmentType = assignmentType;
     }
 
-    // ✅ Assessment
-    if (assessmentAvailable !== undefined) {
-      extraFilter.assessmentAvailable =
-        assessmentAvailable === "true";
+    // Status Filter
+    switch (status) {
+      case "completed":
+        extraFilter.assessmentAvailable = true;
+        break;
+
+      case "active":
+        extraFilter.assessmentAvailable = false;
+        break;
+
+      case "all":
+      default:
+        // No filter
+        break;
     }
 
-    // ✅ Date Range
+    // Date Filter
     if (fromDate || toDate) {
       extraFilter.assignmentDueDate = {};
 
@@ -175,83 +181,64 @@ const findBySpecificTeacherAssignmentIntoDb = async (
           toDate as string
         );
       }
+    }
+
+    const whereCondition = {
+      classDistributions: {
+        teacherId,
+      },
+
+      ...queryOptions.where,
+      ...extraFilter,
     };
 
+    const [assignments, total] = await prisma.$transaction([
+      prisma.classAssignment.findMany({
+        where: whereCondition,
+        orderBy: queryOptions.orderBy,
+        skip: queryOptions.skip,
+        take: queryOptions.take,
+        select: {
+          id: true,
+          assignmentTitle: true,
+          assignmentType: true,
+          assignmentDueDate: true,
+          description: true,
+          attachmentFiles: true,
+          assessmentAvailable: true,
+          createdAt: true,
+          updatedAt: true,
 
-
-    // ✅ Main Query
-    const result = await prisma.classAssignment.findMany({
-      where: {
-
-        classDistributions: {
-          teacherId,
-        },
-
-        ...extraFilter,
-        ...queryOptions.where,
-      },
-
-      orderBy: queryOptions.orderBy,
-
-      skip: queryOptions.skip,
-      take: queryOptions.take,
-
-      select: {
-        id: true,
-        assignmentTitle: true,
-        assignmentType: true,
-        assignmentDueDate: true,
-        description: true,
-        attachmentFiles: true,
-        assessmentAvailable: true,
-        createdAt: true,
-        updatedAt: true,
-
-        classDistributions: {
-          select: {
-            id: true,
-            classLevel: true,
-          },
-        },
-      },
-    });
-
-    // ✅ Total Count
-    const totalAssignments =
-      await prisma.classAssignment.count({
-        where: {
-         
           classDistributions: {
-            teacherId,
+            select: {
+              id: true,
+              classLevel: true,
+            },
           },
-
-          ...extraFilter,
-          ...queryOptions.where,
         },
-      });
+      }),
 
-    // ✅ Pagination Meta
+      prisma.classAssignment.count({
+        where: whereCondition,
+      }),
+    ]);
+
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
 
-    
-    const responseData = {
+    const response = {
       meta: {
+        total,
         page,
         limit,
-        total: totalAssignments,
-        totalPage: Math.ceil(
-          totalAssignments / limit
-        ),
+        totalPage: Math.ceil(total / limit),
       },
-
-      data: result,
+      data: assignments,
     };
 
-    
-    await setCache(cacheKey, responseData, 600);
+    await setCache(cacheKey, response, 600);
 
-    return responseData;
+    return response;
   } catch (error) {
     return catchError(
       error,

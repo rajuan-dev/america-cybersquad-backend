@@ -59,7 +59,7 @@ router.post(
 );
 
 router.get(
-  "/find_by_exam_grades_specific_teacher/:subscriptionId",
+  "/find_by_exam_grades_specific_teacher",
   auth(UserRole.TEACHER),
   ExamAnnouncementController.findByExamGradesSpecificTeacher,
 );

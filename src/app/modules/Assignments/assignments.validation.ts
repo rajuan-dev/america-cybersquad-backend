@@ -5,7 +5,7 @@ const assignmentSchema = z.object({
 
     
    body: z.object({
-    subscriptionId: z.string({required_error:"subscriptionId is required"}),
+    // subscriptionId: z.string({required_error:"subscriptionId is required"}),
     classDistributionId: z.string({required_error:"classDistributionId is required"}),
     
     classLevel: z.string({required_error:" class level is required"}),
