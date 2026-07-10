@@ -30,6 +30,7 @@ const branchAdminLoginSchema = z.object({
     emailAddress: z.string().email().optional(),
     joinDate: z.string().optional(),
     assignBranch: z.string().min(1).optional(),
+    subscriptionId: z.string().min(1).optional(),
   }),
 });
 

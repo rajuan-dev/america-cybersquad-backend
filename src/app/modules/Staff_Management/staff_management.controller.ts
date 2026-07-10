@@ -46,7 +46,7 @@ const  loginStaffManagement:RequestHandler=catchAsync(async(req , res)=>{
 
 const findByAllStaffManagement:RequestHandler=catchAsync(async(req , res)=>{
 
-    const result=await StaffManagementServices.findByAllStaffManagementIntoDb(req.params.subscriptionId, req.query);
+    const result=await StaffManagementServices.findByAllStaffManagementIntoDb(req.user.subscriptionId, req.query);
         sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,

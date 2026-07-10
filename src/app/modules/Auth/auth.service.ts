@@ -56,6 +56,8 @@ const mapBackendRoleToUiRole = (role: string) => {
       return "parent";
     case UserRole.NURSE:
       return "nurse";
+    case UserRole.BURSAR:
+      return "bursar";
     case UserRole.SUPER_ADMIN:
       return "super_admin";
     default:
@@ -253,7 +255,12 @@ const fetchLoginCandidate = async (
       };
     },
     async (): Promise<LoginCandidate | null> => {
-      if (role && role !== UserRole.parent && role !== UserRole.NURSE) {
+      if (
+        role &&
+        role !== UserRole.parent &&
+        role !== UserRole.NURSE &&
+        role !== UserRole.BURSAR
+      ) {
         return null;
       }
 
@@ -327,6 +334,7 @@ const loginUserIntoDb = async (payload: Partial<TUser>) => {
       UserRole.STUDENT,
       UserRole.parent,
       UserRole.NURSE,
+      UserRole.BURSAR,
     ]);
 
     if (payload.role && !supportedRoles.has(String(payload.role))) {
@@ -457,6 +465,7 @@ const refreshTokenIntoDb = async (token: string) => {
         break;
 
       case UserRole.NURSE:
+      case UserRole.BURSAR:
       case UserRole.parent:
         user = await prisma.staff.findUnique({
           where: { id },

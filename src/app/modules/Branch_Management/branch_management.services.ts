@@ -12,7 +12,7 @@ import { JwtPayload } from "jsonwebtoken";
 import { generateOtp } from "../../../utils/generateOtp";
 import sendEmail from "../../../utils/sendEmail";
 import emailContext from "../../../utils/emailcontext/sendvarificationData";
-import { AttendanceStatus } from "@prisma/client";
+import { AttendanceStatus, UserRole } from "@prisma/client";
 import { getCache, setCache } from "../../../config/redis";
 
 const formatBranchType = (type: string) => {
@@ -200,7 +200,6 @@ const create_branch_admin_IntoDb = async (
       phoneNumber,
       emailAddress,
       password,
-      role,
       joinDate,
       assignBranch,
       subscriptionId
@@ -210,15 +209,47 @@ const create_branch_admin_IntoDb = async (
       Number(config.bcrypt_salt_rounds)
     );
 
-    // ⚡ Parallel duplicate checks
-    const [ branchExists] = await Promise.all([
-     
+    const institutionBranch = await prisma.institutionBranch.findFirst({
+      where: {
+        userId,
+        name: assignBranch,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        name: true,
+        subscriptionId: true,
+      },
+    });
+
+    if (!institutionBranch) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Assigned branch was not found");
+    }
+
+    const [existingEmail, existingPhone, existingBranchAdmin] = await Promise.all([
       prisma.branchAdmin.findUnique({ where: { emailAddress } }),
+      prisma.branchAdmin.findUnique({ where: { phoneNumber } }),
+      prisma.branchAdmin.findFirst({
+        where: {
+          userId,
+          assignBranch,
+        },
+        select: {
+          id: true,
+        },
+      }),
     ]);
 
+    if (existingEmail) {
+      throw new ApiError(httpStatus.CONFLICT, "Email address is already in use");
+    }
 
-    if (branchExists) {
-      throw new ApiError(httpStatus.CONFLICT, "Branch Under User already assigned");
+    if (existingPhone) {
+      throw new ApiError(httpStatus.CONFLICT, "Phone number is already in use");
+    }
+
+    if (existingBranchAdmin) {
+      throw new ApiError(httpStatus.CONFLICT, "This branch already has an assigned admin");
     }
 
   
@@ -229,9 +260,9 @@ const create_branch_admin_IntoDb = async (
         emailAddress,
         password: hashedPassword,
         joinDate: new Date(joinDate),
-        assignBranch,
-        subscriptionId,
-        role,
+        assignBranch: institutionBranch.name,
+        subscriptionId: subscriptionId || institutionBranch.subscriptionId || null,
+        role: UserRole.BRANCH_ADMIN,
         userId,
       },
     });
@@ -417,8 +448,10 @@ const findByAllBranchIntoDb = async (
         phoneNumber: true,
         emailAddress: true,
         role: true,
+        status: true,
         joinDate: true,
         assignBranch: true,
+        subscriptionId: true,
         createdAt: true,
         updatedAt: true
 
@@ -474,10 +507,86 @@ const updateByBranchAdminIntoDb = async (
 
     const updatedPayload: Partial<TBranchAdmin> = { ...payload };
 
+    if (updatedPayload.emailAddress) {
+      const existingEmail = await prisma.branchAdmin.findFirst({
+        where: {
+          emailAddress: updatedPayload.emailAddress,
+          NOT: {
+            id,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (existingEmail) {
+        throw new ApiError(httpStatus.CONFLICT, "Email address is already in use");
+      }
+    }
+
+    if (updatedPayload.phoneNumber) {
+      const existingPhone = await prisma.branchAdmin.findFirst({
+        where: {
+          phoneNumber: updatedPayload.phoneNumber,
+          NOT: {
+            id,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (existingPhone) {
+        throw new ApiError(httpStatus.CONFLICT, "Phone number is already in use");
+      }
+    }
+
     if (updatedPayload.joinDate) {
       updatedPayload.joinDate = new Date(
         updatedPayload.joinDate
       );
+    }
+
+    if (updatedPayload.assignBranch) {
+      const institutionBranch = await prisma.institutionBranch.findFirst({
+        where: {
+          userId,
+          name: updatedPayload.assignBranch,
+          isDeleted: false,
+        },
+        select: {
+          id: true,
+          name: true,
+          subscriptionId: true,
+        },
+      });
+
+      if (!institutionBranch) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Assigned branch was not found");
+      }
+
+      const branchAlreadyAssigned = await prisma.branchAdmin.findFirst({
+        where: {
+          userId,
+          assignBranch: updatedPayload.assignBranch,
+          NOT: {
+            id,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (branchAlreadyAssigned) {
+        throw new ApiError(httpStatus.CONFLICT, "This branch already has an assigned admin");
+      }
+
+      updatedPayload.assignBranch = institutionBranch.name;
+      updatedPayload.subscriptionId =
+        updatedPayload.subscriptionId || institutionBranch.subscriptionId || undefined;
     }
 
     await prisma.branchAdmin.update({
@@ -972,13 +1081,38 @@ const findInstitutionBranchOptionsIntoDb = async (userId: string) => {
     select: {
       id: true,
       name: true,
+      subscriptionId: true,
     },
     orderBy: {
       name: "asc",
     },
   });
 
-  return branches;
+  const branchNames = branches.map((branch) => branch.name);
+  const assignedAdmins = branchNames.length
+    ? await prisma.branchAdmin.findMany({
+        where: {
+          userId,
+          assignBranch: {
+            in: branchNames,
+          },
+        },
+        select: {
+          id: true,
+          assignBranch: true,
+        },
+      })
+    : [];
+
+  const assignedMap = new Map(
+    assignedAdmins.map((admin) => [admin.assignBranch, admin.id])
+  );
+
+  return branches.map((branch) => ({
+    ...branch,
+    hasAssignedAdmin: assignedMap.has(branch.name),
+    assignedAdminId: assignedMap.get(branch.name) || null,
+  }));
 };
 
 const findInstitutionBranchStatsIntoDb = async (

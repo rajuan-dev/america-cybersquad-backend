@@ -23,7 +23,7 @@ const createTeacherIntoDb = async (
   payload: Partial<Teacher>
 ): Promise<{ status: true; message: string }> => {
   try {
-    const { teacherName, email, password, phoneNumber, branchName, subject, assignClass, address, subscriptionId } = payload;
+    const { teacherName, email, password, phoneNumber, subject, assignClass, address } = payload;
 
     if (!teacherName || !email || !password) {
       throw new Error("teacherName, email, and password are required");
@@ -37,12 +37,30 @@ const createTeacherIntoDb = async (
       throw new ApiError(httpStatus.FOUND, "Teacher with this email already exists");
     }
 
+    const branchAdmin = await prisma.branchAdmin.findUnique({
+      where: { id: branchAdminId },
+      select: {
+        id: true,
+        assignBranch: true,
+        subscriptionId: true,
+      },
+    });
+
+    if (!branchAdmin) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Branch admin not found");
+    }
+
+    if (!branchAdmin.subscriptionId) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Assigned branch subscription is missing for this branch admin"
+      );
+    }
+
     const hashedPassword = await bcrypt.hash(
           payload.password as string,
           Number(config.bcrypt_salt_rounds)
         );
-
-        console.log("Hashed password:", hashedPassword); // Debugging log
 
     const teacher = await prisma.teacher.create({
       data: {
@@ -53,11 +71,11 @@ const createTeacherIntoDb = async (
         role : UserRole.TEACHER,
         teacherId: await generateTeacherId(UserRole.TEACHER),
         phoneNumber: phoneNumber ?? "",
-        branchName: branchName ?? "",
+        branchName: branchAdmin.assignBranch,
         subject: subject ?? [],
         assignClass: assignClass ?? [],
         address: address ?? "",
-        subscriptionId: subscriptionId ?? "",
+        subscriptionId: branchAdmin.subscriptionId,
         createdAt: new Date(),
         updatedAt: new Date(),
       },

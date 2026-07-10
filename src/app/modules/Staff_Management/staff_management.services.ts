@@ -17,6 +17,25 @@ const createStaffManagementIntoDb = async (
   payload: TStaffManagement
 ) => {
   try {
+    const branchAdmin = await prisma.branchAdmin.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        subscriptionId: true,
+      },
+    });
+
+    if (!branchAdmin) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Branch admin not found");
+    }
+
+    if (!branchAdmin.subscriptionId) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Assigned branch subscription is missing for this branch admin"
+      );
+    }
+
     const isExistAccount = await prisma.staff.findFirst({
       where: { email: payload.email },
     });
@@ -46,7 +65,7 @@ const createStaffManagementIntoDb = async (
             name: payload.name,
             role: payload.role,
             phoneNumber: payload.phoneNumber,
-            subscriptionId: payload.subscriptionId,
+            subscriptionId: branchAdmin.subscriptionId,
           },
         });
         break;
@@ -61,7 +80,7 @@ const createStaffManagementIntoDb = async (
             name: payload.name,
             role: payload.role,
             phoneNumber: payload.phoneNumber,
-            subscriptionId: payload.subscriptionId,
+            subscriptionId: branchAdmin.subscriptionId,
           },
         });
         break;
@@ -76,7 +95,10 @@ const createStaffManagementIntoDb = async (
         }
 
         const isExistStudent = await prisma.student.findFirst({
-          where: { studentId: payload.studentId },
+          where: {
+            studentId: payload.studentId,
+            subscriptionId: branchAdmin.subscriptionId,
+          },
           select: { id: true },
         }, );
 
@@ -96,7 +118,7 @@ const createStaffManagementIntoDb = async (
             role: payload.role,
             sId: isExistStudent.id,
             phoneNumber: payload.phoneNumber,
-            subscriptionId: payload.subscriptionId,
+            subscriptionId: branchAdmin.subscriptionId,
             studentId: payload.studentId,
           },
         });
@@ -228,6 +250,7 @@ const findByAllStaffManagementIntoDb = async (
         role: true,
         studentId: true,
         photo: true,
+        status: true,
         createdAt: true,
         updatedAt: true,
 
@@ -274,6 +297,10 @@ const findBySpecificStaffIntoDb=async(id:string)=>{
       id:true ,
       name: true,
       email: true , 
+      role: true,
+      studentId: true,
+      generateId: true,
+      status: true,
       phoneNumber:true , 
       photo:true,
       createdAt:true , 
